@@ -1,0 +1,70 @@
+#pragma once
+
+#include "domain/AirfoilProfile.h"
+
+#include <cstddef>
+#include <vector>
+
+namespace designrc::domain {
+
+struct RibDefinition {
+  double spanPosition{};
+  double chord{};
+  double leadingEdgeOffset{};
+  double dihedralHeight{};
+  double twistDegrees{};
+  double ribPlaneAngleDegrees{}; // span-plane normal angle above horizontal
+  double ribThicknessStartFactor{-0.5}; // start face in material-thickness units
+  AirfoilProfile profile;
+};
+
+struct WingParameters {
+  double halfSpan{700.0};
+  double rootChord{240.0};
+  double tipChord{150.0};
+  double sweep{70.0};
+  double dihedralDegrees{4.0};
+  double rootTwistDegrees{0.0};
+  double tipTwistDegrees{0.0};
+  double ribThickness{3.0};
+  std::size_t ribCount{9};
+};
+
+// Translation accompanying twist: positive twist raises the trailing edge,
+// negative twist raises the leading edge, without lowering the airfoil bottom.
+[[nodiscard]] Point2 ribTwistTranslation(const RibDefinition& rib);
+[[nodiscard]] double untwistedRibBottom(const RibDefinition& rib);
+
+struct WingMetrics {
+  double fullSpan{};
+  double planformArea{};
+  double aspectRatio{};
+  double taperRatio{};
+};
+
+struct PanelAssemblyAngles {
+  double panelInclinationDegrees{};
+  double rootRibAngleDegrees{};
+  double intermediateRibAngleDegrees{};
+  double tipRibAngleDegrees{};
+};
+
+struct PanelTwistRange {
+  double rootTwistDegrees{};
+  double tipTwistDegrees{};
+};
+
+[[nodiscard]] std::vector<PanelAssemblyAngles> calculatePanelAssemblyAngles(
+    const std::vector<double>& panelDihedralDegrees);
+
+[[nodiscard]] std::vector<PanelTwistRange> calculatePanelTwistRanges(
+    const std::vector<double>& panelTwistDegrees);
+
+[[nodiscard]] std::vector<RibDefinition> generateRibs(
+    const WingParameters& parameters,
+    const AirfoilProfile& root,
+    const AirfoilProfile& tip);
+
+[[nodiscard]] WingMetrics calculateWingMetrics(const WingParameters& parameters);
+
+} // namespace designrc::domain

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>FoamAirplaneStudio help</title></head>
+<body>
+<h1>FoamAirplaneStudio</h1>
+<h2>Project files</h2>
+<p>File &gt; New starts an empty project. Open restores a .foam project. Save
+writes the current project; Save As chooses another filename. Close Project
+clears the editor but keeps the app open. New, Open, Close and app exit offer
+Save, Discard or Cancel when there are unsaved changes.</p>
+<p>Projects store the reference filename and embedded page images, units and scale,
+all sketches and their roles, station attachments, airfoil assignments, per-panel dihedral and lightening,
+control-surface and spar settings,
+unfinished sketches, current mode, viewport tab, 2D zoom/position and 3D camera.
+External reference and airfoil files are not required to reopen a saved project.
+The 3D model is regenerated from its saved inputs. The title shows the filename
+and a mark when the project has changed.</p>
+<h2>Reference</h2>
+<p>Start in Reference. To unlock Wing, enter both Wingspan and Fuselage Length,
+or load an image and select a valid Reference is to scale option. An image alone
+does not unlock Wing. Clearing either required manual dimension locks Wing again.
+Fuselage becomes available after every Wing station has an airfoil; its modeling editors remain under development.</p>
+<p>Choose Load Image to open PNG, JPG/JPEG, or PDF artwork in the 2D background.
+All pages of a PDF load below one another. The loaded path appears below the button.</p>
+<p>File and folder dialogs remember their last accepted selection, including after
+New or restarting the app. Cancel leaves the remembered selection unchanged.</p>
+<p>Loading or resizing fits the image/page stack to the viewport width. Use the mouse wheel to zoom and the scrollbars to scroll explicitly. Fit View restores width fitting.</p>
+<p>Choose Reference is to scale to use the file's physical image/page size and
+units. This choice is unavailable for raster images without physical resolution
+metadata. PDF page units display as inches; metric image metadata displays as mm.</p>
+<p>Choose Specify Dimensions to select Project Units and enter positive decimal
+Wingspan and Fuselage Length values. Entries accept mm/in suffixes and retain their entered text and physical size when project units change.
+Full Wingspan scales the traced half-wing and its mirrored partner uniformly;
+page margins are not assumed to be part of the aircraft.</p>
+<p>The reference and dimensions remain when switching component tools. New clears
+them. The reference appears only in 2D. Use the View menu for fit/camera commands.</p>
+<p>Other component editors, Assembly, and Export remain under development.</p>
+<h2>Wing tools</h2>
+<p>Outline is the first available Wing tool. Defining it unlocks Airfoil Stations,
+then Airfoils, then Dihedral. With assigned airfoils, Ailerons/Flaps, Spars, and
+Lightening are enabled together. Zero-degree dihedral defaults already count as defined.
+Earlier steps remain editable. Ailerons/Flaps, Spars and
+Lightening are implemented.</p>
+<p>In Wing / Airfoils, load a .dat file or use Sketch Airfoil to trace a named
+profile. Select an airfoil radio button and click an unassigned station to assign
+it. Clicking an assigned station displays its own airfoil choice; changing the
+radio changes only that station. A station is automatically selected on entering
+Airfoils. Escape and clicks away from stations keep it selected.
+Assign every station on every panel to unlock Dihedral and automatic 3D generation.</p>
+<p>Sketch Airfoil asks for a name. Use the Line/Spline toggles beneath it to draw
+one closed loop, with leading edge left and trailing edge right. Loading and
+assignment are disabled while drawing. Click the
+first point to close a spline, or join multiple curves at their endpoints.
+Escape or pressing Sketch Airfoil again ends sketching. Invalid or multiple
+loops produce a warning and are discarded; you can still exit. Profiles and
+assignments and unfinished sketches are retained in saved .foam projects.</p>
+<p>Dihedral has one Root Dihedral angle per panel. The first is relative to horizontal; later angles add to the preceding panel angle. Positive angles raise the tips. The outermost tip is always rounded while preserving its traced outline. Older projects load with zero angles and their former tip choice is replaced by rounding.</p>
+<p>With complete outlines and every station assigned, open 3D View in any Wing
+tool to generate the mirrored wing bodies. Wing edits regenerate the model
+while viewing 3D, or when you next enter it. Incomplete or invalid inputs clear
+the old model and show a reason in the status bar. Return to 2D to edit sketches.</p>
+<p>In Ailerons/Flaps, check Add Ailerons or Add Flaps and draw a rectangle with
+two opposite-corner clicks or a drag. Place its hinge edge inside the wing and
+extend the opposite edge past the trailing edge. Ailerons are magenta; flaps are
+orange. Escape cancels an unfinished rectangle; Draw Rectangle replaces an
+existing one. Unchecking disables its cut while retaining the settings.</p>
+<p>Tape Hinge Cut keeps top contact with a 45-degree gap below. Standard Hinge Cut
+keeps center contact with 45-degree gaps above and below. Relief is removed from
+the control surface only. Both halves contain separate fixed/control bodies.
+Rectangles must not overlap. An overlapping redraw is rejected with a message in the data panel; draw a replacement or press Escape. Existing overlapping projects can be opened for correction, but cannot generate a wing until corrected. Both spanwise ends have a 1/16-inch (1.5875 mm)
+clearance removed from the control surface. Cuts are made before mirroring.</p>
+<p>When not drawing, click a rectangle to highlight it. Escape clears the highlight;
+Delete removes the selected rectangle. Draw Rectangle stays lit while drawing;
+click it again or press Escape to cancel. Leaving Ailerons/Flaps or selecting 3D
+unchecks any control without a defined rectangle.</p>
+<h3>Spars</h3>
+<p>Select a numbered panel tab. Each panel has independent Top, Bottom and Mid
+options. Chord position is a percentage from local LE; length is a percentage
+of that panel span starting at its root. Sizes accept mm/in suffixes and retain entered text. Top/Bottom
+support round diameter or strip width and inward height.</p>
+<p>Mid centers the round hole at 50% local thickness at the chosen chord position.
+Only the main wing panel is split into upper/lower bodies through that center;
+the split follows its height along the spar, then continues at that height to the panel tip. Ailerons and flaps remain intact.</p>
+<p>Matching alignment tabs and holes follow the split at 20% and 80% panel span
+on both sides of Mid, about 3 mm from the spar. Tabs have 3 mm diameter and
+2 mm minimum engagement; holes include 0.1 mm radial/depth allowance.</p>
+<p>Files now save as version 8. Version-3 global spar settings load into Panel 1;
+other panels start disabled. Configure outboard panels explicitly. Versions 1/2
+open with all spars disabled. Tab selection is saved but does not dirty the
+project or regenerate geometry. Spar errors identify the panel and option.</p>
+<p>In Airfoil Stations, hover near an outline for a moving point, then click LE
+and TE in order. Keep clicking pairs to add stations. Near-horizontal/vertical
+stations snap within 15 degrees. Two stations on every panel unlock Airfoils.</p>
+<p>Click a station to highlight it for Delete. Click an endpoint, slide it along
+its outline, then left-click or press Escape to drop it; aligned stations move both endpoints together.
+Escape also cancels incomplete placement and clears selection. Outlines are
+locked in this mode; stations are locked when you leave it. Station locations
+are retained in saved .foam projects.</p>
+<p>In Wing / Outline, set the number of wing panels and select a numbered tab.
+Reducing the count removes the highest-numbered panels and their outlines.
+All outlines stay visible, but only the selected panel can be edited.</p>
+<p>Choose Line and click two points, or choose Spline and click multiple points,
+then press Escape to finish. Tools stay selected for the next curve; click the
+selected button again to turn it off. Switching tools or tabs also finishes a
+curve. A lone point is discarded. Nearby points snap within eight screen pixels.</p>
+<p>With both tools off, left-click and hold a point to drag it. Connected curves
+follow their shared points. Inner panels need separate leading and trailing edge
+chains; the last panel joins them through the tip, leaving the root open.</p>
+<p>With both tools off, click a line or spline to highlight it in orange, then
+press Delete to remove it. Click empty space or press Escape to clear selection.
+Only the selected panel's curves can be edited. Outlines remain visible when
+switching tools or workspaces; deleting one curve preserves shared points still
+used by other curves.</p>
+<h2>Panel stations, airfoils and controls</h2>
+<p>Airfoil Stations, Airfoils and Ailerons/Flaps have numbered tabs matching the
+outline panels. Edit stations and control rectangles only on the selected panel.
+Every panel needs two stations and assigned airfoils. All imported and sketched
+airfoils appear in the shared library for every panel. Each station keeps its
+own assignment. Each panel keeps its own aileron/flap settings, and rectangles
+must not overlap across panels. The 3D wing uses each panel's own profiles and
+cuts; only the outer panel gets a shaped tip.</p>
+<p>Older global control settings load into Panel 1. Review older multi-panel
+projects and add the station pairs and controls needed on their other panels.</p>
+<h2>Lightening</h2>
+<p>Enable Lightening to hollow the main wing. Set minimum Wall Thickness, Number of Crossmembers, Crossmember Thickness, Start Distance from Root and Stop Distance before Last Station. Distances follow the unfolded half-wing; physical fields accept mm/in and retain their text. Main panels split for access even without Mid spars. Controls and tips stay solid, and alignment pins/sockets retain support. Pockets have stepped floors and ceilings and may retain more than the minimum wall thickness.</p>
+<h2>Regeneration and cancellation</h2>
+<p>Generation runs in the background with bounded panel concurrency. Menus, shortcuts, tools, data fields and viewports are disabled while processing; Cancel remains at the bottom of the data panel. Cancellation is cooperative and can wait for the current kernel operation. It retains the previous display and source inputs. Re-enter 3D View or edit an input to retry; toolbar navigation alone does not restart a cancelled job. Successful replacement retains the camera. Closing waits for cancellation before the usual unsaved-change prompt.</p>
+<p>Camera, navigation and idle selection changes are saved on explicit Save but do not cause unsaved-data prompts or rebuild unchanged geometry.</p>
+</body></html>
