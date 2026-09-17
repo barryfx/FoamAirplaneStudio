@@ -18,6 +18,8 @@ struct ConstrainedLine {
   CurveAnchor first, second;
   LineAlignment alignment{LineAlignment::Free};
   std::optional<std::size_t> airfoil;
+  std::optional<std::size_t> profile; // Stable fuselage sketch slot; independent of station order.
+  std::optional<double> thicknessMm; // Per-station fuselage wall; initialized on first Thicken entry.
 };
 struct StationState {
   std::vector<ConstrainedLine> lines;
@@ -32,6 +34,8 @@ class ConstrainedLineEditor {
 public:
   ConstrainedLineEditor(QGraphicsView& view, SketchEditor& source);
   void setEnabled(bool enabled);
+  void setVerticalPlacement(bool enabled) { verticalPlacement_ = enabled; }
+  std::optional<ConstrainedLine> verticalSection(double x, int layer) const;
   void setActivePanel(int panel);
   int activePanel() const { return panel_; }
   bool allPanelsDefined() const;
@@ -39,6 +43,8 @@ public:
   void setSelectionEnabled(bool enabled);
   bool selectionEnabled() const { return selectionOnly_; }
   void assignSelectedAirfoil(std::size_t airfoil);
+  void assignSelectedProfile(std::optional<std::size_t> profile);
+  void setThicknessMm(int station,double thickness);
   bool event(QEvent* event, bool onViewport);
   void paint(QPainter& painter) const;
   void reset();
@@ -68,5 +74,8 @@ private:
   int selected_{-1}, moving_{-1}, movingEnd_{};
   bool enabled_{};
   bool selectionOnly_{};
+  bool verticalPlacement_{};
+  std::optional<ConstrainedLine> verticalPreview_;
+  bool duplicateVertical(const ConstrainedLine& line, int except=-1) const;
 };
 }

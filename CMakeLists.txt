@@ -89,6 +89,13 @@ target_include_directories(designrc_domain
 target_compile_features(designrc_domain PUBLIC cxx_std_23)
 
 add_library(foam_sketch
+  src/gui/SketchBoundary.cpp src/gui/SketchBoundary.h
+  src/gui/FormerEditor.cpp src/gui/FormerEditor.h src/gui/FormerPanel.h
+  src/gui/ServoTrayEditor.cpp src/gui/ServoTrayEditor.h src/gui/ServoTrayPanel.h
+  src/gui/FuselageCutPanel.cpp src/gui/FuselageCutPanel.h
+  src/gui/FuselageThickenPanel.cpp src/gui/FuselageThickenPanel.h
+  src/gui/FuselageProfilePanel.cpp src/gui/FuselageProfilePanel.h
+  src/gui/FuselageOutlinePanel.cpp src/gui/FuselageOutlinePanel.h
   src/gui/SparPanel.cpp
   src/gui/ControlSurfaceEditor.cpp src/gui/ControlSurfacePanel.cpp
   src/gui/ConstrainedLineEditor.cpp src/gui/ConstrainedLineEditor.h
@@ -107,7 +114,7 @@ add_library(foam_airfoils src/gui/AirfoilLibrary.cpp src/gui/AirfoilLibrary.h
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
@@ -289,6 +296,89 @@ if(DESIGNRC_BUILD_TESTS)
   get_target_property(_foam_project_app_libraries designrc LINK_LIBRARIES)
   target_link_libraries(project_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME project_tests COMMAND project_tests)
+  add_executable(fuselage_outline_tests tests/FuselageOutlineTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(fuselage_outline_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(fuselage_outline_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(fuselage_outline_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME fuselage_outline_tests COMMAND fuselage_outline_tests)
+  if(NOT WIN32)
+    set_tests_properties(fuselage_outline_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+  add_executable(fuselage_profile_tests tests/FuselageProfileTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(fuselage_profile_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(fuselage_profile_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(fuselage_profile_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME fuselage_profile_tests COMMAND fuselage_profile_tests)
+  if(NOT WIN32)
+    set_tests_properties(fuselage_profile_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+  add_executable(former_tests tests/FormerTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(former_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(former_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(former_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME former_tests COMMAND former_tests)
+  add_test(NAME fuselage_readiness_tests COMMAND former_tests --readiness-only)
+  add_test(NAME former_defaults_tests COMMAND former_tests --defaults-only)
+  add_test(NAME former_geometry_tests COMMAND former_tests --geometry-only)
+  if(NOT WIN32)
+    set_tests_properties(fuselage_readiness_tests former_tests former_defaults_tests former_geometry_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+  add_executable(servo_tray_tests tests/ServoTrayTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(servo_tray_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(servo_tray_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(servo_tray_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME servo_tray_tests COMMAND servo_tray_tests)
+  add_test(NAME servo_tray_geometry_tests COMMAND servo_tray_tests --geometry-only)
+  if(NOT WIN32)
+    set_tests_properties(servo_tray_tests servo_tray_geometry_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+
+  add_executable(fuselage_cut_tests tests/FuselageCutTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(fuselage_cut_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(fuselage_cut_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(fuselage_cut_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME fuselage_cut_tests COMMAND fuselage_cut_tests)
+  if(NOT WIN32)
+    set_tests_properties(fuselage_cut_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+
+  add_executable(fuselage_thicken_tests tests/FuselageThickenTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(fuselage_thicken_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(fuselage_thicken_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(fuselage_thicken_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME fuselage_thicken_tests COMMAND fuselage_thicken_tests)
+  add_test(NAME fuselage_thicken_ui_tests COMMAND fuselage_thicken_tests --ui-only)
+  if(NOT WIN32)
+    set_tests_properties(fuselage_thicken_tests fuselage_thicken_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
+  add_executable(fuselage_orientation_tests tests/FuselageOrientationTests.cpp src/gui/OcctViewport.cpp)
+  target_link_libraries(fuselage_orientation_tests PRIVATE foam_wing foam_project TKV3d TKService TKOpenGl)
+  add_test(NAME fuselage_orientation_tests COMMAND fuselage_orientation_tests)
+
   add_executable(control_surface_editor_tests tests/ControlSurfaceEditorTests.cpp src/gui/PlanViewport.cpp)
   target_link_libraries(control_surface_editor_tests PRIVATE foam_sketch)
   add_test(NAME control_surface_editor_tests COMMAND control_surface_editor_tests)
@@ -306,6 +396,9 @@ if(DESIGNRC_BUILD_TESTS)
   add_executable(processing_tests tests/ProcessingTests.cpp)
   target_link_libraries(processing_tests PRIVATE foam_wing)
   add_test(NAME processing_tests COMMAND processing_tests)
+  add_executable(fuselage_benchmark tests/FuselageBenchmark.cpp)
+  target_link_libraries(fuselage_benchmark PRIVATE foam_wing foam_project TKV3d TKService)
+
   add_executable(regeneration_benchmark tests/RegenerationBenchmark.cpp)
   target_link_libraries(regeneration_benchmark PRIVATE foam_wing foam_project TKV3d TKService)
   add_executable(spar_tests tests/SparTests.cpp)

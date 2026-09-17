@@ -37,12 +37,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 8;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 15;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 8. See spars.md and ADR-0011.
+use version 15. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -50,7 +50,7 @@ settings migrate into Panel 1. See ADR-0012 for migration and half-thickness spl
 
 Version 5 adds panel control arrays, Airfoil Stations/Airfoils/Ailerons-Flaps tab
 selection and per-panel library choices. The library remains shared and station
-anchors retain ownership. Versions 1–4 are readable; old global controls load
+anchors retain ownership. Versions 1â€“4 are readable; old global controls load
 into Panel 1 without duplication. See ADR-0013 and formats/foam-project.md.
 
 Version 6 retains per-field mixed-unit spar text and existing reference text.
@@ -65,3 +65,25 @@ Version 8 adds whole-wing Lightening fields and their mixed-unit presentation.
 Older projects open with lightening disabled; New resets it. Changes invalidate
 geometry, while navigation and equivalent unit presentation do not. See the
 project-format reference and lightening.md.
+
+Version 9 adds independent Top/Side fuselage outlines and active view/tool/drafts.
+Versions 1-8 load empty fuselage outlines. New/Close clears them; Open and Save
+restore their geometry and view state. See fuselage-outlines.md and ADR-0019.
+
+Version 10 adds independent vertical fuselage profile stations on Side View.
+Versions 1-9 load an empty collection. See fuselage-stations.md and ADR-0020.
+
+Version 11 adds station-linked fuselage profile sketches, including drafts. Versions
+1-10 load unassigned profiles. See fuselage-profiles.md and ADR-0021.
+
+Version 12 persists first-entry Thicken activation and each station thickness.
+Older projects start with thickening disabled; see fuselage-thickness.md.
+
+Version 13 adds persistent Top/Side cut sketches, including unfinished paths.
+Older files load empty cuts; generated body compounds remain transient. See
+fuselage-cuts.md and ADR-0023.
+
+Version 14 persists Servo Tray placement (legacy unfinished corner entry is cleared on restore). Versions
+1-13 load no tray; generated tray bodies/top faces remain transient.
+
+Version 15 adds persistent Formers rectangles and next thickness, with overlap validation.

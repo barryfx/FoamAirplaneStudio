@@ -141,9 +141,26 @@ The software shall support designing an aircraft from imported reference drawing
 - If the reference drawing is not to scale, the user shall enter the actual fuselage length.
 - The software shall scale the traced geometry based on the entered fuselage length.
 
+### 4.1.1 Fuselage Outline Controls
+
+- Outline shall be a checked secondary-toolbar action when selected.
+- Instructions shall describe tracing Top and Side views and all drawing controls.
+- Top View and Side View shall be checkable buttons. Selecting one disables the
+  other and reveals its Line/Spline controls directly below it; clicking the active
+  view again releases it. Sketch interaction shall match Wing outline editing.
+- Each view shall contain one closed loop. Leaving Outline shall warn by view name
+  for incomplete/invalid loops while preserving the sketches and permitting exit.
+- Two valid outlines shall enable Profile Stations without automatically selecting it.
+- Project lifecycle operations shall preserve both sketches and unfinished work.
+
 ### 4.2 Fuselage Profile Stations
 
-- The user shall select cross-section/profile locations along the reference image.
+- The user shall select cross-section/profile locations along the Side View outline.
+- Profile Stations shall show operating instructions at the top of the data panel.
+- Hovering near the upper or lower edge shall show a floating point and vertical
+  preview; one left-click shall commit a station between both edges.
+- Station selection, Delete, and endpoint movement shall follow Wing station controls,
+  while retaining vertical alignment. Ambiguous and zero-height sections are rejected.
 - Cross-section planes shall be perpendicular to the fuselage longitudinal direction.
 - Profile stations shall be numbered sequentially.
 - Profile 1 shall be located at the nose of the fuselage.
@@ -164,7 +181,11 @@ The software shall support designing an aircraft from imported reference drawing
 - Fuselage wall thickness shall be configurable at each profile station.
 - The software shall provide initial/default wall-thickness values based on fuselage length.
 - The user shall be able to modify these thickness values.
-- The nose of the fuselage will be open.  The tail will be closed.
+- Each end is open when the Top/Side outlines terminate at its outermost profile;
+  it is closed when the outlines extend beyond that profile.
+- Station wall thickness defaults to 8 mm at or forward of the Side View wing leading
+  edge and 5 mm aft of it. Entering Thicken enables hollow generation.
+- Every profile sketch remains visible across all 2D modes.
 
 ### 4.6 Servo Tray
 
@@ -175,14 +196,15 @@ The software shall support designing an aircraft from imported reference drawing
 - The software shall generate a solid body model for the servo tray exportable in STEP, STL, DXF, or SVG
   formats.
 
-### 4.7 Firewall
+### 4.7 Formers (replaces Firewall)
 
-- The user shall be able to designate the location and thickness of a firewall.
-- The software shall derive the required firewall solid body from the fuselage inside shape at the
-  selected location.
-- Slots of the requested thickness shall be generated in both halves of the fuselage raised from the
-  inside surface to locate and retain the firewall.
-- The firewall may be exported in the STEP, STL, DXF, or SVG formats.
+- Enter thickness and Add Former to place a vertical Side View rectangle extending
+  above and below the outline. Move horizontally/vertically and resize top/bottom
+  edges for partial-height formers; allow selection and deletion.
+- Prevent formers overlapping each other or the servo tray, including tray edits.
+- Generate separate solids clipped to the inner cavity, without wall penetration.
+- Preserve formers in project files and display them across 2D modes.
+- Future export will expose former solids/outlines alongside other parts.
 
 ### 4.8 User-Defined Fuselage Part Separation
 
@@ -290,9 +312,9 @@ The software shall support designing an aircraft from imported reference drawing
   - STL (`.stl`)
 - Export shall support the separate bodies created during the design process, including manufacturing splits and control surfaces.
 
-### 8.2 Firewall and Servo Tray Export
+### 8.2 Formers and Servo Tray Export
 
-- The firewall and servo tray outlines/profiles shall be exportable as a two-dimensional file in:
+- The former and servo tray outlines/profiles shall be exportable as a two-dimensional file in:
   - SVG (`.svg`)
   - DXF (`.dxf`)
 
@@ -352,4 +374,34 @@ menus, shortcuts, toolbars, data fields and viewport controls while processing;
 show Cancel at the bottom of the data panel. Report panel-specific status and
 restore controls on completion, failure or cooperative cancellation. Keep the
 last display on cancellation and retain the camera on successful replacement.
-The component-job lifecycle is reusable for future fuselage/stabilizer builders.
+Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizer builders remain future work.
+
+Implemented Fuselage Edit Profiles: one station enables the mode. Instructions
+appear above Line/Spline controls for the selected highlighted station. Each
+station owns a stable sketch assignment. All closed assignments enable remaining
+secondary actions; their editors are future work. Selecting 3D generates a solid
+from both nose-aligned outlines and independently fitted profiles. See
+architecture/fuselage-profiles.md for registration, sampling and end treatment.
+
+Fuselage Thicken fields use Reference units and accept explicit mm/in overrides.
+Every uninitialized station at or forward of the wing LE defaults to 8 mm; stations
+aft of it default to 5 mm. List station fields in ascending station-number
+order and retain edited physical values when units change.
+
+Fuselage Cut uses connected Line/Spline paths in Top or Side View with standard
+sketch selection, movement and Delete. Paths may be open; endpoints must reach
+the body boundary to separate a section. Cut through the full perpendicular
+extent, preserving each resulting body. Keep paths visible in other 2D modes and
+save them with the project for regeneration. Include operation text above tools.
+
+Servo Tray: enter Width and Height in Reference units (explicit mm/in accepted).
+Create the dimensioned rectangle and drag it on Side View; height defines thickness.
+Moving preserves size; resizing uses the fields, not freehand drawing or corners.
+Fit a separate tray to the inside surfaces without penetration. Support it with
+ledges extending 5 mm inward from each side and 5 mm below the underside (the
+original 3 mm inward request was superseded). Retain the top-face outline for
+later DXF/SVG laser export, and describe operations above the data-panel controls.
+
+Fuselage readiness refinement: Thicken, Cut, Servo Tray and Formers need not be
+visited before generation. Complete outlines and assigned closed station profiles
+permit generation with default/saved walls and enable Horiz Stab and Vert Stab.

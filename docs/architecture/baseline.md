@@ -1,6 +1,6 @@
 # Baseline and current application shell
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 The original baseline was copied read-only from DesignRC commit
 8e8bcac9e9783d35915d76d296bc45282301c2f9. The original file hashes remain in
@@ -24,7 +24,7 @@ Ailerons/Flaps adds selectable rectangles, hinge relief and end clearance
 (control-surfaces.md). Spars adds surface grooves and mid-plane splits with
 alignment tabs (spars.md). Lightening adds accessible hollow main-wing bays,
 uniform crossmembers and protected alignment supports (lightening.md).
-Generation runs as cancellable background jobs with bounded panel concurrency and mirrored display-mesh reuse (regeneration.md and ADR-0018). Other component panels, Assembly and
+Generation runs as cancellable background jobs with bounded panel concurrency and mirrored display-mesh reuse (regeneration.md and ADR-0018). Fuselage supplies Top/Side closed-outline editing (fuselage-outlines.md). Fuselage Profile Stations places vertical Side View sections (fuselage-stations.md). Edit Profiles attaches cross-sections to stations and generates a separate cached fuselage solid (fuselage-profiles.md). Thicken supplies saved per-station walls and geometry-driven end closure (fuselage-thickness.md). Cut splits the body along persistent Top/Side paths (fuselage-cuts.md). Servo Tray adds a separate inner tray and integrated side ledges (servo-tray.md). Formers adds full/partial-height cavity-fitted inserts (formers.md). Other component panels, Assembly and
 Export remain under development.
 
 View menu camera/fit commands, Copy/Paste, Help/About, and New remain. New clears

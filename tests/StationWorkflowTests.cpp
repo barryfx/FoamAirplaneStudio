@@ -1,3 +1,4 @@
+#include <QMessageBox>
 #include "gui/MainWindow.h"
 #include "WaitForModel.h"
 #include <QComboBox>
@@ -126,6 +127,11 @@ int main(int argc, char** argv) {
   for(auto* action : tools->actions()) {action->trigger(); app.processEvents();waitForModel(window);}
   workspace->actions()[2]->trigger(); app.processEvents();waitForModel(window);
   assert(window.findChild<QWidget*>("dataPanel")->property("workspaceIndex").toInt()==2);
+  QTimer::singleShot(0, [] {
+    auto* box=qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+    assert(box && box->text().contains("Top View") && box->text().contains("Side View"));
+    box->accept();
+  });
   workspace->actions()[1]->trigger(); app.processEvents();waitForModel(window);
   tabs->setCurrentIndex(0); app.processEvents();waitForModel(window);
   view->restoreView({2.0,{300,250}}); app.processEvents();waitForModel(window);

@@ -45,6 +45,21 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   airfoilSketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_->setClosedLoopMode(true);
   airfoilSketchEditor_->setEscapeEndsSession(true);
+  fuselageSketchEditor_ = new SketchEditor{this};
+  fuselageSketchEditor_->setClosedLoopMode(true);
+  fuselageSketchEditor_->stationEditor().setVerticalPlacement(true);
+  fuselageSketchEditor_->setLayerCount(2);
+  fuselageProfileEditor_ = new SketchEditor{this};
+  fuselageProfileEditor_->setClosedLoopMode(true);
+  fuselageProfileEditor_->setSnapAcrossLayers(false);
+  fuselageCutEditor_ = new SketchEditor{this};
+  fuselageCutEditor_->setLayerCount(2);
+  fuselageCutEditor_->setClosedLoopMode(true);
+  fuselageCutEditor_->setSnapAcrossLayers(false);
+  servoTrayEditor_=new ServoTrayEditor{*this};
+  formerEditor_=new FormerEditor{*this};
+  formerEditor_->tray=[this]{return servoTrayEditor_->state().rectangle;};
+  servoTrayEditor_->acceptRectangle=[this](const QRectF& r){return formerEditor_->allowsTray(r);};
   controlSurfaceEditor_ = new ControlSurfaceEditor{*this};
   scene_->setSceneRect(0, 0, 1000, 700);
 }
@@ -53,7 +68,12 @@ void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   QGraphicsView::drawForeground(painter, rect);
   sketchEditor_->paint(*painter);
   airfoilSketchEditor_->paint(*painter);
+  fuselageSketchEditor_->paint(*painter);
   controlSurfaceEditor_->paint(*painter);
+  fuselageProfileEditor_->paint(*painter);
+  fuselageCutEditor_->paint(*painter);
+  servoTrayEditor_->paint(*painter);
+  formerEditor_->paint(*painter);
 }
 
 void PlanViewport::setDocument(const TechnicalDrawingDocument& document) {
@@ -115,6 +135,12 @@ void PlanViewport::clearPlan() {
   setSceneRect(scene_->sceneRect());zoomAnchor_.reset();
   sketchEditor_->reset();
   airfoilSketchEditor_->reset();
+  fuselageProfileEditor_->reset();
+  servoTrayEditor_->restore({});
+  formerEditor_->restore({});
+  fuselageCutEditor_->reset();fuselageCutEditor_->setLayerCount(2);
+  fuselageSketchEditor_->reset();
+  fuselageSketchEditor_->setLayerCount(2);
   controlSurfaceEditor_->restore({});
   resetTransform();
   fitOnNextResize_ = false;
@@ -148,6 +174,11 @@ void PlanViewport::setReferenceBackground(const std::vector<ReferencePage>& page
     };
     sketchEditor_->mapPoints(remap);
     airfoilSketchEditor_->mapPoints(remap);
+    fuselageSketchEditor_->mapPoints(remap);
+    fuselageProfileEditor_->mapPoints(remap);
+    servoTrayEditor_->mapPoints(remap);
+    formerEditor_->mapPoints(remap);
+    fuselageCutEditor_->mapPoints(remap);
     controlSurfaceEditor_->mapPoints(remap);
   }
   referencePages_ = pages;

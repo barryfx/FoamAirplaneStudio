@@ -136,6 +136,7 @@ void SketchEditor::pick(QPointF position) {
   const int snapped = nearest(position);
   if (snapped >= 0) position = layers_[active_].points[snapped];
   for (const auto& layer : layers_) {
+    if(!snapAcrossLayers_)break;
     if (snapped >= 0) break;
     for (auto point : layer.points)
       if (QLineF{view_->viewportTransform().map(point), view_->viewportTransform().map(position)}.length() <= 8)
@@ -222,10 +223,11 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
   }
   return false;
 }
-void SketchEditor::paint(QPainter& painter) const {
+void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
   painter.save();
   const double radius = 4.0 / std::max(1e-9, view_->transform().m11());
   for (int i = 0; i < static_cast<int>(layers_.size()); ++i) {
+    if(activeOnly && i!=active_)continue;
     const auto& layer = layers_[i];
     // Keep completed outlines equally legible outside Outline mode. The dark
     // border separates light blue from white paper; blue stands out on ink.

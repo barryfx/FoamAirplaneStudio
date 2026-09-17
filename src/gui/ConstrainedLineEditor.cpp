@@ -26,6 +26,7 @@ ConstrainedLineEditor::ConstrainedLineEditor(QGraphicsView& view, SketchEditor& 
 void ConstrainedLineEditor::notify() { view_.viewport()->update(); emit source_.stationsChanged(); }
 void ConstrainedLineEditor::cancel() {
   if (moving_ >= 0 && beforeMove_) lines_[moving_] = *beforeMove_;
+  verticalPreview_.reset();
   first_.reset(); hover_.reset(); beforeMove_.reset(); moving_ = -1; selected_ = -1;
   view_.viewport()->update();
 }
@@ -73,6 +74,16 @@ void ConstrainedLineEditor::assignSelectedAirfoil(std::size_t airfoil) {
   if (selected_ < 0 || selected_ >= static_cast<int>(lines_.size())) return;
   if (lines_[selected_].airfoil == airfoil) return;
   lines_[selected_].airfoil = airfoil; notify();
+}
+void ConstrainedLineEditor::assignSelectedProfile(std::optional<std::size_t> profile) {
+  if(selected_<0 || selected_>=static_cast<int>(lines_.size()))return;
+  if(lines_[selected_].profile==profile)return;
+  lines_[selected_].profile=profile;notify();
+}
+void ConstrainedLineEditor::setThicknessMm(int station,double thickness) {
+  if(station<0 || station>=static_cast<int>(lines_.size()) || !std::isfinite(thickness) || thickness<=0)return;
+  if(lines_[station].thicknessMm==thickness)return;
+  lines_[station].thicknessMm=thickness;notify();
 }
 void ConstrainedLineEditor::reset() {
   cancel(); panel_=0;lines_.clear(); enabled_ = false; selectionOnly_ = false; notify();
@@ -141,7 +152,60 @@ std::optional<CurveAnchor> ConstrainedLineEditor::intersect(const CurveAnchor& o
   }
   return result;
 }
+std::optional<ConstrainedLine> ConstrainedLineEditor::verticalSection(double x,int layer) const {
+  if(layer<0 || layer>=static_cast<int>(source_.layers().size()))return {};
+  std::vector<CurveAnchor> hits;
+  for(int c=0;c<static_cast<int>(source_.layers()[layer].curves.size());++c) {
+    const auto path=anchorPath(source_,layer,c);
+    const double length=path.length();if(length<1e-9)continue;
+    double travelled=0;
+    auto add=[&](QPointF point,double arc) {
+      point.setX(x);
+      if(std::none_of(hits.begin(),hits.end(),[&](const auto& hit){return distance(hit.position,point)<1e-7;}))
+        hits.push_back({layer,c,arc/length,point});
+    };
+    for(int i=1;i<path.elementCount();++i) {
+      const QPointF a{path.elementAt(i-1).x,path.elementAt(i-1).y},b{path.elementAt(i).x,path.elementAt(i).y};
+      const double segment=distance(a,b),dx=b.x()-a.x();
+      if(std::abs(dx)>1e-12) {
+        const double t=(x-a.x())/dx;
+        if(t>=-1e-9&&t<=1+1e-9)add(a+std::clamp(t,0.,1.)*(b-a),travelled+std::clamp(t,0.,1.)*segment);
+      } else if(std::abs(x-a.x())<1e-8) {add(a,travelled);add(b,travelled+segment);}
+      travelled+=segment;
+    }
+  }
+  // More than two intersections is ambiguous (e.g. a folded or concave outline).
+  // Do not silently connect across exterior space. A pointed end has zero height.
+  if(hits.size()!=2)return {};
+  if(hits[0].position.y()>hits[1].position.y())std::swap(hits[0],hits[1]);
+  if(hits[1].position.y()-hits[0].position.y()<1e-7)return {};
+  return ConstrainedLine{hits[0],hits[1],LineAlignment::Vertical};
+}
+bool ConstrainedLineEditor::duplicateVertical(const ConstrainedLine& line,int except) const {
+  for(int i=0;i<static_cast<int>(lines_.size());++i)
+    if(i!=except&&lines_[i].first.layer==line.first.layer &&
+        std::abs(lines_[i].first.position.x()-line.first.position.x())<1e-6)return true;
+  return false;
+}
 void ConstrainedLineEditor::updateHover(QPointF point) {
+  if(verticalPlacement_) {
+    verticalPreview_.reset();
+    if(moving_>=0) {
+      const auto& anchor=movingEnd_==0?beforeMove_->first:beforeMove_->second;
+      hover_=project(point,anchor.layer,anchor.curve,false);
+    } else hover_=project(point);
+    if(hover_) {
+      auto section=verticalSection(hover_->position.x(),hover_->layer);
+      if(section && std::min(distance(hover_->position,section->first.position),distance(hover_->position,section->second.position))<1e-6) {
+        verticalPreview_=section;
+        if(moving_>=0 && !duplicateVertical(*section,moving_)) {
+          section->thicknessMm=lines_[moving_].thicknessMm;section->profile=lines_[moving_].profile;lines_[moving_]=*section;
+        }
+      } else hover_.reset();
+    }
+    view_.viewport()->update();return;
+  }
+
   if (moving_ >= 0) {
     auto candidate = *beforeMove_;
     auto& moving = movingEnd_ == 0 ? candidate.first : candidate.second;
@@ -209,7 +273,7 @@ bool ConstrainedLineEditor::event(QEvent* event, bool onViewport) {
     }
   }
   if (!onViewport) return false;
-  if (event->type() == QEvent::Leave) { hover_.reset(); view_.viewport()->update(); }
+  if (event->type() == QEvent::Leave) { verticalPreview_.reset(); hover_.reset(); view_.viewport()->update(); }
   if (event->type() == QEvent::MouseMove) {
     updateHover(view_.mapToScene(static_cast<QMouseEvent*>(event)->position().toPoint())); return true;
   }
@@ -263,7 +327,14 @@ bool ConstrainedLineEditor::event(QEvent* event, bool onViewport) {
     const double t = std::clamp(QPointF::dotProduct(point - a, delta) / squared, 0.0, 1.0);
     if (distance(point, a + t * delta) <= tolerance) { selected_ = i; hover_.reset(); break; }
   }
-  if (selected_ < 0 && hover_) first_ = hover_;
+  if (selected_ < 0 && hover_) {
+    if(verticalPlacement_) {
+      if(verticalPreview_&&!duplicateVertical(*verticalPreview_)) {
+        lines_.push_back(*verticalPreview_);notify();
+      }
+      verticalPreview_.reset();hover_.reset();
+    } else first_ = hover_;
+  }
   view_.viewport()->update(); return true;
 }
 void ConstrainedLineEditor::sourceCurveRemoved(int layer, int curve) {
@@ -277,6 +348,14 @@ void ConstrainedLineEditor::sourceCurveRemoved(int layer, int curve) {
 }
 void ConstrainedLineEditor::synchronize() {
   std::erase_if(lines_, [&](auto& line) {
+    if(verticalPlacement_) {
+      const auto path=anchorPath(source_,line.first.layer,line.first.curve);
+      if(path.isEmpty())return true;
+      const auto point=path.pointAtPercent(line.first.parameter);
+      auto section=verticalSection(point.x(),line.first.layer);
+      if(!section)return true;
+      section->thicknessMm=line.thicknessMm;section->profile=line.profile;line=*section;return false;
+    }
     for (auto* anchor : {&line.first, &line.second}) {
       const auto path = anchorPath(source_, anchor->layer, anchor->curve);
       if (path.isEmpty()) return true;
@@ -302,6 +381,7 @@ void ConstrainedLineEditor::paint(QPainter& painter) const {
   };
   for (int i = 0; i < static_cast<int>(lines_.size()); ++i)
     draw(lines_[i].first.position, lines_[i].second.position, i == selected_);
+  if(enabled_&&verticalPreview_)draw(verticalPreview_->first.position,verticalPreview_->second.position,false);
   if (enabled_ && first_ && hover_) draw(first_->position, hover_->position, false);
   if (enabled_ && (hover_ || first_)) {
     QPen pen{QColor{0, 110, 30}}; pen.setCosmetic(true); pen.setWidthF(2);

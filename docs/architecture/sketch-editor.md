@@ -44,8 +44,7 @@ Coordinates follow the reference scene: pixels for an uncalibrated reference,
 millimeters for actual scale. Switching the same reference's scale mode remaps
 points page by page to preserve alignment. Replacing the reference preserves
 coordinates; it does not automatically register a different image. Aircraft
-wingspan calibration is implemented by WingSolidBuilder; fuselage calibration is
-future work. `.foam` projects preserve sketch layers, meanings, pending points
+wingspan calibration is implemented by WingSolidBuilder; fuselage calibration is handled by FuselageSolidBuilder (fuselage-profiles.md). `.foam` projects preserve sketch layers, meanings, pending points
 and selected tools (projects.md and ADR-0006).
 Without a reference, the sketch canvas starts at 1000 by 700 scene units.
 

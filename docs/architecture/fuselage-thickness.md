@@ -1,0 +1,62 @@
+# Fuselage wall thickness
+
+All profile sketches are painted across all 2D modes, including unselected
+profiles. Editing handles still belong only to the active Edit Profiles station.
+
+Opening 3D with complete outlines/profiles initializes missing wall defaults and
+enables hollow generation, whether or not Thicken has been visited. Opening
+Thicken also initializes these defaults. Existing explicit values are preserved. The data panel shows instructions and a decimal length field
+for each station, numbered and listed from nose to tail (ascending Side View X).
+Edit Profiles uses the same display numbers. File/storage order is unchanged;
+sketches and wall values remain attached to their original station records.
+Fields display the Reference
+project units; bare numbers use those units, while explicit `mm` or `in` overrides
+are accepted. Committed entries redisplay in project units, with millimetres stored
+in the existing project format. Changing display units never changes the physical
+thickness. Invalid or out-of-range entries revert to the stored value.
+Initialization uses 8 mm for every station at or forward of the wing leading edge and 5 mm
+aft of it. A nearly horizontal straight upper Side View edge whose length agrees
+with the Wing root chord within 20% is preferred as the wing seat. Its forward
+end locates the LE. The nearest station within 2% of the root chord is registered
+as the LE station, accommodating small tracing offsets. The boundary is inclusive:
+that station and every forward station receive 8 mm; only aft stations receive 5 mm.
+If none matches, the root Wing station's reference X is used;
+the chosen reference X is displayed. GentleLady's confirmed wing-seat edge begins
+at X=253.173265724253; its nearby station at X=256.3825345142255 is registered
+as the LE station. Its nose-to-tail defaults are therefore 8/8/5 mm. These defaults are initial values; moves and later reference
+changes never overwrite an entered thickness. Newly added stations receive a
+default when thickening is enabled.
+
+Each ConstrainedLine owns its optional thickness. This survives movement, source
+resynchronization and profile replacement/deletion. Removing a station removes
+its thickness. Thicken activation persists through mode changes. Version 12 saves
+the activation and values; versions 1-11 start disabled. New/Close resets them.
+Dirty checks and the Fuselage fingerprint include thickness, while Wing's do not.
+
+The outer guided loft is retained. At each longitudinal section, OCCT planar
+offsets move the section inward by the interpolated wall distance. These values
+specify offsets in the cross-section plane, rather than a global 3D surface-normal
+offset. A monotone cubic smoothstep law passes through station values with zero
+slope at stations and no overshoot; the nearest value is used beyond the outermost
+stations. Additional section samples capture the transition. Inner loops use the
+same drawn-up landmark correspondence as the outer profiles. The sampled ruled
+loft approximates the smooth thickness law, without discrete thickness steps.
+
+Nose and tail follow the same rule independently. An end is open when the nearest
+profile lies at the corresponding registered outline endpoint (1e-6 mm tolerance).
+An annular rim joins the outer and inner skins there. If the outlines extend past
+the outermost profile, that end stays closed: an axial end wall is retained and
+narrow tips remain solid. A station terminating an outline must leave room for
+its requested wall and opening, otherwise generation reports an error.
+
+The inner wall is lofted and joined to the outer shell without remeshing or
+modifying the input sketches. Closed cavities use reversed inner shells; open
+ends use sewn rims. The result must pass OCCT validity and positive-volume checks
+and contain less material than the exterior solid. A thickness that eliminates
+the cavity or pinches it off inside the body is rejected. Sampling and planar
+offset assumptions are explicit; manufacturing surface-normal thickness controls
+remain a future refinement.
+
+Generation stays in the independent Fuselage worker with existing cancellation,
+stale-result and cache protections. Status reports cover offsets, inner loft,
+closed tips, failures and hollow-body completion.

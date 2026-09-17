@@ -57,6 +57,7 @@ Completing Wing/Airfoils also enables Fuselage in the primary toolbar, provided
 Reference remains ready. Removing an outline/station/assignment prerequisite
 locks Fuselage again; an active Fuselage workspace falls back to Wing (or Reference
 when Reference itself is incomplete). Eligibility is recomputed on Open and New.
+Fuselage Outline now provides independent Top/Side sketches; see fuselage-outlines.md.
 Toolbar navigation by itself neither changes document data nor regenerates an
 unchanged wing model (ADR-0008).
 

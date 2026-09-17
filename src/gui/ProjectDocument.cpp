@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QImageReader>
 #include <cmath>
+#include <algorithm>
 #include <sstream>
 #include <stdexcept>
 namespace designrc::gui {
@@ -117,6 +118,12 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
     {"airfoil",line.airfoil?QJsonValue{static_cast<qint64>(*line.airfoil)}:QJsonValue{}}});
   QJsonObject stations{{"lines",lines},{"selected",p.stations.selected},
     {"first",p.stations.first?QJsonValue{anchor(*p.stations.first)}:QJsonValue{}}};
+  QJsonArray profileLines;
+  for(const auto& line:p.fuselageStations.lines)
+    profileLines.append(QJsonObject{{"top",anchor(line.first)},{"bottom",anchor(line.second)},
+      {"thicknessMm",line.thicknessMm?QJsonValue{*line.thicknessMm}:QJsonValue{}},
+      {"profile",line.profile?QJsonValue{static_cast<qint64>(*line.profile)}:QJsonValue{}}});
+  QJsonObject fuselageStations{{"lines",profileLines},{"selected",p.fuselageStations.selected}};
   QJsonValue camera;
   if(p.camera) {const auto& c=*p.camera;camera=QJsonObject{{"eye",xyz(c.eye)},{"center",xyz(c.center)},
     {"up",xyz(c.up)},{"scale",c.scale},{"fov",c.fov},{"projection",c.projection}};}
@@ -143,15 +150,20 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonObject lightening{{"enabled",l.enabled},{"wallMm",l.wallMm},{"ribMm",l.ribMm},{"startMm",l.startMm},{"stopMm",l.stopMm},{"crossmembers",l.crossmembers},{"text",lightText}};
   QJsonArray dihedral;for(double angle:p.dihedralDegrees)dihedral.append(angle);
   QJsonArray split;for(auto s:p.splitterSizes)split.append(s);
-  return {{"format","FoamAirplaneStudio"},{"version",8},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
-    {"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
-    {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
+  QJsonValue trayRect;
+  if(p.servoTray.rectangle){const auto& r=*p.servoTray.rectangle;trayRect=QJsonArray{r.x(),r.y(),r.width(),r.height()};}
+  QJsonObject tray{{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
+  QJsonArray formerRects;for(const auto& r:p.formers.rectangles)formerRects.append(QJsonArray{r.x(),r.y(),r.width(),r.height()});
+  QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm}};
+  return {{"format","FoamAirplaneStudio"},{"version",15},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+    {"formers",formers},{"servoTray",tray},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
+    {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"fuselageView",p.fuselageView},{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
       {"plan",QJsonObject{{"zoom",p.plan.zoom},{"center",point(p.plan.center)}}},{"camera",camera},{"splitter",split}}}};
 }
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>8)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>15)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
   auto r=object(json["reference"],"reference");
   p.reference.image.path=string(r["filename"],"reference filename");
@@ -207,7 +219,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     }
     p.controls.drawing=integer(controls["drawing"],"drawing control surface",-1,1);
     if(!controls["first"].isNull())p.controls.first=point(controls["first"]);
-    if(p.controls.drawing>=0 && !p.controls.panels[p.controls.panel][p.controls.drawing].enabled)bad("disabled control surface drawing");
+  if(p.controls.drawing>=0 && !p.controls.panels[p.controls.panel][p.controls.drawing].enabled)bad("disabled control surface drawing");
     if(p.controls.first && p.controls.drawing<0)bad("control rectangle first point");
   }
   p.spars.resize(p.wing.layers.size());
@@ -320,7 +332,77 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     if(direction.SquareMagnitude()<1e-16||up.SquareMagnitude()<1e-16||direction.Crossed(up).SquareMagnitude()<1e-16)bad("camera orientation");
     p.camera=camera;
   }
+  if(version>=9) {
+    p.fuselage=sketch(json["fuselageOutline"],2);
+    if(p.fuselage.layers.size()!=2)bad("fuselage outline view count");
+    p.fuselageView=integer(ui["fuselageView"],"fuselage view",-1,1);
+    const bool hasTool=p.fuselage.tool!=SketchTool::None;
+    if(p.fuselageView>=0 && p.fuselage.active!=p.fuselageView)bad("fuselage active view");
+    if(!p.fuselage.pending.empty() && (!hasTool || !p.fuselage.editing))bad("fuselage draft tool");
+    if(p.fuselage.editing && (p.fuselageView<0 || p.workspace!=2 || p.tool!="Outline" || p.viewport!=0))bad("fuselage editing workspace");
+  }
   if(p.airfoils.sketching&&(p.workspace!=1||p.tool!="Airfoils"))bad("airfoil draft workspace");
+  if(version>=14) {
+    const auto tray=object(json["servoTray"],"servo tray");
+    if(!tray["rectangle"].isNull()) {
+      const auto r=array(tray["rectangle"],"servo tray rectangle",4);if(r.size()!=4)bad("servo tray rectangle");
+      p.servoTray.rectangle=QRectF{number(r[0],"tray x"),number(r[1],"tray y"),number(r[2],"tray length",1e-6,1e12),number(r[3],"tray height",0,1e12)};
+    }
+    if(p.servoTray.rectangle&&p.servoTray.rectangle->height()<=0)bad("zero tray thickness");
+    p.servoTray.drawing=boolean(tray["drawing"],"tray drawing");
+    if(!tray["first"].isNull())p.servoTray.first=point(tray["first"]);
+    if(p.servoTray.first&&(!p.servoTray.drawing||p.workspace!=2||p.tool!="Servo Tray"||p.viewport!=0))bad("servo tray draft workspace");
+  }
+  if(version>=15) {
+    const auto formers=object(json["formers"],"formers");
+    p.formers.thicknessMm=number(formers["thicknessMm"],"former thickness",0,10000);
+    if(p.formers.thicknessMm<=0)bad("zero former thickness");
+    for(auto value:array(formers["rectangles"],"former rectangles",1000)) {
+      const auto r=array(value,"former rectangle",4);if(r.size()!=4)bad("former rectangle");
+      const QRectF rect{number(r[0],"former x"),number(r[1],"former y"),number(r[2],"former width",0,1e12),number(r[3],"former height",1e-6,1e12)};
+      if(rect.width()<=0)bad("zero former thickness");
+      for(const auto& other:p.formers.rectangles)if(rectanglesOverlap(rect,other))bad("overlapping formers");
+      if(p.servoTray.rectangle&&rectanglesOverlap(rect,*p.servoTray.rectangle))bad("former overlapping servo tray");
+      p.formers.rectangles.push_back(rect);
+    }
+  }
+  if(p.workspace==2&&p.tool=="Firewall")p.tool="Formers";
+  if(version>=13) {
+    p.fuselageCuts=sketch(json["fuselageCuts"],2);
+    const auto& cuts=p.fuselageCuts;
+    if(cuts.layers.size()!=2)bad("fuselage cut view count");
+    if(cuts.editing&&(p.workspace!=2||p.tool!="Cut"||p.viewport!=0))bad("fuselage cut editing workspace");
+    if(!cuts.pending.empty()&&(!cuts.editing||cuts.tool==SketchTool::None))bad("fuselage cut draft tool");
+  }
+  if(version>=12)p.fuselageThickening=boolean(json["fuselageThickening"],"fuselage thickening");
+  if(version>=11)p.fuselageProfiles=sketch(json["fuselageProfiles"],100001);
+  if(version>=10) {
+    auto stations=object(json["fuselageStations"],"fuselage stations");
+    for(auto value:array(stations["lines"],"fuselage station lines",100000)) {
+      auto o=object(value,"fuselage station");
+      ConstrainedLine line{anchor(o["top"],p.fuselage),anchor(o["bottom"],p.fuselage),LineAlignment::Vertical};
+      if(line.first.layer!=1 || line.second.layer!=1)bad("fuselage station Side View anchors");
+      if(std::abs(line.first.position.x()-line.second.position.x())>1e-7 ||
+          line.second.position.y()-line.first.position.y()<1e-7)bad("fuselage vertical station");
+      if(std::any_of(p.fuselageStations.lines.begin(),p.fuselageStations.lines.end(),[&](const auto& existing){
+          return std::abs(existing.first.position.x()-line.first.position.x())<1e-6;}))bad("duplicate fuselage station");
+      if(version>=11&&!o["profile"].isNull())line.profile=integer(o["profile"],"fuselage profile slot",0,static_cast<int>(p.fuselageProfiles.layers.size())-1);
+      if(line.profile && std::any_of(p.fuselageStations.lines.begin(),p.fuselageStations.lines.end(),[&](const auto& other){return other.profile==line.profile;}))bad("shared fuselage profile slot");
+      if(version>=12&&!o["thicknessMm"].isNull())line.thicknessMm=number(o["thicknessMm"],"fuselage thickness",.001,10000);
+      if(p.fuselageThickening&&!line.thicknessMm)bad("missing fuselage thickness");
+      p.fuselageStations.lines.push_back(line);
+    }
+    p.fuselageStations.selected=integer(stations["selected"],"selected fuselage station",-1,static_cast<int>(p.fuselageStations.lines.size())-1);
+  }
+  if(version>=11) {
+    const auto& profiles=p.fuselageProfiles;
+    if(profiles.editing) {
+      const int selected=p.fuselageStations.selected;
+      if(p.workspace!=2 || p.tool!="Edit Profiles" || p.viewport!=0 || selected<0 ||
+          p.fuselageStations.lines[selected].profile!=static_cast<std::size_t>(profiles.active))bad("fuselage profile editing station");
+    }
+    if(!profiles.pending.empty() && (!profiles.editing || profiles.tool==SketchTool::None))bad("fuselage profile draft tool");
+  }
   if(p.controls.drawing>=0 && (p.workspace!=1 || p.tool!="Ailerons/Flaps"))bad("control rectangle workspace");
   return p;
 }

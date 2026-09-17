@@ -1,6 +1,6 @@
-# FoamAirplaneStudio project format, version 8
+# FoamAirplaneStudio project format, version 15
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 8`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 15`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
@@ -8,6 +8,13 @@ coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 | --- | --- |
 | reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan/fuselage length and their text fields |
 | wingOutline | Numbered wing-panel sketch layers, active layer, current tool, selected curve, pending points and editing flag |
+| formers | Positive Side View rectangles and next-former thicknessMm |
+| servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
+| fuselageCuts | Top/Side cut sketch layers with active view/tool, selection, editing and pending points |
+| fuselageThickening | Boolean initialized by complete-model generation or Thicken entry; retained across modes |
+| fuselageStations | Vertical Side View sections with top/bottom curve anchors, optional profile slot and selected index |
+| fuselageProfiles | Stable cross-section sketch slots, active layer/tool, selection, editing state and pending points |
+| fuselageOutline | Two sketch layers in Top/Side order, active layer/tool, selection, editing flag and pending points |
 | airfoilSketches | Independent airfoil trace layers and their editing state; never interpreted as wing planform outlines |
 | stations | Ordered LE/TE anchors, alignment, optional airfoil library index, selected station and optional pending first anchor |
 | airfoils | Named imported profiles or closed trace snapshots, ordered boundaries, current choice and named unfinished draft |
@@ -47,7 +54,7 @@ Save writes a temporary sibling through QSaveFile and atomically replaces the
 destination after successful completion. No autosave or legacy `.designrc`
 migration is implied. See ADR-0006 for ownership and restoration decisions.
 
-View and editor-selection state is serialized in version 8, but is excluded
+View and editor-selection state is serialized in version 15, but is excluded
 from the unsaved-data comparison. An explicit Save captures current navigation;
 view-only changes never require Save/Discard on closing (ADR-0008).
 
@@ -59,7 +66,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 8.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 15.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -88,7 +95,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 8; older
+into Panel 1, with others disabled. Current Save/Save As writes version 15; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -153,8 +160,95 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 8; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 15; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
 is captured by the existing UI tool field. See lightening.md and ADR-0017.
+
+## Version 9: fuselage outline views
+
+`fuselageOutline` uses the existing sketch schema and requires exactly two layers:
+Top View (0) and Side View (1). `ui.fuselageView` is -1 when both view buttons are
+off, 0 for Top, or 1 for Side. A selected view must match the sketch active layer.
+Editing requires Fuselage/Outline, the 2D viewport and a selected view. Pending
+points require an active drawing tool and editing. Open or empty loops remain
+valid saved work; closure determines Profile Stations readiness, not file validity.
+
+Idle selection, view and tool state is saved but excluded from dirty comparison.
+Pending points retain their active layer/tool meaning in that comparison. Fuselage
+inputs do not affect the Wing geometry fingerprint. Versions 1-8 initialize two
+empty layers with both view buttons off; older applications reject version 9.
+Original files are upgraded only on explicit Save. See ADR-0019.
+
+## Version 10: fuselage profile stations
+
+`fuselageStations` contains `lines` and `selected`. Each line has `top` and `bottom`
+anchors using the existing layer/curve/parameter/position schema. Both anchors
+must belong to Side View (layer 1), have matching X within 1e-7 scene units, and
+have a positive height of at least 1e-7. Duplicate X locations within 1e-6 are
+rejected. Alignment is implicitly Vertical; there is no Wing airfoil assignment
+or pending first anchor. `selected` is -1 or a valid line index and is excluded
+from dirty comparison. Invalid anchors or records reject Open transactionally.
+Versions 1-9 receive an empty collection; earlier applications reject version 10.
+
+## Version 11: station-linked profiles
+
+`fuselageProfiles` uses the sketch schema. Each `fuselageStations.lines` record
+adds `profile`, a nullable zero-based slot into these layers. Assigned slots must
+exist and cannot be shared by multiple stations. Moving, deleting or reordering
+other stations never changes a link. Delete Profile clears its slot and assignment;
+unreferenced slots can remain in the document. Versions 1-10 load empty profiles
+and unassigned stations. Generated solids, meshes, worker state and component
+fingerprints are transient. Save writes version 15; earlier versions remain readable.
+Profile tool/selection/navigation state is excluded from dirty checks when no
+points are pending. Pending sketches remain attached through Save/Open.
+
+## Version 12: per-station fuselage walls
+
+`fuselageThickening` is a required boolean. Each fuselage station adds
+`thicknessMm`: null before initialization, otherwise a finite value from 0.001
+to 10000 mm. An enabled thickening project requires a value at every station.
+Thickness stays on the station when it moves and is removed with the station.
+Profile deletion does not discard the station's thickness.
+Versions 1-11 migrate to disabled thickening and unset values, initialized only
+when Thicken is entered or a complete fuselage is generated. Existing files are upgraded only on Save. End closure
+is derived from outline/profile geometry, not a separate stored toggle.
+
+Fuselage thickness entry follows Reference units and accepts explicit mm/in.
+`thicknessMm` remains normalized to millimetres; display-unit changes require no
+format revision and do not rescale saved thicknesses.
+
+## Version 13: Top/Side fuselage cuts
+
+`fuselageCuts` uses the sketch schema with exactly two layers: Top then Side.
+It persists points, Line/Spline curves, shared endpoint indices, active view,
+selected curve, tool, editing and pending points. Open and closed paths are
+accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
+and 2D View; pending points require an active drawing tool and editing state.
+Versions 1-12 load empty cut layers. New saves write version 15. Generated cut
+bodies are transient. Invalid indices, layer counts or draft states reject Open.
+
+## Version 14: Servo Tray placement
+
+`servoTray` contains `rectangle` (null or [x,y,width,height] in Side View scene
+coordinates), `first` (null or a pending corner), and boolean `drawing`.
+Rectangle width/height must be positive. A first corner requires drawing mode,
+Fuselage/Servo Tray and the 2D viewport. Older versions initialize an empty tray.
+The dimension-entry UI derives Width and Height through Side View scaling; no
+separate thickness field is stored. Legacy freehand drafts are read but cleared
+on restoration; new saves write first=null and drawing=false.
+Generated tray/support solids and top-face outlines remain transient.
+
+## Version 15: Formers
+
+`formers` contains `rectangles`: up to 1000 [x,y,width,height] arrays in Side View
+scene coordinates, with finite values and positive width/height. `thicknessMm`
+is the next-former physical thickness, greater than zero through 10000 mm. Each rectangle
+retains its own thickness through its width and Reference scale. Positive-area
+rectangle overlaps with other formers or the tray are rejected. Touching is allowed.
+Selection and generated shapes are transient. Versions 1-14 initialize no formers
+and a 3 mm next thickness. The legacy Fuselage tool name Firewall maps to Formers.
+
+Insert regeneration initializes missing station walls and enables `fuselageThickening`
+before taking the model snapshot; the initialized values are retained by the next Save.

@@ -1,0 +1,30 @@
+#pragma once
+#include "gui/FormerEditor.h"
+#include "gui/LengthEntry.h"
+#include <QWidget>
+#include <QVBoxLayout>
+#include <QFormLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+namespace designrc::gui {
+class FormerPanel final : public QWidget {
+public:
+  FormerPanel(FormerEditor& editor,QWidget* parent):QWidget{parent},editor_{editor}{
+    setObjectName("formerPanel");auto* layout=new QVBoxLayout{this};layout->setContentsMargins(0,0,0,0);
+    auto* text=new QLabel{"Enter Width (former thickness) in Reference units, or add mm or in. Add Former places a vertical rectangle above and below the Side View outline at an available position. Drag inside it to slide it horizontally or vertically. Move it up/down for a partial-height former, or drag its top/bottom handle to change height. Click a former to select it; the Width field then changes that former. Click empty space to set the thickness for new formers. Delete removes the selected former.\n\nFormers cannot overlap each other or the servo tray; blocked edits leave the last valid placement. Touching edges are allowed. The default 3 mm thickness works without editing. Regeneration automatically initializes missing wall defaults and preserves existing values, even if Thicken has not been opened. Zero thickness is invalid. Each former is fitted to the inner cavity as a separate solid, trimmed clear of the walls and tray supports. Rectangles remain visible in other 2D tabs and are saved with the project.",this};text->setObjectName("formerInstructions");text->setWordWrap(true);layout->addWidget(text);
+    auto* fields=new QFormLayout;layout->addLayout(fields);width_=new QLineEdit{this};width_->setObjectName("formerWidth");fields->addRow("Width (thickness)",width_);
+    connect(width_,&QLineEdit::editingFinished,this,[this]{if(!width_->isModified())return;const auto mm=lengthInMm(width_->text(),units_);if(mm)editor_.setThickness(*mm);else emit editor_.message("Former thickness must be greater than zero.");width_->setModified(false);sync();});
+    auto* add=new QPushButton{"Add Former",this};add->setObjectName("formerAdd");layout->addWidget(add);connect(add,&QPushButton::clicked,&editor_,&FormerEditor::add);
+    remove_=new QPushButton{"Delete Former",this};remove_->setObjectName("formerDelete");layout->addWidget(remove_);connect(remove_,&QPushButton::clicked,&editor_,&FormerEditor::remove);
+    message_=new QLabel{this};message_->setWordWrap(true);message_->setObjectName("formerMessage");layout->addWidget(message_);layout->addStretch();
+    connect(&editor_,&FormerEditor::message,message_,&QLabel::setText);connect(&editor_,&FormerEditor::controlsChanged,this,[this]{sync();});sync();
+  }
+  void configure(ProjectUnits units,double scale,QRectF side){units_=units;scale_=scale;editor_.configure(scale,side);sync();}
+  void setActive(bool active){editor_.setEditing(active);}
+private:
+  void sync(){const int selected=editor_.selected();const double mm=selected>=0?editor_.state().rectangles[selected].width()*scale_:editor_.state().thicknessMm;
+    if(!width_->hasFocus()||!width_->isModified())width_->setText(formattedLength(mm,units_));remove_->setEnabled(selected>=0);}
+  FormerEditor& editor_;QLineEdit* width_{};QPushButton* remove_{};QLabel* message_{};ProjectUnits units_=ProjectUnits::Millimeters;double scale_=1;
+};
+}

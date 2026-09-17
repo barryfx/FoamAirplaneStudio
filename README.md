@@ -6,7 +6,7 @@ printing, plus outlines for laser cutting.
 
 ## Current progress
 
-As of September 16, 2026, Reference and Wing provide:
+As of September 17, 2026, Reference and Wing provide:
 
 - PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
 - Numbered panel outlines, reusable line/spline editing, curve-attached stations,
@@ -17,15 +17,18 @@ As of September 16, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-8 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text and view state. Versions 1-7 remain readable.
+- Portable version-15 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text and view state. Versions 1-14 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
 
-Fuselage unlocks after Wing airfoil assignment, but its modeling editors remain
-unimplemented. Stabilizer modeling, assembly/interfaces, export workflows and undo
-also remain future work. Assembly and Export actions are disabled. STEP and DXF/SVG
+Fuselage unlocks after Wing airfoil assignment and provides Top/Side closed-outline
+editing with the reusable sketch editor. Two valid outlines enable Profile Stations;
+it places vertical Side View sections with one click. Edit Profiles attaches section sketches
+to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Cut splits solid or hollow bodies along saved Top/Side Line and Spline paths. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
+Formers adds movable full/partial-height cavity-fitted inserts with overlap prevention. Stabilizer
+modeling, assembly/interfaces, export workflows and undo also remain future work. Assembly and Export actions are disabled. STEP and DXF/SVG
 utilities remain available for reuse; STL export is future work.
 
 The former DesignRC field-driven wing/rib pipeline and persistence were removed.
@@ -67,7 +70,9 @@ The September 16 [regeneration validation](docs/baseline/regeneration-validation
 records a successful Debug build, eight relevant passing suites and app launch.
 Its single-sample Debug benchmarks establish geometry parity and reduced meshing
 work, but do not establish an overall sequential speedup. Historical test results
-validate their recorded revisions only.
+validate their recorded revisions only. Fuselage validation is recorded in
+[fuselage outline validation](docs/baseline/fuselage-outline-validation.md) and
+[profile station validation](docs/baseline/fuselage-station-validation.md).
 
 Build output, SDKs and local working artwork/projects in `reference_imgaes` are
 excluded from Git. Small regression fixtures remain in `tests/fixtures`.

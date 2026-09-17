@@ -38,6 +38,7 @@ public:
   void setActiveLayer(int index);
   void setEditing(bool enabled);
   void setTool(SketchTool tool);
+  void setSnapAcrossLayers(bool enabled) { snapAcrossLayers_ = enabled; }
   void setClosedLoopMode(bool enabled) { closedLoopMode_ = enabled; }
   void setEscapeEndsSession(bool enabled) { escapeEndsSession_ = enabled; }
   void reset();
@@ -45,7 +46,7 @@ public:
   SketchState state() const;
   void restoreState(const SketchState& state);
   void mapPoints(const std::function<QPointF(QPointF)>& map);
-  void paint(QPainter& painter) const;
+  void paint(QPainter& painter, bool activeOnly=false) const;
   const std::vector<SketchLayer>& layers() const { return layers_; }
   SketchTool tool() const { return tool_; }
   int activeLayer() const { return active_; }
@@ -74,6 +75,7 @@ private:
   int selected_{-1};
   bool editing_{false};
   bool closedLoopMode_{false};
+  bool snapAcrossLayers_{true};
   bool escapeEndsSession_{false};
   ConstrainedLineEditor stations_;
 };

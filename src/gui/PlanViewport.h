@@ -5,6 +5,8 @@
 #include <QGraphicsView>
 #include "gui/ReferenceImage.h"
 #include "gui/SketchEditor.h"
+#include "gui/ServoTrayEditor.h"
+#include "gui/FormerEditor.h"
 #include "gui/ControlSurfaceEditor.h"
 #include <QString>
 
@@ -27,6 +29,11 @@ public:
   PlanViewState viewState() const;
   void restoreView(const PlanViewState& state);
   ControlSurfaceEditor& controlSurfaceEditor() { return *controlSurfaceEditor_; }
+  FormerEditor& formerEditor() { return *formerEditor_; }
+  ServoTrayEditor& servoTrayEditor() { return *servoTrayEditor_; }
+  SketchEditor& fuselageCutEditor() { return *fuselageCutEditor_; }
+  SketchEditor& fuselageProfileEditor() { return *fuselageProfileEditor_; }
+  SketchEditor& fuselageSketchEditor() { return *fuselageSketchEditor_; }
   SketchEditor& sketchEditor() { return *sketchEditor_; }
   SketchEditor& airfoilSketchEditor() { return *airfoilSketchEditor_; }
   [[nodiscard]] bool exportPdf(const QString& path, QString& error) const;
@@ -40,6 +47,11 @@ protected:
 private:
   ControlSurfaceEditor* controlSurfaceEditor_{};
   SketchEditor* sketchEditor_{};
+  SketchEditor* fuselageSketchEditor_{};
+  SketchEditor* fuselageProfileEditor_{};
+  SketchEditor* fuselageCutEditor_{};
+  ServoTrayEditor* servoTrayEditor_{};
+  FormerEditor* formerEditor_{};
   SketchEditor* airfoilSketchEditor_{};
   QGraphicsScene* scene_{};
   TechnicalDrawingDocument document_;

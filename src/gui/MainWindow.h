@@ -6,6 +6,7 @@
 #include <TopoDS_Shape.hxx>
 #include "gui/WingWorkflow.h"
 #include "gui/ProjectDocument.h"
+#include "geometry/FuselageSolidBuilder.h"
 
 class QTabWidget;
 class QTabBar;
@@ -21,6 +22,12 @@ class OcctViewport;
 class PlanViewport;
 class ReferencePanel;
 class WingOutlinePanel;
+class FuselageOutlinePanel;
+class FuselageProfilePanel;
+class FuselageThickenPanel;
+class FuselageCutPanel;
+class ServoTrayPanel;
+class FormerPanel;
 class AirfoilPanel;
 class ControlSurfacePanel;
 class SparPanel;
@@ -32,6 +39,7 @@ enum class CameraView;
 class MainWindow final : public QMainWindow {
 public:
   explicit MainWindow(QWidget* parent = nullptr);
+  const TopoDS_Shape& servoTrayTopFaces() const { return servoTrayTopFaces_; }
   ~MainWindow() override;
   const ProjectReference& projectReference() const;
   void setWingDefinitionState(const WingDefinitionState& state);
@@ -52,6 +60,9 @@ private:
   void invalidateWing();
   void updateWingModel();
   void pollModelJob();
+  void updateFuselageModel();
+  void pollFuselageJob();
+  QByteArray fuselageFingerprint() const;
   void setModelProcessing(bool active);
   void setCameraView(CameraView cameraView);
   void newProject();
@@ -79,6 +90,21 @@ private:
   std::vector<std::pair<QPointer<QAction>,bool>> processingActions_;
   ReferencePanel* referencePanel_{};
   WingOutlinePanel* wingOutlinePanel_{};
+  FuselageOutlinePanel* fuselageOutlinePanel_{};
+  FuselageProfilePanel* fuselageProfilePanel_{};
+  FuselageThickenPanel* fuselageThickenPanel_{};
+  FuselageCutPanel* fuselageCutPanel_{};
+  ServoTrayPanel* servoTrayPanel_{};
+  FormerPanel* formerPanel_{};
+  double fuselageWingLeadingEdge() const;
+  std::unique_ptr<processing::BackgroundJob<geometry::FuselageBuildResult>> fuselageJob_;
+  QByteArray builtFuselageFingerprint_, fuselageJobFingerprint_;
+  std::size_t fuselageJobEpoch_{};
+  TopoDS_Shape wingShape_, fuselageShape_, servoTrayTopFaces_;
+  int displayedComponent_=-1;
+  QWidget* fuselageStationPanel_{};
+  void updateFuselageStationMode();
+  void updateFuselageProgress();
   QWidget* stationPanel_{};
   QTabBar* stationTabs_{};
   void updatePanelCounts();
@@ -92,7 +118,7 @@ private:
   QString projectPath_;
   QByteArray savedFingerprint_, builtWingFingerprint_, jobFingerprint_;
   QAction *saveAction_{}, *saveAsAction_{}, *closeAction_{};
-  std::optional<CameraState> restoredWingCamera_;
+  std::optional<CameraState> restoredWingCamera_, restoredFuselageCamera_;
   QTabWidget* graphicsTabs_{};
   QToolBar* workspaceToolBar_{};
   QToolBar* componentToolBar_{};

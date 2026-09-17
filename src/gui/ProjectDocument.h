@@ -11,7 +11,14 @@ struct ProjectDocument {
   ProjectReference reference;
   QString wingspanText, fuselageText;
   SketchState wing, airfoilSketch;
-  StationState stations;
+  SketchState fuselage{std::vector<SketchLayer>(2)};
+  SketchState fuselageProfiles;
+  SketchState fuselageCuts{std::vector<SketchLayer>(2)};
+  ServoTrayState servoTray;
+  FormerState formers;
+  bool fuselageThickening=false;
+  int fuselageView=-1;
+  StationState stations, fuselageStations;
   AirfoilState airfoils;
   ControlSurfaceState controls;
   PanelSpars spars{1};
