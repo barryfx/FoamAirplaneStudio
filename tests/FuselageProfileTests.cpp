@@ -85,7 +85,8 @@ int main(int argc,char** argv) {
     input.stations.resize(1);input.stations[0].first.position={700,800};input.stations[0].second.position={700,860};input.stations[0].profile=0;
     auto shape=designrc::geometry::buildFuselageSolid(input);Bnd_Box box;BRepBndLib::AddOptimal(shape,box,false,false);double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
     CHECK(std::abs(x0)<1e-5&&std::abs(x1-500)<1e-5);CHECK(std::abs(y0+50)<1e-5&&std::abs(y1-50)<1e-5);CHECK(std::abs(z0+75)<1e-5&&std::abs(z1-75)<1e-5);
-    GProp_GProps volume;BRepGProp::VolumeProperties(shape,volume);CHECK(std::abs(std::abs(volume.Mass())-500*100*150)<1);
+    // Four diameter-4 sockets each remove 0.5 mm more material than their pin adds.
+    GProp_GProps volume;BRepGProp::VolumeProperties(shape,volume);CHECK(std::abs(std::abs(volume.Mass())-(500*100*150-8*std::acos(-1.)))<1);
     // Pointed ends and a single section still produce a closed, positive-volume body.
     input.outlines={{{{0,10},{50,0},{100,10},{50,20}},{{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}},{SketchTool::Line,{3,0}}}},
       {{{0,30},{100,0},{200,30},{100,60}},{{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}},{SketchTool::Line,{3,0}}}}};

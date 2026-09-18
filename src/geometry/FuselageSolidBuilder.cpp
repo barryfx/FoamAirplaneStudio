@@ -226,9 +226,11 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
     shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing);
   }
+  FuselageAlignmentSpec alignment;alignment.seamReference=shape;
+  if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);
   if(!input.cuts.empty())shape=cutFuselage(shape,input.cuts,
       {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing);
-  shape=splitFuselageMainBody(shape,progress,processing);
+  shape=splitFuselageMainBody(shape,progress,processing,&alignment);
   result.body=shape;
   if(!result.servoTray.IsNull()||!result.formers.empty()) {
     BRep_Builder builder;TopoDS_Compound assembly;builder.MakeCompound(assembly);

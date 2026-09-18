@@ -48,3 +48,20 @@ Equal-largest cut solids are ambiguous and produce an error instead of guessing.
 This policy assumes the remaining fuselage is larger than any detached cut-out.
 There is currently no explicit main-body selector. Highly asymmetric shapes
 that do not cross the plane in two connected halves report an error.
+
+## Half alignment
+Complete model generation adds four mating alignment features after the centre
+split: two at the top seam and two at the bottom seam. Pins on the negative-Y
+half project 3 mm; same-diameter sockets on the positive-Y half are 3.5 mm deep.
+Diameter is 4 mm or the local wall thickness if smaller. Wall values use the
+same station interpolation as generation, additionally capped by available skin.
+Targets are 15%/85% of the remaining main-body length; nearby positions within
+5-35%/65-95% are searched to avoid hatches, cavities and thin ends. The uncut
+body supplies the true skin location; exact containment in the post-cut main
+body ensures support, including 0.1 mm beyond each blind socket. No extra radial
+clearance is added. If all four cannot fit, a location-specific error is shown.
+Pins and sockets are applied in two batched Boolean operations, with valid
+single-solid halves and feature-volume checks. Cut-outs remain unchanged.
+See ADR-0032. The plain split helper can omit features for isolated cut tests;
+the complete Fuselage builder always requests them. Saved project inputs are
+unchanged; alignment features are regenerated, not serialized.

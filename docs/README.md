@@ -47,3 +47,6 @@ Fuselage readiness and measured topology optimization: ADR-0026 and
 Former retaining rails and left/right main-body splitting: ADR-0029,
 `architecture/formers.md`, `architecture/fuselage-cuts.md` and
 `baseline/former-retainers-validation.md`.
+
+Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
+`baseline/fuselage-alignment-validation.md`.

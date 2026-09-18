@@ -6,6 +6,14 @@
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepGProp.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
+#include <BRepAlgoAPI_Common.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
+#include <BRepTools.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Compound.hxx>
+#include <gp_Trsf.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp_Explorer.hxx>
 #include <QApplication>
@@ -28,6 +36,58 @@ using namespace designrc::gui;
 SketchLayer rectangle(double x,double y,double w,double h){return {{{x,y},{x+w,y},{x+w,y+h},{x,y+h}},{{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}},{SketchTool::Line,{3,0}}}};}
 int count(const TopoDS_Shape& shape){int n=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++n;return n;}
 double volume(const TopoDS_Shape& shape){GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass);return mass.Mass();}
+bool inside(const TopoDS_Shape& shape,double x,double y,double z){return BRepClass3d_SolidClassifier{shape,gp_Pnt{x,y,z},1e-7}.State()==TopAbs_IN;}
+void alignmentTests() {
+  const auto outer=BRepPrimAPI_MakeBox{gp_Pnt{0,-20,-15},100,40,30}.Shape();
+  auto shell=[&](double wall){return BRepAlgoAPI_Cut{outer,BRepPrimAPI_MakeBox{gp_Pnt{wall,-20+wall,-15+wall},100-2*wall,40-2*wall,30-2*wall}.Shape()}.Shape();};
+  auto sides=[](const TopoDS_Shape& model) {
+    std::array<TopoDS_Shape,2> result;
+    for(TopExp_Explorer e{model,TopAbs_SOLID};e.More();e.Next()) {
+      GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);result[mass.CentreOfMass().Y()<0?0:1]=e.Current();
+    }
+    CHECK(!result[0].IsNull()&&!result[1].IsNull());return result;
+  };
+  for(double wall:{5.,2.}) {
+    const auto body=shell(wall);geometry::FuselageAlignmentSpec spec{body,{{0,wall},{100,wall}}};
+    const auto model=geometry::splitFuselageMainBody(body,{},{},&spec);CHECK(count(model)==2);CHECK(BRepCheck_Analyzer{model}.IsValid());
+    const auto halves=sides(model);const double radius=.5*std::min(4.,wall);
+    CHECK(std::abs(volume(model)-volume(body)+4*.5*std::acos(-1.)*radius*radius)<1e-4);
+    CHECK(std::abs(volume(BRepAlgoAPI_Common{halves[0],halves[1]}.Shape()))<1e-6);
+    for(double x:{15.,85.})for(double z:{-15+wall*.5,15-wall*.5}) {
+      CHECK(inside(halves[0],x,2.99,z));CHECK(!inside(halves[0],x,3.01,z));
+      CHECK(!inside(halves[1],x,3.49,z));CHECK(inside(halves[1],x,3.51,z));
+      CHECK(inside(halves[0],x+radius-.01,1,z));CHECK(!inside(halves[0],x+radius+.01,1,z));
+      CHECK(inside(halves[1],x+radius+.01,1,z));
+    }
+    if(wall==5)if(const auto path=qgetenv("FOAM_ALIGNMENT_BREP");!path.isEmpty()) {
+      BRep_Builder builder;TopoDS_Compound display;builder.MakeCompound(display);
+      for(int i=0;i<2;++i){gp_Trsf move;move.SetTranslation(gp_Vec{0,i?12.:-12.,0});builder.Add(display,BRepBuilderAPI_Transform{halves[i],move,true}.Shape());}
+      BRepMesh_IncrementalMesh mesh{display,.1,false,.3,false};CHECK(BRepTools::Write(display,path.constData()));
+    }
+  }
+  const auto body=shell(5.);geometry::FuselageAlignmentSpec varying{body,{{0,2},{100,6}}};
+  const auto varied=sides(geometry::splitFuselageMainBody(body,{},{},&varying));
+  const double frontWall=2+4*(.15*.15*(3-2*.15));
+  CHECK(inside(varied[0],15+frontWall*.5-.01,1,15-frontWall*.5));
+  CHECK(!inside(varied[0],15+frontWall*.5+.01,1,15-frontWall*.5));
+  CHECK(inside(varied[0],85+1.99,1,12.5));CHECK(!inside(varied[0],85+2.01,1,12.5));
+  // A hatch removes the preferred forward/top location. The remaining main
+  // body must use another top location, rather than adding a pin to the hatch.
+  std::vector<SketchLayer> cuts(2);cuts[1]=rectangle(10,-16,15,6);
+  const auto cut=geometry::cutFuselage(body,cuts,{{{0,1,0},{0,1,0}}});
+  TopoDS_Shape hatch;double smallest=volume(body);
+  for(TopExp_Explorer e{cut,TopAbs_SOLID};e.More();e.Next())if(volume(e.Current())<smallest){hatch=e.Current();smallest=volume(hatch);}
+  geometry::FuselageAlignmentSpec spec{body,{{0,5},{100,5}}};
+  const auto assembly=geometry::splitFuselageMainBody(cut,{},{},&spec);CHECK(count(assembly)==3);CHECK(BRepCheck_Analyzer{assembly}.IsValid());
+  bool preserved=false;for(TopExp_Explorer e{assembly,TopAbs_SOLID};e.More();e.Next())if(e.Current().IsSame(hatch))preserved=true;CHECK(preserved);
+  CHECK(std::abs(volume(assembly)-volume(body)+8*std::acos(-1.))<1e-4);
+  const auto narrow=BRepPrimAPI_MakeBox{gp_Pnt{0,-3,-15},100,6,30}.Shape();
+  spec.seamReference=narrow;bool rejected=false;
+  try{geometry::splitFuselageMainBody(narrow,{},{},&spec);}catch(const std::exception& e){rejected=std::string{e.what()}.find("Cannot place")!=std::string::npos;}CHECK(rejected);
+  std::stop_source stop;stop.request_stop();rejected=false;
+  try{geometry::splitFuselageMainBody(body,{}, {stop.get_token()},&spec);}catch(const geometry::ProcessingCancelled&){rejected=true;}CHECK(rejected);
+  std::cout<<"Alignment pins: four pins, 3/3.5 mm depths, 4 mm/thin-wall diameters, varying walls, hatch preservation, insufficient material and cancellation passed\n";
+}
 void geometryTests() {
   auto box=BRepPrimAPI_MakeBox{gp_Pnt{0,-20,-15},200,40,30}.Shape();
   const std::array<geometry::FuselageCutProjection,2> projections{{{100,2,210},{500,1,615}}};
@@ -65,6 +125,7 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamCutTests");QCoreApplication::setApplicationName("FoamCutTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
+    if(app.arguments().contains("--alignment-only")){alignmentTests();return 0;}
     geometryTests();
     ProjectDocument p;p.reference.wingspanMm=1000;p.reference.fuselageLengthMm=400;p.wingspanText="1000 mm";p.fuselageText="400 mm";
     p.wing.layers[0]=rectangle(10,10,90,70);p.wing.layers[0].curves.pop_back();

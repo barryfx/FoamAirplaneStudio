@@ -69,3 +69,7 @@ geometry parity evidence: ../baseline/fuselage-readiness-performance.md.
 Fuselage generation now fuses former retaining rails before user cuts, splits
 only the largest post-cut main body at Y=0, and finally appends whole removable
 tray/former inserts. See ADR-0029 for dimensions and cut-out classification.
+
+After the main fuselage centre split, four alignment pins and matching deeper
+sockets are derived from the retained seam material and local station walls.
+Cut-out pieces and inserts are appended unchanged. See ADR-0032.

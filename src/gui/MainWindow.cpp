@@ -744,7 +744,7 @@ void MainWindow::pollFuselageJob() {
       int bodies=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++bodies;
       viewport_->setProperty("fuselageBodyCount",bodies);
       const int cutouts=bodies-2-static_cast<int>(result.formers.size())-(result.servoTray.IsNull()?0:1);
-      statusBar()->showMessage(QString{"Fuselage updated: left/right main halves; %1 intact cut-out parts; %2 formers%3%4; %5 bodies"}
+      statusBar()->showMessage(QString{"Fuselage updated: left/right main halves with 4 alignment pins; %1 intact cut-out parts; %2 formers%3%4; %5 bodies"}
           .arg(cutouts).arg(result.formers.size())
           .arg(result.formers.empty()?QString{}:QString{" with 4 x 3 mm retaining rails"})
           .arg(result.servoTray.IsNull()?QString{}:QString{" and servo tray"}).arg(bodies));

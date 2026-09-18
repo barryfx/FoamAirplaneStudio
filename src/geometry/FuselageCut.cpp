@@ -55,7 +55,8 @@ std::vector<Path> paths(const gui::SketchLayer& layer) {
 }
 }
 TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
-    const std::function<void(const char*)>& progress,const ProcessingControl& processing) {
+    const std::function<void(const char*)>& progress,const ProcessingControl& processing,
+    const FuselageAlignmentSpec* alignment) {
   processing.checkpoint();
   if(progress)progress("Fuselage: splitting main body into left/right halves; preserving cut-out parts...");
   std::vector<TopoDS_Shape> parts;std::vector<double> volumes;
@@ -75,12 +76,15 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
   if(!splitter.IsDone()||splitter.HasErrors()||bodyCount(splitter.Shape())!=2)
     throw std::runtime_error("The main fuselage must cross the centre plane to form two connected halves.");
   BRep_Builder builder;TopoDS_Compound result;builder.MakeCompound(result);double volume=0;
+  std::array<TopoDS_Shape,2> halves;std::size_t halfIndex=0;
   for(TopExp_Explorer e{splitter.Shape(),TopAbs_SOLID};e.More();e.Next()) {
     processing.checkpoint();GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);
     if(mass.Mass()<=1e-9||!BRepCheck_Analyzer{e.Current()}.IsValid())throw std::runtime_error("Invalid fuselage half after centre split.");
-    volume+=mass.Mass();builder.Add(result,e.Current());
+    volume+=mass.Mass();halves[halfIndex++]=e.Current();
   }
   if(std::abs(volume-volumes[index])>std::max(1e-3,volumes[index]*1e-6))throw std::runtime_error("Centre split did not conserve fuselage material.");
+  if(alignment)halves=addFuselageAlignmentPins(parts[index],halves,*alignment,progress,processing);
+  for(const auto& half:halves)builder.Add(result,half);
   for(std::size_t i=0;i<parts.size();++i)if(i!=index)builder.Add(result,parts[i]);
   return result;
 }
