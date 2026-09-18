@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="/">
+    <file alias="airfoils/naca009.dat">naca009.dat</file>
     <file alias="graphics/blunt_tip.png">graphics/blunt_tip.png</file>
     <file alias="graphics/flat_bottom_tip.png">graphics/flat_bottom_tip.png</file>
     <file alias="graphics/flat_top.png">graphics/flat_top.png</file>

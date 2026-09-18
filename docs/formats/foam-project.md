@@ -1,12 +1,14 @@
-# FoamAirplaneStudio project format, version 15
+# FoamAirplaneStudio project format, version 18
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 15`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 18`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
 | Field | Meaning |
 | --- | --- |
 | reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan/fuselage length and their text fields |
+| stabilizerAirfoils | Two entries in horizontal/vertical order: null for bundled NACA009, or embedded DAT name and normalized coordinates |
+| horizontalStabilizerOutline / verticalStabilizerOutline | Independent single-layer open sketches, tools, selections and pending points |
 | wingOutline | Numbered wing-panel sketch layers, active layer, current tool, selected curve, pending points and editing flag |
 | formers | Positive Side View rectangles and next-former thicknessMm |
 | servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
@@ -54,7 +56,7 @@ Save writes a temporary sibling through QSaveFile and atomically replaces the
 destination after successful completion. No autosave or legacy `.designrc`
 migration is implied. See ADR-0006 for ownership and restoration decisions.
 
-View and editor-selection state is serialized in version 15, but is excluded
+View and editor-selection state is serialized in version 18, but is excluded
 from the unsaved-data comparison. An explicit Save captures current navigation;
 view-only changes never require Save/Discard on closing (ADR-0008).
 
@@ -66,7 +68,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 15.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 18.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -95,7 +97,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 15; older
+into Panel 1, with others disabled. Current Save/Save As writes version 18; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -160,7 +162,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 15; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 18; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -200,7 +202,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints are transient. Save writes version 15; earlier versions remain readable.
+fingerprints are transient. Save writes version 18; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -226,7 +228,7 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 15. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 18. Generated cut
 bodies are transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -252,3 +254,47 @@ and a 3 mm next thickness. The legacy Fuselage tool name Firewall maps to Former
 
 Insert regeneration initializes missing station walls and enables `fuselageThickening`
 before taking the model snapshot; the initialized values are retained by the next Save.
+
+
+## Stabilizer outlines (version 16)
+
+`horizontalStabilizerOutline` and `verticalStabilizerOutline` each store the standard
+sketch object with exactly one layer: points, Line/Spline curves, pending points,
+active layer (0), selected curve, tool and editing state. These are independent of
+Wing and Fuselage sketches. Draft points require an active Line/Spline tool and
+editing in the matching stabilizer workspace, Outline tool, and 2D viewport.
+Invalid indices, extra/empty layers and inconsistent draft states are rejected
+before replacing the current document. Incomplete or misaligned geometry is allowed
+so work in progress can be saved and repaired.
+
+Versions 1–15 load empty stabilizer outlines. For stabilizer UI state, old `Airfoils`
+maps to `Airfoil`; removed `Airfoil Stations` and `Edit` selections map to `Outline`.
+Only one airfoil type per stabilizer is supported; version 17 stores the selection
+in `stabilizerAirfoils`.
+
+Outline geometry and unfinished points affect document dirty state. Idle tools,
+selection and navigation do not. Both sketches remap when the same reference changes
+scale. Neither enters Wing or Fuselage generation fingerprints. New/Close clears both.
+
+
+## Stabilizer airfoils (version 17)
+
+`stabilizerAirfoils` has exactly two entries: horizontal, then vertical. Each is
+null (use the bundled resources/naca009.dat) or an object containing `name` and
+`coordinates` (normalized DAT `[x,y]` pairs). Imported coordinates are embedded;
+original file paths are not required to reopen. Reject invalid array counts,
+empty/multiline names, nonfinite coordinates and profiles with no thickness.
+Versions 1–16 receive null defaults without visiting Airfoil. Generated stabilizer
+shapes, workers, caches and cancellation state are transient. Changes to a selected
+airfoil affect document dirty state and only its component's geometry fingerprint.
+
+## Stabilizer leading-edge endpoints (version 18)
+
+Each stabilizer sketch layer may contain `leadingEdge`, the integer index of its
+chosen leading-edge root point. Omission means no selection, making the outline
+incomplete for dependent tools and generation. Readers reject out-of-range indices
+and points that are not open endpoints. Point moves retain the index; curve deletion
+remaps it or clears it when the selected endpoint disappears. Selection mode and
+hover state are not stored. The selection participates in document dirty state and
+the component's generation fingerprint. Versions 1-17 load without a selection;
+the user must choose it. Existing files are upgraded only when saved.

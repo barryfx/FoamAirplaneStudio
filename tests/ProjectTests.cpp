@@ -200,7 +200,7 @@ int main(int argc,char** argv) {
     badPanels[0]=badSurfaces;badState["panels"]=badPanels;badControls["controlSurfaces"]=badState;
     bool badHingeRejected=false;try{decodeProject(badControls);}catch(const std::exception&){badHingeRejected=true;}
     CHECK(badHingeRejected);
-    auto invalid=canonical;invalid["version"]=16;bool rejected=false;
+    auto invalid=canonical;invalid["version"]=canonical["version"].toInt()+1;bool rejected=false;
     try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     invalid=canonical;auto stationObject=invalid["stations"].toObject();auto lines=stationObject["lines"].toArray();
     auto line=lines[0].toObject();line["airfoil"]=99;lines[0]=line;stationObject["lines"]=lines;invalid["stations"]=stationObject;

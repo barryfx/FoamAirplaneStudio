@@ -236,16 +236,25 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 5.3 Stabilizer Planform
 
-- The stabilizer planform shall be traced over the appropriate reference drawing, including the side-view drawing where applicable.
-- The planform shall initially be outlined as one continuous piece.
+- Both modes shall provide Outline, Airfoil, Hinge Line and Cut tools, with no Airfoil Stations or Edit tool.
+- Outline shall reuse Wing Line/Spline drawing, snapping, point movement, curve selection, Delete and Escape behavior.
+- Trace one continuous open outline, made from a spline or connected line/spline segments, leaving the root edge open.
+- Horizontal instructions shall request the right half including elevator, explain mirroring, and allow later cuts for rudder clearance in elevators.
+- Vertical instructions shall request the complete fin including rudder, without mirroring.
+- The line through the endpoints shall be within 10 degrees (inclusive) of horizontal or vertical on the reference drawing, supporting 90-degree rotated drawings. Otherwise warn on leaving Outline or entering 3D and retain the sketch. Coincident endpoints also warn.
+- Disconnected, closed or branched outlines shall also produce a retained-sketch warning.
+- Select Leading Edge End Point shall let the user choose an open root endpoint. The choice shall be marked LE, saved with the outline, and required for validity. Generation shall orient the airfoil from this endpoint.
+- Save/Open shall preserve independent component outlines, editing tools, selections and unfinished work; New/Close shall clear them.
 
-### 5.4 Stabilizer Profiles
+### 5.4 Stabilizer Airfoil
 
-- The user shall select profile locations along the fuselage-length direction of the stabilizer geometry.
-- Profile shapes may be obtained from:
-  - Imported `.dat` files, or
-  - Profiles traced/drawn over the reference plans.
-- The software shall interpolate between the profiles using the same general profile-lofting approach used for the wing.
+- Each stabilizer shall use one airfoil type for its entire body, with no station-based assignments.
+- Airfoil shall show the text "Load the airfoil to use for the stabilizer from a .dat file.", a "Load Airfoil .dat File" button, then the name read from the DAT file.
+- Each component shall default to the bundled resources/naca009.dat without requiring an Airfoil visit. Loading a valid DAT replaces only that component's airfoil; invalid/cancelled loads preserve it.
+- Project files shall embed selected airfoil data.
+- Only Outline shall be selectable until a valid open outline with nonzero area and a selected leading-edge endpoint exists.
+- Entering 3D shall generate the selected stabilizer in its own worker with status progress and the shared Cancel control. Changes to outline, airfoil or physical scale invalidate only the affected stabilizer cache.
+- Hinge Line and Cut remain future editors.
 
 ### 5.5 Stabilizer Tips
 
@@ -374,7 +383,7 @@ menus, shortcuts, toolbars, data fields and viewport controls while processing;
 show Cancel at the bottom of the data panel. Report panel-specific status and
 restore controls on completion, failure or cooperative cancellation. Keep the
 last display on cancellation and retain the camera on successful replacement.
-Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizer builders remain future work.
+Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizers also own independent cancellable workers and cached solids.
 
 Implemented Fuselage Edit Profiles: one station enables the mode. Instructions
 appear above Line/Spline controls for the selected highlighted station. Each

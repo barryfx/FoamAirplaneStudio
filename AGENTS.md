@@ -78,6 +78,10 @@ decisions. Do not leave documentation knowingly inconsistent with code.
 
 ## Testing/validation
 
+Do not run Wing or Fuselage generation tests until the user explicitly instructs
+otherwise. This includes broader suites that generate those components internally.
+Continue appropriate non-generation editor, persistence and UI checks.
+
 For future implementation requests, unless the user instructs otherwise, run
 the appropriate tests, rebuild the Debug application, and launch the rebuilt
 Debug application. If the app is running, kill its workspace executable processes

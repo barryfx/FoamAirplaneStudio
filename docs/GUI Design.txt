@@ -10,7 +10,7 @@ Menu Bar Taken from DesignRC (delete defaults from Edit menu)
 (When Reference selected, no secondary toolbar, Dialog displayed to choose a image file or PDF to be displayed in background of 2D view)
 (ToolBar Buttons when Wing Selected)  Outline  |  Airfoil Stations  |  Airfoils  |  Dihedral  |  Ailerons/Flaps  |  Spars  |  Lightening
 (ToolBar Buttons when Fuselage Selected)  Outline  |  Profile Stations  |  Edit Profiles  |  Thicken  |  Cut  |  Servo Tray  |  Formers
-(ToolBar Buttons when Horiz or Vert Stab Selected)  Outline  |  Airfoil Stations  |  Airfoils  |  Edit |  Hinge Line  |  Cut  |
+(ToolBar Buttons when Horiz or Vert Stab Selected)  Outline  |  Airfoil  |  Hinge Line  |  Cut  |
 (ToolBar Buttons when Assembly Selected)  Wing Location  |  Horiz Stab Location  |  Vert Stab Location
 (When Export Selected, no secondary toolbar.  Dialog to select output directory and formats (step vs stl, dxf vs svg))
 
@@ -59,7 +59,7 @@ menus, shortcuts, toolbars, data fields and viewport controls while processing;
 show Cancel at the bottom of the data panel. Report panel-specific status and
 restore controls on completion, failure or cooperative cancellation. Keep the
 last display on cancellation and retain the camera on successful replacement.
-Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizer builders remain future work.
+Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizers also own independent cancellable workers and cached solids.
 
 Fuselage / Outline: instructions above Top View and Side View toggle buttons.
 The selected view lights up, disables the other view, and shows Line/Spline beneath
@@ -105,3 +105,17 @@ Former. Add creates a full-height Side View rectangle; drag to move in either
 axis, or drag the top/bottom handles to change height. Width uses Reference units
 or explicit mm/in. Prevent overlap with formers or the tray in either editor.
 Generate separate cavity-fitted solids, clear of walls/supports. Persist placements.
+
+Stabilizers / Outline: shared Line/Spline editing with one independent open outline
+per component. Horizontal instructions request the right half including elevator,
+for later mirroring, and explain later rudder-clearance cuts. Vertical instructions
+request the complete fin including rudder, without mirroring. The line through both endpoints must be
+within 10 degrees of horizontal or vertical, including 90-degree rotated drawings.
+Warn on leaving Outline or entering 3D for disconnected/closed/branched paths,
+coincident endpoints, or endpoint lines more than 10 degrees from either axis.
+Retain all sketches after warnings. Select Leading Edge End Point lets the user choose either open root end and marks it LE. The outline is invalid until selected. Save/Open preserves both outlines, leading-edge selections and drafts.
+Airfoil shows "Load the airfoil to use for the stabilizer from a .dat file.", then
+"Load Airfoil .dat File" and the loaded DAT name. Bundle naca009.dat as the default,
+even before Airfoil is visited. Enable other tools only after a valid Outline.
+Entering 3D generates that stabilizer in its own worker with progress and Cancel.
+Hinge Line and Cut remain planned editors. See architecture/stabilizer-solids.md.

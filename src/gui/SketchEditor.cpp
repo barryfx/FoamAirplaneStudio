@@ -11,13 +11,27 @@
 #include <cmath>
 
 namespace designrc::gui {
+bool isSketchEndpoint(const SketchLayer& layer, std::size_t index) {
+  if(index>=layer.points.size())return false;
+  int degree=0;
+  for(const auto& curve:layer.curves)
+    for(std::size_t i=1;i<curve.points.size();++i) {
+      degree += curve.points[i-1]==index;
+      degree += curve.points[i]==index;
+    }
+  return degree==1;
+}
 SketchEditor::SketchEditor(QGraphicsView* view) : QObject{view}, view_{view}, stations_{*view, *this} {
   view_->viewport()->installEventFilter(this);
   view_->installEventFilter(this);
 }
-void SketchEditor::refresh() { stations_.synchronize(); view_->viewport()->update(); emit changed(); }
+void SketchEditor::refresh() {
+  for(auto& layer:layers_)
+    if(layer.leadingEdge && !isSketchEndpoint(layer,*layer.leadingEdge))layer.leadingEdge.reset();
+  stations_.synchronize(); view_->viewport()->update(); emit changed(); }
 SketchState SketchEditor::state() const { return {layers_,pending_,tool_,active_,selected_,editing_}; }
 void SketchEditor::restoreState(const SketchState& state) {
+  selectingLeadingEdge_=false;
   layers_=state.layers; pending_=state.pending; tool_=state.tool;
   active_=state.active; selected_=state.selected; editing_=state.editing; dragging_=-1;
   view_->viewport()->setCursor(editing_ && tool_!=SketchTool::None ? Qt::CrossCursor : Qt::ArrowCursor);
@@ -44,7 +58,7 @@ void SketchEditor::setActiveLayer(int index) {
 }
 void SketchEditor::setEditing(bool enabled) {
   if (enabled) { stations_.setEnabled(false); stations_.setSelectionEnabled(false); }
-  if (!enabled) finish();
+  if (!enabled) { selectingLeadingEdge_=false; finish(); }
   editing_ = enabled; dragging_ = -1;
   if (!enabled) selected_ = -1;
   view_->viewport()->setCursor((enabled && tool_ != SketchTool::None) || stations_.enabled()
@@ -52,11 +66,19 @@ void SketchEditor::setEditing(bool enabled) {
   view_->viewport()->update();
 }
 void SketchEditor::setTool(SketchTool tool) {
-  finish(); tool_ = tool; dragging_ = -1; selected_ = -1;
+  selectingLeadingEdge_=false; finish(); tool_ = tool; dragging_ = -1; selected_ = -1;
   setEditing(editing_);
   if (editing_ && tool != SketchTool::None) view_->setFocus();
 }
+void SketchEditor::setSelectingLeadingEdge(bool enabled) {
+  setTool(SketchTool::None);
+  selectingLeadingEdge_=enabled && editing_;
+  view_->viewport()->setCursor(selectingLeadingEdge_ ? Qt::CrossCursor : Qt::ArrowCursor);
+  if(selectingLeadingEdge_)view_->setFocus();
+  view_->viewport()->update(); emit changed();
+}
 void SketchEditor::reset() {
+  selectingLeadingEdge_=false;
   stations_.reset();
   pending_.clear(); layers_ = std::vector<SketchLayer>(1);
   active_ = 0; dragging_ = -1; selected_ = -1; tool_ = SketchTool::None; editing_ = false; refresh();
@@ -91,6 +113,10 @@ void SketchEditor::deleteSelected() {
   for (std::size_t i = 0; i < layer.points.size(); ++i)
     if (used[i]) { remap[i] = points.size(); points.push_back(layer.points[i]); }
   for (auto& curve : layer.curves) for (auto& id : curve.points) id = remap[id];
+  if(layer.leadingEdge) {
+    if(*layer.leadingEdge<used.size() && used[*layer.leadingEdge])layer.leadingEdge=remap[*layer.leadingEdge];
+    else layer.leadingEdge.reset();
+  }
   layer.points = std::move(points);
   selected_ = -1; dragging_ = -1; refresh();
 }
@@ -179,6 +205,7 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
     deleteSelected(); return true;
   }
   if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
+    if(selectingLeadingEdge_)setSelectingLeadingEdge(false);
     finish(); dragging_ = -1; selected_ = -1; view_->viewport()->update();
     if (escapeEndsSession_) emit sessionFinished();
     return true;
@@ -189,6 +216,15 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
     if (mouse->button() != Qt::LeftButton) return false;
     view_->setFocus();
     const auto position = view_->mapToScene(mouse->position().toPoint());
+    if(selectingLeadingEdge_) {
+      const int index=nearest(position);
+      auto& layer=layers_[active_];
+      if(index>=0 && isSketchEndpoint(layer,index)) {
+        layer.leadingEdge=static_cast<std::size_t>(index);
+        setSelectingLeadingEdge(false); refresh();
+      }
+      return true;
+    }
     if (tool_ != SketchTool::None) pick(position);
     else {
       dragging_ = nearest(position);
@@ -248,6 +284,15 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
       painter.setBrush(Qt::white);
       for (auto point : layer.points) painter.drawEllipse(point, radius, radius);
     }
+  }
+  for(const auto& layer:layers_)if(layer.leadingEdge && isSketchEndpoint(layer,*layer.leadingEdge)) {
+    painter.save();
+    const auto position=painter.worldTransform().map(layer.points[*layer.leadingEdge]);
+    painter.resetTransform();
+    painter.setPen(QPen{QColor{0,80,30},2});painter.setBrush(QColor{100,255,140});
+    painter.drawEllipse(position,6,6);
+    painter.drawText(position+QPointF{10,-8},"LE");
+    painter.restore();
   }
   if (editing_ && selected_ >= 0) {
     const auto& layer = layers_[active_];

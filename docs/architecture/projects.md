@@ -18,10 +18,13 @@ the reference and editor data, recomputes readiness, restores the selected modes
 then reapplies pending drawing state, camera and 2D view. This prevents toolbar
 activation from finishing saved drafts or overwriting selections. A clean data
 fingerprint is recorded immediately, independently of queued layout events.
+Restored 2D view bounds use the maximum viewport size, independent of scrollbar
+visibility. Using the current inner viewport size can cause scrollbars to
+oscillate on saved zoom/center restoration and overwhelm the UI event loop.
 
 Reference pages and airfoils are embedded, so external source files are optional
-after saving. Generated solids are rebuilt from the saved inputs when Wing/3D
-is active, using a cancellable background component job (regeneration.md). Menus
+after saving. Generated solids are rebuilt from the saved inputs when the selected component
+is ready and 3D is active, using a cancellable background component job (regeneration.md). Menus
 and editing are disabled until completion; Cancel remains available. Hover markers and mouse-button capture are transient; the latest
 point coordinates, pending sketch points and first station anchor are retained.
 See ../formats/foam-project.md and ADR-0006.
@@ -37,12 +40,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 15;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 18;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 15. See spars.md and ADR-0011.
+use version 18. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -87,3 +90,9 @@ Version 14 persists Servo Tray placement (legacy unfinished corner entry is clea
 1-13 load no tray; generated tray bodies/top faces remain transient.
 
 Version 15 adds persistent Formers rectangles and next thickness, with overlap validation.
+
+Version 16 adds independent horizontal/vertical stabilizer open outlines and drafts. Older projects load empty outlines; removed stabilizer tool names migrate. See stabilizer-outlines.md.
+
+Version 17 embeds each stabilizer airfoil selection, with bundled NACA009 defaults for versions 1–16. Stabilizer solids rebuild from outline, airfoil and reference scale.
+
+Version 18 persists each stabilizer leading-edge endpoint; older projects require an explicit choice before generation.

@@ -1,12 +1,12 @@
 # Documentation guide
 
-Current state: September 17, 2026.
+Current state: September 18, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
-- `formats/foam-project.md` specifies version 15 and backward migration.
+- `formats/foam-project.md` specifies version 18 and backward migration.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.
@@ -21,8 +21,9 @@ synchronous regeneration with cancellable background jobs. ADR-0019 adds fuselag
 outline views. Validation is recorded in `baseline/fuselage-outline-validation.md`;
 Wing regeneration evidence remains in `baseline/regeneration-validation.md`.
 
-Stabilizer modeling, assembly/interfaces, export workflows and undo remain
-future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
+Stabilizer Outline editing and persistence are implemented (architecture/stabilizer-outlines.md).
+Stabilizer Airfoil and cancellable solid generation are implemented (architecture/stabilizer-solids.md).
+Stabilizer Hinge Line/Cut, assembly/interfaces, export workflows and undo remain future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
 Profile Stations places vertical Side View sections (architecture/fuselage-stations.md,
 ADR-0020). Edit Profiles, solid generation, Thicken, Cut, Servo Tray and Formers are implemented.
 
@@ -42,3 +43,7 @@ Formers: `architecture/formers.md`, ADR-0025 and `baseline/formers-validation.md
 
 Fuselage readiness and measured topology optimization: ADR-0026 and
 `baseline/fuselage-readiness-performance.md`.
+
+Former retaining rails and left/right main-body splitting: ADR-0029,
+`architecture/formers.md`, `architecture/fuselage-cuts.md` and
+`baseline/former-retainers-validation.md`.

@@ -47,7 +47,21 @@ void geometryTests() {
   const auto outer=BRepPrimAPI_MakeBox{gp_Pnt{0,-25,-20},100,50,40}.Shape();
   const auto cavity=BRepPrimAPI_MakeBox{gp_Pnt{5,-20,-15},90,40,30}.Shape();
   const auto shell=BRepAlgoAPI_Cut{outer,cavity}.Shape();
+  const auto inserts=geometry::buildFormers(cavity,shell,{{20,-30,4,60}});
+  const auto retained=geometry::addFormerRetainers(shell,cavity,{{20,-30,4,60}},inserts);
+  CHECK(count(retained)==1);CHECK(std::abs(volume(retained)-volume(shell)-4*4*3*30)<1e-5);
+  for(double x:{18.,26.})for(double y:{-18.5,18.5})for(double z:{-14.,0.,14.})CHECK(inside(retained,x,y,z));
+  CHECK(!inside(retained,18,16,0));CHECK(!inside(retained,15,18.5,0));CHECK(!inside(retained,29,18.5,0));
+  CHECK(std::abs(volume(BRepAlgoAPI_Common{retained,inserts[0]}.Shape()))<1e-6);
+  const auto halves=geometry::splitFuselageMainBody(retained);
+  CHECK(count(halves)==2);CHECK(std::abs(volume(halves)-volume(retained))<1e-5);
   const auto supported=geometry::addServoTray(shell,cavity,{35,0,30,3});
+  const std::vector<QRectF> closeMasks{{20,-30,4,60},{26,-30,4,60},{31,-30,3,60}};
+  auto closeInserts=geometry::buildFormers(cavity,supported.body,closeMasks,QRectF{35,0,30,3});
+  closeInserts.push_back(supported.tray);
+  const auto closeRetainers=geometry::addFormerRetainers(supported.body,cavity,closeMasks,closeInserts);
+  CHECK(count(closeRetainers)==1);
+  for(const auto& insert:closeInserts)CHECK(std::abs(volume(BRepAlgoAPI_Common{closeRetainers,insert}.Shape()))<1e-6);
   auto shapes=geometry::buildFormers(cavity,supported.body,{{20,-30,4,60},{40,-12,3,7}},QRectF{35,0,30,3});
   CHECK(shapes.size()==2);CHECK(std::abs(volume(shapes[0])-4800)<1e-5);
   CHECK(std::abs(volume(shapes[1])-840)<1e-5);
@@ -106,7 +120,7 @@ int main(int argc,char** argv) {
       const auto capture=qEnvironmentVariable("FOAM_READY_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
       CHECK(!window.projectDocument().fuselageThickening);tabs->setCurrentIndex(1);waitForModel(window);
       CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(window.projectDocument().fuselageThickening);
-      CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==1);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
+      CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==2);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
       workspaces->actions()[3]->trigger();CHECK(window.projectDocument().workspace==3);workspaces->actions()[4]->trigger();CHECK(window.projectDocument().workspace==4);
       std::cout<<"Fuselage generates without optional tab visits; both stabilizers follow readiness\n";return 0;
     }
@@ -117,7 +131,7 @@ int main(int argc,char** argv) {
       CHECK(!window.projectDocument().fuselageThickening);
       tabs->setCurrentIndex(1);waitForModel(window);
       if(!tabs->widget(1)->property("fuselageModelReady").toBool())std::cerr<<window.statusBar()->currentMessage().toStdString()<<std::endl;
-      CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==3);
+      CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==4);
       const auto saved=window.projectDocument();CHECK(saved.fuselageThickening);CHECK(saved.fuselageStations.lines[0].thicknessMm==4.);CHECK(saved.fuselageStations.lines[1].thicknessMm.value_or(0)>0);
       CHECK(window.saveProjectFile(file,error));CHECK(readProject(file,error)->fuselageThickening);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
       std::cout<<"Untouched tray/former defaults regenerate without visiting Thicken; missing walls initialized and explicit walls preserved\n";return 0;
@@ -142,7 +156,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==15);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==18);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
     auto oldUi=old["ui"].toObject();oldUi["tool"]="Firewall";old["ui"]=oldUi;CHECK(decodeProject(old).tool=="Formers");
     auto bad=encoded;auto formers=bad["formers"].toObject();auto rects=formers["rectangles"].toArray();rects.append(rects[0]);formers["rectangles"]=rects;bad["formers"]=formers;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[4]->trigger();CHECK(!window.projectModified());
@@ -150,10 +164,16 @@ int main(int argc,char** argv) {
     const auto pix=view->viewport()->grab().toImage();r=editor.state().rectangles[0];const auto loc=view->mapFromScene({r.left(),r.center().y()});const QPoint at{qRound(loc.x()*pix.devicePixelRatio()),qRound(loc.y()*pix.devicePixelRatio())};bool green=false;
     for(int y=-3;y<=3;++y)for(int x=-3;x<=3;++x)if(pix.rect().contains(at+QPoint{x,y})){const auto c=pix.pixelColor(at+QPoint{x,y});if(c.green()>170&&c.red()<130)green=true;}CHECK(green);
     toolbar->actions()[6]->trigger();const auto capture=qEnvironmentVariable("FOAM_FORMER_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
+    if(app.arguments().contains("--editor-only")) {
+      CHECK(window.findChild<QLabel*>("formerInstructions")->text().contains("4 mm fore/aft"));
+      CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==0);
+      CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
+      std::cout<<"Former editor, units, placement, overlap, persistence, overlay and instructions passed (no generation)\n";return 0;
+    }
     tabs->setCurrentIndex(1);waitForModel(window);
     if(!tabs->widget(1)->property("fuselageModelReady").toBool())std::cerr<<window.statusBar()->currentMessage().toStdString()<<std::endl;
     CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("formerCount").toInt()==2);
-    CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==4);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
+    CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==5);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
     const auto revision=tabs->widget(1)->property("fuselageModelRevision").toInt();tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==revision);
     std::cout<<"Former UI: add, units, move, partial-height resize, delete, bidirectional overlap checks, persistence, overlay and generation/cache passed\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}

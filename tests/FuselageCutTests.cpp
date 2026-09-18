@@ -40,6 +40,12 @@ void geometryTests() {
   CHECK(std::abs(volume(split)-volume(box))<.01);
   cuts[0]=rectangle(140,205,20,10);cuts[1]={};
   split=geometry::cutFuselage(box,cuts,projections);CHECK(count(split)==2);
+  TopoDS_Shape cutout;double smallest=volume(box);
+  for(TopExp_Explorer e{split,TopAbs_SOLID};e.More();e.Next())if(volume(e.Current())<smallest){cutout=e.Current();smallest=volume(cutout);}
+  const auto halvesAndCutout=geometry::splitFuselageMainBody(split);
+  CHECK(count(halvesAndCutout)==3);CHECK(std::abs(volume(halvesAndCutout)-volume(box))<.01);
+  bool preserved=false;for(TopExp_Explorer e{halvesAndCutout,TopAbs_SOLID};e.More();e.Next())if(e.Current().IsSame(cutout))preserved=true;
+  CHECK(preserved); // A cut-out crossing Y=0 remains the identical, unsplit solid.
   // Hollow-body hatches preserve the cavity and all material.
   auto pocket=BRepPrimAPI_MakeBox{gp_Pnt{5,-15,-10},190,30,20}.Shape();
   auto hollow=BRepAlgoAPI_Cut{box,pocket}.Shape();
@@ -93,7 +99,7 @@ int main(int argc,char** argv) {
     // Finish and delete this draft so the geometry test contains only the Top path.
     key(Qt::Key_Escape);spline->click();const auto path=SketchEditor::fittedPath(editor.layers()[1].points,SketchTool::Spline);click(path.pointAtPercent(.5));key(Qt::Key_Delete);CHECK(editor.layers()[1].curves.empty());
     window.findChild<QPushButton*>("fuselageCutTop")->click();
-    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==15);
+    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==18);
     auto legacy=encoded;legacy["version"]=12;legacy.remove("fuselageCuts");CHECK(decodeProject(legacy).fuselageCuts.layers[0].curves.empty());
     auto bad=encoded;auto cuts=bad["fuselageCuts"].toObject();cuts["layers"]=QJsonArray{};bad["fuselageCuts"]=cuts;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[2]->trigger();CHECK(!editor.state().editing);CHECK(!window.projectModified());
@@ -104,7 +110,7 @@ int main(int argc,char** argv) {
     toolbar->actions()[4]->trigger();const auto capture=qEnvironmentVariable("FOAM_CUT_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
     tabs->setCurrentIndex(1);waitForModel(window);
     if(!tabs->widget(1)->property("fuselageModelReady").toBool())std::cerr<<window.statusBar()->currentMessage().toStdString()<<std::endl;
-    CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==2);
+    CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==3);
     CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);const int revision=tabs->widget(1)->property("fuselageModelRevision").toInt();
     tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==revision);
     std::cout<<"Cut UI: drawing, joins, editing, visibility, draft persistence, migration, body splitting and cache passed\n";

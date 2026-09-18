@@ -223,9 +223,12 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     auto physical=[&](const QRectF& r){return QRectF{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};};
     std::vector<QRectF> formers;for(const auto& r:input.formers)formers.push_back(physical(r));
     result.formers=buildFormers(cavity,shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing);
+    auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
+    shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing);
   }
   if(!input.cuts.empty())shape=cutFuselage(shape,input.cuts,
       {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing);
+  shape=splitFuselageMainBody(shape,progress,processing);
   result.body=shape;
   if(!result.servoTray.IsNull()||!result.formers.empty()) {
     BRep_Builder builder;TopoDS_Compound assembly;builder.MakeCompound(assembly);

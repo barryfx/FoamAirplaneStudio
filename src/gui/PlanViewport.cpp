@@ -41,6 +41,7 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
     connect(bar,&QScrollBar::actionTriggered,this,[this]{restoredView_.reset();});
     connect(bar,&QScrollBar::sliderMoved,this,[this]{restoredView_.reset();});
   }
+  for (auto& editor : stabilizerSketchEditors_) editor = new SketchEditor{this};
   sketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_->setClosedLoopMode(true);
@@ -67,6 +68,7 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
 void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   QGraphicsView::drawForeground(painter, rect);
   sketchEditor_->paint(*painter);
+  for (auto* editor : stabilizerSketchEditors_) editor->paint(*painter);
   airfoilSketchEditor_->paint(*painter);
   fuselageSketchEditor_->paint(*painter);
   controlSurfaceEditor_->paint(*painter);
@@ -134,6 +136,7 @@ void PlanViewport::clearPlan() {
   scene_->setSceneRect(0, 0, 1000, 700);
   setSceneRect(scene_->sceneRect());zoomAnchor_.reset();
   sketchEditor_->reset();
+  for (auto* editor : stabilizerSketchEditors_) editor->reset();
   airfoilSketchEditor_->reset();
   fuselageProfileEditor_->reset();
   servoTrayEditor_->restore({});
@@ -173,6 +176,7 @@ void PlanViewport::setReferenceBackground(const std::vector<ReferencePage>& page
       return point;
     };
     sketchEditor_->mapPoints(remap);
+    for (auto* editor : stabilizerSketchEditors_) editor->mapPoints(remap);
     airfoilSketchEditor_->mapPoints(remap);
     fuselageSketchEditor_->mapPoints(remap);
     fuselageProfileEditor_->mapPoints(remap);
@@ -270,7 +274,10 @@ void PlanViewport::applyRestoredView() {
   if(!restoredView_) return;
   const auto saved=*restoredView_;
   setTransform(QTransform::fromScale(saved.zoom,saved.zoom));
-  const QSizeF visible=QSizeF{viewport()->size()}/saved.zoom;
+  // Use bounds independent of scrollbar visibility. Using viewport()->size()
+  // makes the scene alternate between fitting and overflowing as the bars
+  // appear/disappear, endlessly queuing resize events after project restore.
+  const QSizeF visible=QSizeF{maximumViewportSize()}/saved.zoom;
   setSceneRect(scene_->sceneRect().united(QRectF{saved.center-QPointF{visible.width()/2,visible.height()/2},visible}));
   centerOn(saved.center);
 }

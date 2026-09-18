@@ -9,6 +9,7 @@
 #include "gui/FormerEditor.h"
 #include "gui/ControlSurfaceEditor.h"
 #include <QString>
+#include <array>
 
 class QGraphicsScene;
 class QResizeEvent;
@@ -34,6 +35,7 @@ public:
   SketchEditor& fuselageCutEditor() { return *fuselageCutEditor_; }
   SketchEditor& fuselageProfileEditor() { return *fuselageProfileEditor_; }
   SketchEditor& fuselageSketchEditor() { return *fuselageSketchEditor_; }
+  SketchEditor& stabilizerSketchEditor(int index) { return *stabilizerSketchEditors_.at(index); }
   SketchEditor& sketchEditor() { return *sketchEditor_; }
   SketchEditor& airfoilSketchEditor() { return *airfoilSketchEditor_; }
   [[nodiscard]] bool exportPdf(const QString& path, QString& error) const;
@@ -46,6 +48,7 @@ protected:
 
 private:
   ControlSurfaceEditor* controlSurfaceEditor_{};
+  std::array<SketchEditor*, 2> stabilizerSketchEditors_{};
   SketchEditor* sketchEditor_{};
   SketchEditor* fuselageSketchEditor_{};
   SketchEditor* fuselageProfileEditor_{};

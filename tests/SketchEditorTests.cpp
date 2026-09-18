@@ -1,6 +1,9 @@
 #include "gui/PlanViewport.h"
 #include "gui/WingOutlinePanel.h"
 #include <QApplication>
+#include <QEventLoop>
+#include <QGraphicsScene>
+#include <QTimer>
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
@@ -15,8 +18,42 @@
 #include <cmath>
 using namespace designrc::gui;
 
+class ResizeCounter : public QObject {
+public:
+  int count = 0;
+  bool eventFilter(QObject*, QEvent* event) override {
+    if (event->type() == QEvent::Resize) ++count;
+    return false;
+  }
+};
+
+void checkRestoredView(QApplication& app) {
+  // GentleLady's saved view used to oscillate between both scrollbars and
+  // neither scrollbar, flooding the UI with thousands of resize events.
+  PlanViewport restored;
+  restored.resize(1552, 874);
+  restored.show(); app.processEvents();
+  restored.scene()->setSceneRect(0, 0, 1067.0716457790797, 1249.150841946072);
+  ResizeCounter resizes;
+  restored.viewport()->installEventFilter(&resizes);
+  const PlanViewState saved{0.5863954309366215, {801.5069272441148,649.7322112340589}};
+  restored.restoreView(saved);
+  QEventLoop loop;
+  QTimer::singleShot(500, &loop, &QEventLoop::quit);
+  loop.exec();
+  assert(resizes.count < 10);
+  assert(std::abs(restored.viewState().zoom-saved.zoom) < 1e-9);
+  assert(QLineF(restored.viewState().center,saved.center).length() < 3/saved.zoom);
+  const int settled = resizes.count;
+  QTimer::singleShot(100, &loop, &QEventLoop::quit);
+  loop.exec();
+  assert(resizes.count == settled);
+}
+
 int main(int argc, char** argv) {
   QApplication app{argc, argv};
+  QApplication::setStyle("Fusion");
+  checkRestoredView(app);
   PlanViewport view; view.resize(1000, 700); view.show(); app.processEvents();
   auto& editor = view.sketchEditor();
   WingOutlinePanel panel{editor}; panel.show(); app.processEvents();

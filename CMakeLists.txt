@@ -95,6 +95,7 @@ add_library(foam_sketch
   src/gui/FuselageCutPanel.cpp src/gui/FuselageCutPanel.h
   src/gui/FuselageThickenPanel.cpp src/gui/FuselageThickenPanel.h
   src/gui/FuselageProfilePanel.cpp src/gui/FuselageProfilePanel.h
+  src/gui/StabilizerOutlinePanel.cpp src/gui/StabilizerOutlinePanel.h
   src/gui/FuselageOutlinePanel.cpp src/gui/FuselageOutlinePanel.h
   src/gui/SparPanel.cpp
   src/gui/ControlSurfaceEditor.cpp src/gui/ControlSurfacePanel.cpp
@@ -109,12 +110,12 @@ add_library(foam_dialogs src/gui/FileSelectionDialog.cpp src/gui/FileSelectionDi
 target_include_directories(foam_dialogs PUBLIC src)
 target_link_libraries(foam_dialogs PUBLIC Qt6::Widgets)
 
-add_library(foam_airfoils src/gui/AirfoilLibrary.cpp src/gui/AirfoilLibrary.h
+add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerAirfoilPanel.h src/gui/AirfoilLibrary.cpp src/gui/AirfoilLibrary.h
   src/gui/AirfoilPanel.cpp src/gui/AirfoilPanel.h)
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
@@ -296,6 +297,18 @@ if(DESIGNRC_BUILD_TESTS)
   get_target_property(_foam_project_app_libraries designrc LINK_LIBRARIES)
   target_link_libraries(project_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME project_tests COMMAND project_tests)
+  add_executable(stabilizer_outline_tests tests/StabilizerOutlineTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(stabilizer_outline_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(stabilizer_outline_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(stabilizer_outline_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME stabilizer_outline_tests COMMAND stabilizer_outline_tests)
+  if(NOT WIN32)
+    set_tests_properties(stabilizer_outline_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
+
   add_executable(fuselage_outline_tests tests/FuselageOutlineTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp

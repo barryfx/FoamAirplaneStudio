@@ -20,7 +20,7 @@ reference image. New/Close clears the collection.
 All stations must have closed profiles before Thicken, Cut, Servo Tray and Formers
 become enabled. Horiz Stab and Vert Stab also become available immediately from
 this definition readiness, without requiring a successful build or optional tab visits.
-Their modeling tools remain future work. Thicken, Cut, Servo Tray and Formers are implemented (fuselage-thickness.md, fuselage-cuts.md,
+Their Outline, Airfoil and solid generation are implemented; Hinge Line and Cut remain future work (stabilizer-solids.md). Thicken, Cut, Servo Tray and Formers are implemented (fuselage-thickness.md, fuselage-cuts.md,
 servo-tray.md, formers.md). These readiness
 checks certify loop connectivity and area; the solid builder also validates its
 result and reports geometry failures in the status bar.
@@ -65,4 +65,4 @@ apply. The UI permits one component job at a time, with independently owned
 workers and cached results. Navigating back to an unchanged Wing displays its
 cache without regeneration; Fuselage data is excluded from Wing's fingerprint.
 Status messages report preparation, alignment, lofting, meshing, completion,
-failure and cancellation. Stabilizer builders have not yet been implemented.
+failure and cancellation. Stabilizers own independent builders and jobs (stabilizer-solids.md).

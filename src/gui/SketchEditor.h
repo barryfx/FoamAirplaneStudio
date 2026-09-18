@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <vector>
 #include <functional>
+#include <optional>
 #include "gui/ConstrainedLineEditor.h"
 
 class QGraphicsView;
@@ -19,7 +20,10 @@ struct SketchCurve {
 struct SketchLayer {
   std::vector<QPointF> points;
   std::vector<SketchCurve> curves;
+  std::optional<std::size_t> leadingEdge; // Stabilizer root endpoint; follows point edits.
 };
+bool isSketchEndpoint(const SketchLayer& layer, std::size_t index);
+
 struct SketchState {
   std::vector<SketchLayer> layers{1};
   std::vector<QPointF> pending;
@@ -38,6 +42,8 @@ public:
   void setActiveLayer(int index);
   void setEditing(bool enabled);
   void setTool(SketchTool tool);
+  void setSelectingLeadingEdge(bool enabled);
+  bool selectingLeadingEdge() const { return selectingLeadingEdge_; }
   void setSnapAcrossLayers(bool enabled) { snapAcrossLayers_ = enabled; }
   void setClosedLoopMode(bool enabled) { closedLoopMode_ = enabled; }
   void setEscapeEndsSession(bool enabled) { escapeEndsSession_ = enabled; }
@@ -74,6 +80,7 @@ private:
   int dragging_{-1};
   int selected_{-1};
   bool editing_{false};
+  bool selectingLeadingEdge_{false};
   bool closedLoopMode_{false};
   bool snapAcrossLayers_{true};
   bool escapeEndsSession_{false};

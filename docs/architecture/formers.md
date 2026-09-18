@@ -32,11 +32,23 @@ ledge material. This creates fitted solids inside the skin without wall penetrat
 A former wholly outside the cavity or resulting in disconnected solids produces
 an error identifying its number. Partial height clips the section vertically.
 Each former is retained separately, appended with the tray after wall Cut processing;
-Cut splits the fuselage/supports, not these removable inserts. Formers do not add
-wall slots or ledges. Export controls remain future work.
+Cut splits the fuselage/supports, not these removable inserts. Before cuts, each former adds integral retaining rails immediately before and
+behind its X extent, on both inner sides. Each rail is 4 mm wide along X and
+projects 3 mm inward along Y. Cavity clipping follows the available full side
+height even for partial-height formers; other former/tray solids are subtracted
+so rails cannot penetrate removable inserts. Existing supports may merge with
+rails. Empty portions beyond the cavity are omitted; disconnected supports
+produce an error. The main body is then split left/right (fuselage-cuts.md). Export controls remain future work.
 
 Version 15 persists rectangle masks and next-former thickness in physical mm.
 Earlier versions load no formers; the legacy Firewall tool name maps to Formers.
 Selection is transient. Model fingerprints include only completed rectangles,
 so a next-thickness-only change does not regenerate. Generation uses the existing
 independent Fuselage worker and reports former progress/count without rebuilding Wing.
+
+Retainer construction skips insert cuts only when conservative bounding boxes
+are disjoint. Potentially touching/overlapping inserts still use exact OCCT cuts.
+All completed rail shapes are fused to the shell in one multi-tool operation,
+including overlap resolution for rails belonging to nearby formers. Progress
+identifies the current former and the final wall-joining stage. Dimensions,
+sampling, Boolean tolerance and final validity checks are unchanged.

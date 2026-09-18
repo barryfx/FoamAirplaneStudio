@@ -11,6 +11,8 @@ struct ProjectDocument {
   ProjectReference reference;
   QString wingspanText, fuselageText;
   SketchState wing, airfoilSketch;
+  std::array<SketchState, 2> stabilizerOutlines;
+  std::array<std::optional<domain::AirfoilProfile>, 2> stabilizerAirfoils;
   SketchState fuselage{std::vector<SketchLayer>(2)};
   SketchState fuselageProfiles;
   SketchState fuselageCuts{std::vector<SketchLayer>(2)};

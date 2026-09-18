@@ -2,6 +2,8 @@
 #include <BRepAlgoAPI_Splitter.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <gp_Pln.hxx>
 #include <BRepPrimAPI_MakePrism.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepBndLib.hxx>
@@ -51,6 +53,36 @@ std::vector<Path> paths(const gui::SketchLayer& layer) {
   for(std::size_t i=0;i<layer.curves.size();++i)if(!used[i])walk(layer.curves[i].points.front());
   return result;
 }
+}
+TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
+    const std::function<void(const char*)>& progress,const ProcessingControl& processing) {
+  processing.checkpoint();
+  if(progress)progress("Fuselage: splitting main body into left/right halves; preserving cut-out parts...");
+  std::vector<TopoDS_Shape> parts;std::vector<double> volumes;
+  for(TopExp_Explorer e{body,TopAbs_SOLID};e.More();e.Next()) {
+    parts.push_back(e.Current());GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);volumes.push_back(mass.Mass());
+  }
+  if(parts.empty())throw std::runtime_error("No main fuselage body to split.");
+  const auto index=static_cast<std::size_t>(std::max_element(volumes.begin(),volumes.end())-volumes.begin());
+  for(std::size_t i=0;i<parts.size();++i)if(i!=index&&std::abs(volumes[i]-volumes[index])<=std::max(1e-8,volumes[index]*1e-8))
+    throw std::runtime_error("Cuts leave equally sized bodies; the main fuselage body cannot be identified.");
+  // The registered longitudinal centre plane is Y=0, through the aligned noses.
+  const auto plane=BRepBuilderAPI_MakeFace{gp_Pln{gp_Pnt{0,0,0},gp_Dir{0,1,0}}}.Shape();
+  BRepAlgoAPI_Splitter splitter;NCollection_List<TopoDS_Shape> args,tools;
+  args.Append(parts[index]);tools.Append(plane);splitter.SetArguments(args);splitter.SetTools(tools);
+  splitter.SetNonDestructive(true);splitter.SetFuzzyValue(1e-7);
+  {auto range=processing.range();splitter.Build(range);}processing.checkpoint();
+  if(!splitter.IsDone()||splitter.HasErrors()||bodyCount(splitter.Shape())!=2)
+    throw std::runtime_error("The main fuselage must cross the centre plane to form two connected halves.");
+  BRep_Builder builder;TopoDS_Compound result;builder.MakeCompound(result);double volume=0;
+  for(TopExp_Explorer e{splitter.Shape(),TopAbs_SOLID};e.More();e.Next()) {
+    processing.checkpoint();GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);
+    if(mass.Mass()<=1e-9||!BRepCheck_Analyzer{e.Current()}.IsValid())throw std::runtime_error("Invalid fuselage half after centre split.");
+    volume+=mass.Mass();builder.Add(result,e.Current());
+  }
+  if(std::abs(volume-volumes[index])>std::max(1e-3,volumes[index]*1e-6))throw std::runtime_error("Centre split did not conserve fuselage material.");
+  for(std::size_t i=0;i<parts.size();++i)if(i!=index)builder.Add(result,parts[i]);
+  return result;
 }
 TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchLayer>& cuts,
     const std::array<FuselageCutProjection,2>& projections,const std::function<void(const char*)>& progress,

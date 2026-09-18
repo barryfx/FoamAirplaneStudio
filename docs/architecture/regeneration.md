@@ -4,11 +4,11 @@
 inputs, stop source, copied progress queue and future result. It is independent
 of Qt and wing data so fuselage and stabilizer jobs can reuse it. `MainWindow`
 polls every 40 ms; only this GUI thread touches widgets or displays OCCT shapes.
-Wing and Fuselage each own a separate job, input fingerprint and cached shape.
+Wing, Fuselage and each stabilizer own separate jobs, input fingerprints and cached shapes.
 The editing lock permits one active component job at a time; each runs on its own
 worker, and Fuselage never calls the Wing builder. Switching components displays
 the cached shape. Wing regenerates only when Wing geometry inputs change.
-Stabilizer builders remain future work.
+Stabilizer jobs use the same lock, progress queue, cancellation and publication checks; see stabilizer-solids.md.
 
 `processing::runIndexedTasks` assigns independent tasks to at most four workers,
 further limited by hardware concurrency and task count. Each wing panel has its
@@ -58,10 +58,14 @@ indicators. The application always supplies its job token. Regeneration adds no 
 Complete Fuselage outlines/profiles suffice to enter 3D. Missing wall defaults are
 initialized before snapshot capture, independent of optional tab visits. Cut, tray
 and former operations run only when their saved geometry exists. Definition readiness
-also enables Horiz Stab and Vert Stab navigation; their builders remain future work.
+also enables Horiz Stab and Vert Stab navigation; each generates from its own outline and single airfoil.
 
 Fuselage outer/cavity lofts merge coincident faces and collinear edges before
 validation and Booleans (FuselageTopology.h). Kernel tolerances and shape sampling
 are unchanged; safe-input mode preserves stage ownership. Unification has explicit
 cancellation checks before/after its non-interruptible call. GentleLady timing and
 geometry parity evidence: ../baseline/fuselage-readiness-performance.md.
+
+Fuselage generation now fuses former retaining rails before user cuts, splits
+only the largest post-cut main body at Y=0, and finally appends whole removable
+tray/former inserts. See ADR-0029 for dimensions and cut-out classification.

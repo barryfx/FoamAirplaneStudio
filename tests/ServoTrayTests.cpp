@@ -107,7 +107,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangle->center());key(Qt::Key_Delete);CHECK(!editor.state().rectangle);
     place->click();CHECK(editor.state().rectangle);CHECK(std::abs(editor.state().rectangle->width()-130)<1e-8);
     CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangle);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==15);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==18);
     auto old=encoded;old["version"]=13;old.remove("servoTray");CHECK(!decodeProject(old).servoTray.rectangle);
     auto bad=encoded;auto tray=bad["servoTray"].toObject();tray["rectangle"]=QJsonArray{1,2,0,5};bad["servoTray"]=tray;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[4]->trigger();CHECK(!window.projectModified());
@@ -118,7 +118,7 @@ int main(int argc,char** argv) {
     tabs->setCurrentIndex(1);waitForModel(window);
     if(!tabs->widget(1)->property("fuselageModelReady").toBool())std::cerr<<window.statusBar()->currentMessage().toStdString()<<std::endl;
     CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("servoTrayReady").toBool());CHECK(!window.servoTrayTopFaces().IsNull());
-    CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==2);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
+    CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==3);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
     const auto revision=tabs->widget(1)->property("fuselageModelRevision").toInt();tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==revision);
     std::cout<<"Servo UI: dimension entry, fixed-size movement/delete, persistence, overlay, migration and independent generation/cache passed\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}

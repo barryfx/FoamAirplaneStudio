@@ -23,6 +23,8 @@ class PlanViewport;
 class ReferencePanel;
 class WingOutlinePanel;
 class FuselageOutlinePanel;
+class StabilizerOutlinePanel;
+class StabilizerAirfoilPanel;
 class FuselageProfilePanel;
 class FuselageThickenPanel;
 class FuselageCutPanel;
@@ -90,6 +92,22 @@ private:
   std::vector<std::pair<QPointer<QAction>,bool>> processingActions_;
   ReferencePanel* referencePanel_{};
   WingOutlinePanel* wingOutlinePanel_{};
+  std::array<StabilizerOutlinePanel*, 2> stabilizerOutlinePanels_{};
+  void updateStabilizerEditors();
+  void updateStabilizerProgress();
+  void updateStabilizerModel(int index);
+  void pollStabilizerJob(int index);
+  double stabilizerScale() const;
+  QByteArray stabilizerFingerprint(int index) const;
+  bool stabilizerProcessing() const { return stabilizerJobs_[0] || stabilizerJobs_[1]; }
+  std::array<StabilizerAirfoilPanel*,2> stabilizerAirfoilPanels_{};
+  std::array<std::unique_ptr<processing::BackgroundJob<TopoDS_Shape>>,2> stabilizerJobs_;
+  std::array<TopoDS_Shape,2> stabilizerShapes_;
+  std::array<QByteArray,2> builtStabilizerFingerprints_, stabilizerJobFingerprints_;
+  std::array<std::size_t,2> stabilizerJobEpochs_{};
+  std::array<bool,2> stabilizerCancelled_{};
+  std::array<std::optional<CameraState>,2> stabilizerCameras_;
+
   FuselageOutlinePanel* fuselageOutlinePanel_{};
   FuselageProfilePanel* fuselageProfilePanel_{};
   FuselageThickenPanel* fuselageThickenPanel_{};

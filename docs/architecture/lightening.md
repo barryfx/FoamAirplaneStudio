@@ -60,5 +60,5 @@ sockets. Errors identify the owning panel and operation.
 
 State edits use the existing dirty comparison and deferred regeneration rules.
 Navigation does not rebuild; updates retain the camera. Processing uses the wait
-cursor and status text. Save/Open/New/Close/Save As use the current format version 15 (Lightening was introduced in version 8).
+cursor and status text. Save/Open/New/Close/Save As use the current format version 18 (Lightening was introduced in version 8).
 See ADR-0017 for the algorithm choice and limitations.

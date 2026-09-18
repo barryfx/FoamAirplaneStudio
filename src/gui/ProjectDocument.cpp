@@ -46,7 +46,9 @@ QJsonObject layer(const SketchLayer& value) {
     QJsonArray ids;for(auto id:curve.points)ids.append(static_cast<qint64>(id));
     curves.append(QJsonObject{{"type",static_cast<int>(curve.type)},{"points",ids}});
   }
-  return {{"points",points(value.points)},{"curves",curves}};
+  QJsonObject out{{"points",points(value.points)},{"curves",curves}};
+  if(value.leadingEdge)out["leadingEdge"]=static_cast<qint64>(*value.leadingEdge);
+  return out;
 }
 SketchLayer layer(const QJsonValue& value) {
   auto o=object(value,"layer");SketchLayer out;out.points=points(o["points"]);
@@ -55,6 +57,10 @@ SketchLayer layer(const QJsonValue& value) {
     for(auto id:array(c["points"],"curve points"))curve.points.push_back(integer(id,"point index",0,static_cast<int>(out.points.size())-1));
     if(curve.points.size()<2||(curve.type==SketchTool::Line&&curve.points.size()!=2))bad("curve point count");
     out.curves.push_back(std::move(curve));
+  }
+  if(o.contains("leadingEdge")) {
+    out.leadingEdge=integer(o["leadingEdge"],"leading edge endpoint",0,static_cast<int>(out.points.size())-1);
+    if(!isSketchEndpoint(out,*out.leadingEdge))bad("leading edge must be an open endpoint");
   }
   return out;
 }
@@ -109,6 +115,13 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
     } else if(entry.sketch) o["sketch"]=layer(*entry.sketch);
     entries.append(o);
   }
+  QJsonArray stabilizerAirfoils;
+  for (const auto& foil : p.stabilizerAirfoils) {
+    if (!foil) {stabilizerAirfoils.append(QJsonValue{});continue;}
+    QJsonArray coordinates;
+    for (auto pt : foil->outline()) coordinates.append(QJsonArray{pt.x,pt.y});
+    stabilizerAirfoils.append(QJsonObject{{"name",QString::fromStdString(foil->name())},{"coordinates",coordinates}});
+  }
   QJsonArray choices;for(std::size_t i=0;i<p.wing.layers.size();++i)choices.append(i<p.airfoils.panelChoices.size()?p.airfoils.panelChoices[i]:p.airfoils.chosen);
   QJsonObject airfoils{{"panel",p.airfoils.panel},{"panelChoices",choices},{"entries",entries},{"chosen",p.airfoils.chosen},{"draft",p.airfoils.draft},
     {"sketching",p.airfoils.sketching},{"draftName",p.airfoils.draftName}};
@@ -155,7 +168,9 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonObject tray{{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
   QJsonArray formerRects;for(const auto& r:p.formers.rectangles)formerRects.append(QJsonArray{r.x(),r.y(),r.width(),r.height()});
   QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm}};
-  return {{"format","FoamAirplaneStudio"},{"version",15},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"format","FoamAirplaneStudio"},{"version",18},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+    {"stabilizerAirfoils",stabilizerAirfoils},
+    {"horizontalStabilizerOutline",sketch(p.stabilizerOutlines[0])},{"verticalStabilizerOutline",sketch(p.stabilizerOutlines[1])},
     {"formers",formers},{"servoTray",tray},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
     {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"fuselageView",p.fuselageView},{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
       {"plan",QJsonObject{{"zoom",p.plan.zoom},{"center",point(p.plan.center)}}},{"camera",camera},{"splitter",split}}}};
@@ -163,7 +178,7 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>15)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>18)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
   auto r=object(json["reference"],"reference");
   p.reference.image.path=string(r["filename"],"reference filename");
@@ -331,6 +346,38 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     gp_Vec up{camera.up[0],camera.up[1],camera.up[2]};
     if(direction.SquareMagnitude()<1e-16||up.SquareMagnitude()<1e-16||direction.Crossed(up).SquareMagnitude()<1e-16)bad("camera orientation");
     p.camera=camera;
+  }
+  if (p.workspace == 3 || p.workspace == 4) {
+    if (p.tool == "Airfoils") p.tool = "Airfoil";
+    if (p.tool == "Airfoil Stations" || p.tool == "Edit") p.tool = "Outline";
+  }
+  if (version >= 17) {
+    const auto entries = array(json["stabilizerAirfoils"], "stabilizer airfoils", 2);
+    if (entries.size() != 2) bad("stabilizer airfoil count");
+    for (int i=0;i<2;++i) if (!entries[i].isNull()) {
+      const auto entry=object(entries[i],"stabilizer airfoil");
+      const auto name=string(entry["name"],"stabilizer airfoil name");
+      if(name.trimmed().isEmpty() || name.contains('\n') || name.contains('\r'))bad("stabilizer airfoil name");
+      std::ostringstream dat;dat.precision(17);dat<<name.toStdString()<<'\n';
+      for(auto pt:points(entry["coordinates"]))dat<<pt.x()<<' '<<pt.y()<<'\n';
+      std::istringstream stream{dat.str()};auto foil=domain::AirfoilProfile::fromDat(stream);
+      const auto sampled=foil.resampled(41);double low=0,high=0;
+      for(auto pt:sampled){if(!std::isfinite(pt.x)||!std::isfinite(pt.y))bad("stabilizer airfoil coordinates");low=std::min(low,pt.y);high=std::max(high,pt.y);}
+      if(high-low<1e-9)bad("stabilizer airfoil thickness");
+      p.stabilizerAirfoils[i]=std::move(foil);
+    }
+  }
+  if (version >= 16) {
+    const std::array<const char*, 2> keys{"horizontalStabilizerOutline", "verticalStabilizerOutline"};
+    for (int i = 0; i < 2; ++i) {
+      auto& outline = p.stabilizerOutlines[i];
+      outline = sketch(json[keys[i]], 1);
+      if(version<18)outline.layers[0].leadingEdge.reset();
+      if (outline.editing && (p.workspace != i + 3 || p.tool != "Outline" || p.viewport != 0))
+        bad("stabilizer outline editing workspace");
+      if (!outline.pending.empty() && (!outline.editing || outline.tool == SketchTool::None))
+        bad("stabilizer outline draft tool");
+    }
   }
   if(version>=9) {
     p.fuselage=sketch(json["fuselageOutline"],2);
