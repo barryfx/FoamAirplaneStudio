@@ -9,12 +9,15 @@ coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 | reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan/fuselage length and their text fields |
 | stabilizerAirfoils | Two entries in horizontal/vertical order: null for bundled NACA009, or embedded DAT name and normalized coordinates |
 | horizontalStabilizerOutline / verticalStabilizerOutline | Independent single-layer open sketches, tools, selections and pending points |
+| horizontalStabilizerHinge / verticalStabilizerHinge | Independent single-layer connected Line sketches and drafts |
+| stabilizerHingeCuts | Two hinge styles in horizontal/vertical order: 0 Tape, 1 Standard |
+| horizontalStabilizerCuts / verticalStabilizerCuts | Independent collections of closed Cut Shape sketch layers, tools, selections and drafts |
 | wingOutline | Numbered wing-panel sketch layers, active layer, current tool, selected curve, pending points and editing flag |
 | formers | Positive Side View rectangles and next-former thicknessMm |
 | servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
 | fuselageCuts | Top/Side cut sketch layers with active view/tool, selection, editing and pending points |
 | fuselageThickening | Boolean initialized by complete-model generation or Thicken entry; retained across modes |
-| fuselageStations | Vertical Side View sections with top/bottom curve anchors, optional profile slot and selected index |
+| fuselageStations | Vertical Side View sections with top/bottom curve anchors, optional profile slot, optional thicknessMm and selected index |
 | fuselageProfiles | Stable cross-section sketch slots, active layer/tool, selection, editing state and pending points |
 | fuselageOutline | Two sketch layers in Top/Side order, active layer/tool, selection, editing flag and pending points |
 | airfoilSketches | Independent airfoil trace layers and their editing state; never interpreted as wing planform outlines |
@@ -56,7 +59,7 @@ Save writes a temporary sibling through QSaveFile and atomically replaces the
 destination after successful completion. No autosave or legacy `.designrc`
 migration is implied. See ADR-0006 for ownership and restoration decisions.
 
-View and editor-selection state is serialized in version 18, but is excluded
+View and editor-selection state is serialized in current projects, but is excluded
 from the unsaved-data comparison. An explicit Save captures current navigation;
 view-only changes never require Save/Discard on closing (ADR-0008).
 
@@ -114,11 +117,11 @@ control corner retains its panel in the data fingerprint to preserve meaning.
 Station anchors identify ownership without a new station index field. Both
 anchors of newly drawn stations belong to the same outline panel.
 
-Versions 1ï¿½4 preserve their shared library and stations. Former global controls
+Versions 1-4 preserve their shared library and stations. Former global controls
 load into Panel 1, with other panels disabled. Legacy cross-panel stations are
 retained for correction; each panel must have its own valid LE/TE pair before
 completion/generation. No automatic duplication of controls or assignment to
-new stations occurs during decoding. Versions 1ï¿½4 apps reject version-5 files.
+new stations occurs during decoding. Versions 1-4 apps reject version-5 files.
 
 ## Version 6: mixed-unit dimension presentation
 
@@ -267,7 +270,7 @@ Invalid indices, extra/empty layers and inconsistent draft states are rejected
 before replacing the current document. Incomplete or misaligned geometry is allowed
 so work in progress can be saved and repaired.
 
-Versions 1–15 load empty stabilizer outlines. For stabilizer UI state, old `Airfoils`
+Versions 1-15 load empty stabilizer outlines. For stabilizer UI state, old `Airfoils`
 maps to `Airfoil`; removed `Airfoil Stations` and `Edit` selections map to `Outline`.
 Only one airfoil type per stabilizer is supported; version 17 stores the selection
 in `stabilizerAirfoils`.
@@ -284,7 +287,7 @@ null (use the bundled resources/naca009.dat) or an object containing `name` and
 `coordinates` (normalized DAT `[x,y]` pairs). Imported coordinates are embedded;
 original file paths are not required to reopen. Reject invalid array counts,
 empty/multiline names, nonfinite coordinates and profiles with no thickness.
-Versions 1–16 receive null defaults without visiting Airfoil. Generated stabilizer
+Versions 1-16 receive null defaults without visiting Airfoil. Generated stabilizer
 shapes, workers, caches and cancellation state are transient. Changes to a selected
 airfoil affect document dirty state and only its component's geometry fingerprint.
 

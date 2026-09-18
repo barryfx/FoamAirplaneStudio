@@ -20,7 +20,7 @@ step. After Dihedral, all three remaining tools are enabled together; no optiona
 tool is selected automatically. An incomplete prerequisite disables all dependent
 actions even if downstream definition flags remain set.
 
-WingDefinitionState is owned by MainWindow. Future editors/model updates call
+WingDefinitionState is owned by MainWindow. Editor/model updates call
 setWingDefinitionState after a definition is created or removed. Toolbar clicks
 select tools only, never mark a definition complete. State survives workspace
 switches; New resets it. Wing Outline now provides layered sketch editing (see

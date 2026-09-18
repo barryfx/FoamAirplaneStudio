@@ -47,7 +47,9 @@ changes. New clears the reference and dimensions and resets units to millimeters
 
 Manual Wingspan now calibrates the traced mirrored wing, not the entire image
 rectangle (wing-solids.md). A plan can contain margins and multiple views.
-Other component calibration remains future work. `.foam` files embed reference
+Manual Fuselage Length calibrates the Top/Side fuselage outlines; stabilizers
+use that length divided by the Side View extent and assume the same drawing
+scale (fuselage-profiles.md and stabilizer-solids.md). `.foam` files embed reference
 pages and their scale metadata (projects.md). Actual-scale backgrounds use millimeter
 scene coordinates; uncalibrated previews use pixels.
 

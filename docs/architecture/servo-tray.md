@@ -32,8 +32,9 @@ Missing cavity, outside placements, disconnected tray/support geometry and
 insufficient 5 mm support height report descriptive errors. No automatic relocation
 or wall-thickness reduction is performed.
 
-Pipeline: exterior -> Thicken -> support ledges -> Fuselage Cut -> separate tray
-assembly -> mesh. Thus hatch cuts split the walls and ledges together, while the
+Pipeline: exterior -> Thicken -> support ledges -> optional formers/retaining rails
+-> Fuselage Cut -> main-body left/right split and alignment pins -> separate
+tray/former assembly -> mesh. Thus hatch cuts split the walls and ledges together, while the
 tray stays an independent part. The model result retains the supported/cut body,
 tray, assembled display shape, and tray top faces. The existing Fuselage worker,
 cancellation checks, stale-result protection and component cache apply. The GUI

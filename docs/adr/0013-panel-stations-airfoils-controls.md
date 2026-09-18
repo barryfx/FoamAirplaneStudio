@@ -31,7 +31,7 @@ bodies and mirror the entire half-wing at the global root. Profiles at mating
 panel faces are not automatically made identical; the user controls them.
 
 Version 5 stores panel control arrays and selected panel/airfoil choices.
-Versions 1–4 still load. Former global control settings migrate to Panel 1,
+Versions 1-4 still load. Former global control settings migrate to Panel 1,
 with other panels disabled; existing station anchors and shared library indices
 are retained. Legacy multi-panel projects may need additional stations and a
 review of control placement. No original file is changed until Save.

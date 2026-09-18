@@ -17,7 +17,8 @@ Trace one continuous open chain around the leading edge, tip and trailing edge,
 leaving the root open. Horizontal instructions request the right half including
 elevator, describe mirrored generation and later rudder-clearance cuts. Vertical
 instructions request the complete fin including rudder, without mirroring.
-3D generation now creates mirrored horizontal halves or one vertical fin; see
+3D generation mirrors and joins horizontal halves, retaining separate fixed and
+elevator bodies when a hinge is present; the vertical fin is not mirrored. See
 stabilizer-solids.md.
 
 On leaving Outline or entering 3D, finish pending geometry and check the chain.
@@ -30,7 +31,7 @@ because they cannot define a line. Warnings allow navigation and preserve geomet
 empty sketches do not warn.
 These checks describe drawing intent, not manufacturing validity.
 
-Project version 18 retains both sketch states (introduced in version 16), including unfinished work, tools and
+Current projects retain both sketch states (introduced in version 16), including unfinished work, tools and
 selections. Restoration suppresses warnings and reinstates drafts after mode
 activation. New/Close resets both. Geometry and pending points affect dirty state;
 idle tool/navigation changes do not. Neither sketch enters Wing/Fuselage model

@@ -31,8 +31,8 @@ by Wing / Airfoils (see airfoils.md). Assigned profiles now generate the mirrore
 wing in the 3D viewport (see wing-solids.md).
 
 ConstrainedLineEditor owns the station records separately from outline geometry.
-Read-only lines() exposes LE/TE attachments, coordinates and alignment to future
-profile interpolation tools. Source-curve removal invalidates its stations;
+Read-only lines() exposes LE/TE attachments, coordinates and alignment to
+profile interpolation and generation. Source-curve removal invalidates its stations;
 source point moves update surviving attachments. See ADR-0003 for storage and
 accuracy choices. Stations, attachments and assignments are now saved to `.foam`
 project files; see projects.md and ADR-0006.

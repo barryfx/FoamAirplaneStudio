@@ -45,7 +45,7 @@ see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 18. See spars.md and ADR-0011.
+use version 20. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -93,7 +93,7 @@ Version 15 adds persistent Formers rectangles and next thickness, with overlap v
 
 Version 16 adds independent horizontal/vertical stabilizer open outlines and drafts. Older projects load empty outlines; removed stabilizer tool names migrate. See stabilizer-outlines.md.
 
-Version 17 embeds each stabilizer airfoil selection, with bundled NACA009 defaults for versions 1–16. Stabilizer solids rebuild from outline, airfoil and reference scale.
+Version 17 embeds each stabilizer airfoil selection, with bundled NACA009 defaults for versions 1-16. Stabilizer solids rebuild from outline, airfoil and reference scale.
 
 Version 18 persists each stabilizer leading-edge endpoint; older projects require an explicit choice before generation.
 

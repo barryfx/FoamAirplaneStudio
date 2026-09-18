@@ -1,5 +1,10 @@
 # FoamAirplaneStudio Software Requirements
 
+This document includes implemented behavior and planned product scope. See
+`README.md` and `architecture/` for current implementation status. Later accepted
+ADRs refine earlier requirements; the manufacturing split below follows ADR-0029
+and ADR-0032.
+
 ## 1. Purpose
 
 FoamAirplaneStudio is a desktop software application for designing foam model airplanes intended to be fabricated with a CNC router. The application shall use Open CASCADE Technology (OCCT) for geometric modeling and solid-body operations.
@@ -179,12 +184,15 @@ The software shall support designing an aircraft from imported reference drawing
 - The software shall generate the outer fuselage geometry from the top outline, side outline, and cross-section profiles.
 - Once the exterior shape has been determined, the user shall be able to convert the fuselage into a shell.
 - Fuselage wall thickness shall be configurable at each profile station.
-- The software shall provide initial/default wall-thickness values based on fuselage length.
+- The software shall provide initial/default wall-thickness values based on each
+  station's position relative to the Side View wing leading edge: 8 mm at or
+  forward of it and 5 mm aft, as refined by ADR-0022 and ADR-0026.
 - The user shall be able to modify these thickness values.
 - Each end is open when the Top/Side outlines terminate at its outermost profile;
   it is closed when the outlines extend beyond that profile.
-- Station wall thickness defaults to 8 mm at or forward of the Side View wing leading
-  edge and 5 mm aft of it. Entering Thicken enables hollow generation.
+- Entering Thicken or generating a complete fuselage shall initialize missing
+  station wall values and enable hollow generation while preserving explicit values.
+  Generation shall not require visiting Thicken first.
 - Every profile sketch remains visible across all 2D modes.
 
 ### 4.6 Servo Tray
@@ -204,6 +212,9 @@ The software shall support designing an aircraft from imported reference drawing
 - Prevent formers overlapping each other or the servo tray, including tray edits.
 - Generate separate solids clipped to the inner cavity, without wall penetration.
 - Preserve formers in project files and display them across 2D modes.
+- Add retaining rails immediately ahead of and behind each former on both inner
+  sides, 4 mm fore/aft by 3 mm inward, clipped to the cavity and clear of inserts
+  (ADR-0029).
 - Future export will expose former solids/outlines alongside other parts.
 
 ### 4.8 User-Defined Fuselage Part Separation
@@ -213,8 +224,13 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 4.9 Fuselage Manufacturing Split
 
-- The completed fuselage shall be split horizontally into separate top and bottom bodies.
-- This horizontal manufacturing split shall be independent of any additional user-defined part-separation cuts.
+- After user-defined part-separation cuts, split the largest remaining body into
+  left/right halves at the registered longitudinal Y=0 plane (ADR-0029, replacing
+  the original top/bottom requirement). Preserve other cut-out pieces, the servo
+  tray and formers whole. Reject an ambiguous largest body or an invalid split.
+- Add four alignment pins, two top and two bottom, with 3 mm projection and
+  3.5 mm-deep matching sockets. Diameter is 4 mm capped by local wall thickness
+  and available skin; reject insufficient support (ADR-0032).
 
 ### 4.10 User-Defined Fuselage Add/Cut
 
@@ -342,7 +358,7 @@ Depending on the design options selected by the user, the project may generate s
 - Upper/lower portions of each wing panel
 - Ailerons
 - Flaps
-- Fuselage top/bottom/sides depending on split
+- Fuselage left/right main halves and intact user-separated cut-out parts
 - Additional user-separated fuselage parts
 - Horizontal stabilizer
 - Elevator
@@ -388,7 +404,7 @@ Fuselage has its own worker and cached solid; Wing rebuilds only for changed Win
 Implemented Fuselage Edit Profiles: one station enables the mode. Instructions
 appear above Line/Spline controls for the selected highlighted station. Each
 station owns a stable sketch assignment. All closed assignments enable remaining
-secondary actions; their editors are future work. Selecting 3D generates a solid
+secondary actions; Thicken, Cut, Servo Tray and Formers are implemented. Selecting 3D generates a solid
 from both nose-aligned outlines and independently fitted profiles. See
 architecture/fuselage-profiles.md for registration, sampling and end treatment.
 

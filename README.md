@@ -17,8 +17,8 @@ As of September 18, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-18 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text and view state. Versions 1-17 remain readable.
+- Portable version-20 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text and view state. Versions 1-19 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -29,7 +29,14 @@ it places vertical Side View sections with one click. Edit Profiles attaches sec
 to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Cut splits solid or hollow bodies along saved Top/Side Line and Spline paths. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
 Formers adds movable full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
 
-Horiz Stab and Vert Stab provide independent open outlines, explicit leading-edge selection, a bundled NACA009 or imported DAT airfoil, and cached background generation of mirrored horizontal halves or one vertical fin. Stabilizer Hinge Line/Cut, assembly/interfaces, export workflows and undo remain future work. Assembly and Export actions are disabled. STEP and DXF/SVG
+Horiz Stab and Vert Stab provide independent open outlines, explicit leading-edge
+selection, a bundled NACA009 or imported DAT airfoil, and cached background
+generation. Horizontal halves join into one stabilizer; the vertical fin is one
+body. Hinge Line separates the elevator/rudder with Tape or Standard relief,
+leaving two bodies. Closed Line/Spline Cut Shapes remove material through the
+thickness and can create additional bodies. Unchanged navigation reuses each
+component's successful model cache. Assembly/interfaces, export workflows and
+undo remain future work. Assembly and Export actions are disabled. STEP and DXF/SVG
 utilities remain available for reuse; STL export is future work.
 
 The former DesignRC field-driven wing/rib pipeline and persistence were removed.
@@ -43,7 +50,8 @@ See the [documentation guide](docs/README.md), [requirements](docs/requirements.
 
 ## Build and run
 
-Windows prerequisites: Visual Studio 2026 C++ tools, CMake 3.25 or newer,
+Windows prerequisites: Visual Studio 2026 C++ tools, CMake 4.2 or newer
+(required by the preset's Visual Studio 2026 generator),
 Qt 6.11.1 with matching Qt PDF at `C:/Qt/6.11.1/msvc2022_64`, and OCCT in
 `../third_party/occt/install-debug`.
 
@@ -60,10 +68,14 @@ current FoamAirplaneStudio Linux and macOS builds are not validated.
 ## Validation
 
 ```powershell
-ctest --preset windows-debug
+ctest --preset windows-debug -R "^(reference_tests|sketch_editor_tests|wing_workflow_tests)$"
 ```
 
-Tests cover project lifecycle, editors, workflow, wing/control/spar/lightening
+This is a small non-generation editor/reference check. Follow `AGENTS.md`:
+Wing and Fuselage generation tests require explicit user authorization, including
+suites that generate those components internally. Unfiltered CTest includes them.
+
+The available tests cover project lifecycle, editors, workflow, wing/control/spar/lightening
 geometry, background processing, mesh orientation and retained domain/export code.
 The legacy `designrc_geometry_tests` target is an explicitly skipped placeholder.
 

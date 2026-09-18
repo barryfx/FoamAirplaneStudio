@@ -65,3 +65,12 @@ this cleanup; the user explicitly requested build and application launch only.
 Wing secondary actions now follow prerequisite-based availability; see wing-workflow.md.
 
 Stabilizers use independent outline editors, one DAT airfoil (bundled NACA009 by default), and cancellable 3D workers with component caches. Version 17 introduced selected airfoils alongside the outlines from version 16. Version 18 persists the required leading-edge endpoint choice. See stabilizer-outlines.md and stabilizer-solids.md.
+
+Hinge Line is implemented for both stabilizers, with connected straight segments
+and Tape/Standard relief on the longest segment (stabilizer-hinges.md, ADR-0030).
+Matching horizontal halves join across the centerline, leaving one solid without
+a hinge or separate fixed/elevator solids with one. Cut Shapes apply afterward
+and may create additional pieces (stabilizer-cuts.md, ADR-0031). Versions 19 and
+20 persist hinges and Cut Shapes respectively; current saves use version 20.
+Only successfully published stabilizer results become cache entries. Assembly
+and Export actions remain disabled.

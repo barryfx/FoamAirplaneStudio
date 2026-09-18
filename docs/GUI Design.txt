@@ -81,7 +81,9 @@ architecture/fuselage-profiles.md for registration, sampling and end treatment.
 Fuselage / Thicken: instructions above decimal length fields in ascending station
 number order, numbered nose to tail consistently with Edit Profiles. Fields display Reference units; bare values use those units, and
 explicit mm or in entries are accepted. Defaults are 8 mm for every station at or forward of the Side View wing-seat leading edge and 5 mm aft.
-Entering this tool enables persistent inward hollow generation, with smooth
+Entering this tool or generating a complete fuselage initializes missing defaults
+and enables persistent inward hollow generation, without overwriting entered values.
+The user need not visit Thicken before generation. Walls have smooth
 transitions between station values. Both ends follow the same rule: open when
 outlines end at the outermost profile, closed when they extend beyond it. Narrow
 extended tips remain solid. All profile sketches remain visible across 2D modes.
@@ -91,7 +93,9 @@ Fuselage / Cut: instructions, Top/Side selectors and Line/Spline controls.
 Reuse standard sketch editing, snapping, selection and Delete. Open connected
 paths may run edge to edge; closed paths are also supported. Cut through full
 height from Top or full width from Side, preserving all separated bodies.
-Cut sketches remain visible across 2D modes and are saved in project version 13.
+Cut sketches remain visible across 2D modes; persistence was introduced in version 13.
+After user cuts, split only the largest body into left/right halves with four
+alignment pins. Keep other cut-outs, the tray and formers whole (ADR-0029/0032).
 
 Fuselage / Servo Tray: instructions above Width, Height, Place Rectangle and Delete Tray.
 Enter dimensions in Reference units (or explicit mm/in), then drag the fixed-size
@@ -104,7 +108,9 @@ Fuselage / Formers: instructions above Width (thickness), Add Former and Delete
 Former. Add creates a full-height Side View rectangle; drag to move in either
 axis, or drag the top/bottom handles to change height. Width uses Reference units
 or explicit mm/in. Prevent overlap with formers or the tray in either editor.
-Generate separate cavity-fitted solids, clear of walls/supports. Persist placements.
+Generate separate cavity-fitted solids, clear of walls/supports. Add 4 mm fore/aft
+by 3 mm inward retaining rails ahead of and behind each former on both cavity
+sides, clearing removable inserts. Persist placements.
 
 Stabilizers / Outline: shared Line/Spline editing with one independent open outline
 per component. Horizontal instructions request the right half including elevator,
