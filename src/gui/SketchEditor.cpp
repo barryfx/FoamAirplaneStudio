@@ -1,4 +1,5 @@
 #include "gui/SketchEditor.h"
+#include "gui/SketchBoundary.h"
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -41,6 +42,12 @@ void SketchEditor::mapPoints(const std::function<QPointF(QPointF)>& map) {
   finish();
   for (auto& layer : layers_) for (auto& point : layer.points) point = map(point);
   refresh();
+}
+void SketchEditor::deleteActiveLayer() {
+  pending_.clear();layers_.erase(layers_.begin()+active_);
+  if(layers_.empty())layers_.resize(1);
+  active_=std::min(active_,static_cast<int>(layers_.size())-1);
+  selected_=-1;dragging_=-1;tool_=SketchTool::None;setEditing(editing_);refresh();
 }
 void SketchEditor::setLayerCount(int count) {
   finish();
@@ -179,7 +186,7 @@ void SketchEditor::pick(QPointF position) {
       return QLineF{p, position}.length() < 1e-8;
     })) return;
   pending_.push_back(position);
-  if (tool_ == SketchTool::Line && pending_.size() == 2) finish();
+  if (tool_ == SketchTool::Line && pending_.size() == 2) { finish(); if(continuousLineMode_)pending_.push_back(position); }
   view_->viewport()->update();
 }
 void SketchEditor::finish() {
@@ -202,7 +209,7 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
   if (!editing_) return false;
   if (event->type() == QEvent::KeyPress && tool_ == SketchTool::None &&
       static_cast<QKeyEvent*>(event)->key() == Qt::Key_Delete) {
-    deleteSelected(); return true;
+    if(layerSelectionMode_)deleteActiveLayer();else deleteSelected(); return true;
   }
   if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
     if(selectingLeadingEdge_)setSelectingLeadingEdge(false);
@@ -227,6 +234,17 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
     }
     if (tool_ != SketchTool::None) pick(position);
     else {
+      if(layerSelectionMode_) {
+        const int previous=active_;
+        for(int i=static_cast<int>(layers_.size())-1;i>=0;--i) {
+          active_=i;bool hit=curveAt(position)>=0;
+          if(const auto boundary=closedSketchBoundary(layers_[i])) {
+            QPainterPath area;area.moveTo(boundary->front());for(auto p:*boundary)area.lineTo(p);hit=hit||area.contains(position);
+          }
+          if(hit)break;active_=previous;
+        }
+        if(active_!=previous)emit changed();
+      }
       dragging_ = nearest(position);
       selected_ = curveAt(position);
       view_->viewport()->update();
@@ -267,7 +285,7 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
     const auto& layer = layers_[i];
     // Keep completed outlines equally legible outside Outline mode. The dark
     // border separates light blue from white paper; blue stands out on ink.
-    QPen pen{QColor{80, 200, 255}};
+    QPen pen{layerSelectionMode_ && editing_ && i==active_ ? QColor{255,140,0} : QColor{80,200,255}};
     pen.setCosmetic(true); pen.setWidthF(3);
     QPen border{QColor{20, 65, 95}};
     border.setCosmetic(true); border.setWidthF(5);

@@ -37,9 +37,9 @@ a circular retention factor near the outer end and a tiny finite closure. This i
 a sampled approximation; no exact analytic skin or machining tolerance is claimed.
 
 Local X is chordwise, Y is span, Z is thickness. Horizontal generation mirrors the
-right half across Y=0 and keeps two solid bodies. Vertical generation rotates its
+right half across Y=0 and fuses each matching pair into one solid body. With a hinge cut, the fixed stabilizer and elevator remain separate: two bodies total. Each pair must meet at the centerline; disconnected halves report an error. Vertical generation rotates its
 single body so span is +Z and thickness is along Y. Model origin is at the root
-leading endpoint; assembly placement and elevator/rudder separation remain future work.
+leading endpoint; assembly placement remains future work. Hinge Line separates the elevator/rudder before final orientation.
 
 Each component owns its BackgroundJob, fingerprint, shape cache and camera state.
 Entering 3D generates without requiring an Airfoil visit. Outline/airfoil/physical
@@ -54,3 +54,15 @@ fingerprints reject stale results. Closing cancels and joins before the save pro
 Successful replacement preserves the camera; first display fits automatically.
 
 See ADR-0028 and baseline/stabilizer-model-validation.md for validation.
+
+Hinge Line drawing and relief are described in stabilizer-hinges.md.
+
+The shared Cancel button appears at the bottom of the data panel only during regeneration, outside the disabled editing area. Cancellation also covers centerline joining.
+
+Closed Cut Shapes remove material after joining and may increase body count; see stabilizer-cuts.md.
+
+Cache fingerprints are committed only after successful model publication. A failed
+or cancelled attempt does not overwrite the previous successful shape/fingerprint.
+Entering 3D with matching model inputs restores that component's cached shape,
+camera and readiness/body count without starting a worker. Returning from another
+workspace and moving between 2D/3D are covered by worker-start-count assertions.

@@ -118,4 +118,4 @@ Airfoil shows "Load the airfoil to use for the stabilizer from a .dat file.", th
 "Load Airfoil .dat File" and the loaded DAT name. Bundle naca009.dat as the default,
 even before Airfoil is visited. Enable other tools only after a valid Outline.
 Entering 3D generates that stabilizer in its own worker with progress and Cancel.
-Hinge Line and Cut remain planned editors. See architecture/stabilizer-solids.md.
+Hinge Line draws connected segments and applies Tape/Standard relief on the longest segment. Cut supports closed material-removal shapes. See architecture/stabilizer-solids.md.

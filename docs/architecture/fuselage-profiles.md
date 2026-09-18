@@ -20,7 +20,7 @@ reference image. New/Close clears the collection.
 All stations must have closed profiles before Thicken, Cut, Servo Tray and Formers
 become enabled. Horiz Stab and Vert Stab also become available immediately from
 this definition readiness, without requiring a successful build or optional tab visits.
-Their Outline, Airfoil and solid generation are implemented; Hinge Line and Cut remain future work (stabilizer-solids.md). Thicken, Cut, Servo Tray and Formers are implemented (fuselage-thickness.md, fuselage-cuts.md,
+Their Outline, Airfoil and solid generation are implemented; Hinge Line is implemented; Cut supports closed material-removal shapes (stabilizer-solids.md). Thicken, Cut, Servo Tray and Formers are implemented (fuselage-thickness.md, fuselage-cuts.md,
 servo-tray.md, formers.md). These readiness
 checks certify loop connectivity and area; the solid builder also validates its
 result and reports geometry failures in the status bar.

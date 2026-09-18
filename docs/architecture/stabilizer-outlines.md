@@ -4,7 +4,7 @@ Horiz Stab and Vert Stab have the same toolbar: Outline, Airfoil, Hinge Line, Cu
 Their existing eligibility after completed Fuselage profiles remains unchanged.
 Entering either workspace selects Outline in 2D. Until a valid open outline with
 nonzero enclosed area and an explicitly selected leading-edge endpoint is present, only Outline is enabled. Airfoil uses one imported
-profile per stabilizer. Hinge Line and Cut remain planned editors.
+profile per stabilizer. Hinge Line separates and bevels the control surface (stabilizer-hinges.md). Cut removes material with closed Line/Spline shapes (stabilizer-cuts.md).
 
 PlanViewport owns two independent single-layer SketchEditors. A shared
 StabilizerOutlinePanel supplies instructions and Line/Spline toggles. Editing
@@ -45,3 +45,5 @@ clears it if removed. Extending that endpoint clears the choice because it is no
 longer an open endpoint. The selection affects dirty state and geometry caches;
 the temporary picking mode does not. Version 18 persists the chosen point index;
 older files require the user to choose it before generation.
+
+Hinge Line drawing and relief are described in stabilizer-hinges.md.

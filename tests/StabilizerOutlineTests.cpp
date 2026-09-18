@@ -1,6 +1,15 @@
 #include "gui/MainWindow.h"
 #include "gui/StabilizerOutlinePanel.h"
 #include "gui/StabilizerAirfoilPanel.h"
+#include "gui/StabilizerHingePanel.h"
+#include "gui/StabilizerCutPanel.h"
+#include "gui/SketchBoundary.h"
+#include "geometry/StabilizerCut.h"
+#include <QComboBox>
+#include "geometry/StabilizerHingeCut.h"
+#include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
+#include <QRadioButton>
 #include "geometry/StabilizerSolidBuilder.h"
 #include "WaitForModel.h"
 #include <BRepCheck_Analyzer.hxx>
@@ -129,7 +138,7 @@ int main(int argc,char** argv) {
     CHECK(BRepCheck_Analyzer{fin}.IsValid()&&bodies(fin)==1&&volume(fin)>0);
     auto rotated=chain;for(auto& pt:rotated.points)pt={pt.y(),pt.x()};
     const auto horizontal=designrc::geometry::buildStabilizerSolid({rotated,defaultFoil,2,true});
-    CHECK(BRepCheck_Analyzer{horizontal}.IsValid()&&bodies(horizontal)==2);
+    CHECK(BRepCheck_Analyzer{horizontal}.IsValid()&&bodies(horizontal)==1);
     std::cout<<"Stabilizer volumes: fin="<<volume(fin)<<" horizontal scaled="<<volume(horizontal)<<" ratio="<<volume(horizontal)/(16*volume(fin))<<std::endl;
     CHECK(std::abs(volume(horizontal)/(16*volume(fin))-1)<1e-4);
     Bnd_Box bounds;BRepBndLib::Add(horizontal,bounds);double xmin,ymin,zmin,xmax,ymax,zmax;bounds.Get(xmin,ymin,zmin,xmax,ymax,zmax);
@@ -146,10 +155,49 @@ int main(int argc,char** argv) {
     Bnd_Box forwardBounds,backwardBounds;BRepBndLib::Add(forward,forwardBounds);BRepBndLib::Add(backward,backwardBounds);
     forwardBounds.Get(xmin,ymin,zmin,xmax,ymax,zmax);CHECK(xmax>340&&xmin>-1);
     backwardBounds.Get(xmin,ymin,zmin,xmax,ymax,zmax);CHECK(xmin<-140&&xmax<201);
+    const SketchLayer fullHinge{{{140,-1},{140,101}},{{SketchTool::Line,{0,1}}}};
+    const auto joinedControls=designrc::geometry::buildStabilizerSolid({squareTip,defaultFoil,1,true,fullHinge,HingeCut::Standard});
+    const auto singleControls=designrc::geometry::buildStabilizerSolid({squareTip,defaultFoil,1,false,fullHinge,HingeCut::Standard});
+    CHECK(bodies(joinedControls)==2&&BRepCheck_Analyzer{joinedControls}.IsValid());
+    CHECK(std::abs(volume(joinedControls)/(2*volume(singleControls))-1)<1e-5);
+    for(TopExp_Explorer e{joinedControls,TopAbs_SOLID};e.More();e.Next()) {
+      Bnd_Box b;BRepBndLib::Add(e.Current(),b);b.Get(xmin,ymin,zmin,xmax,ymax,zmax);
+      CHECK(ymin<0&&ymax>0&&std::abs(ymin+ymax)<1e-5);
+    }
+    // Hinge profile parity on a known constant-thickness body, no Wing generation.
+    const auto block=BRepPrimAPI_MakeBox{gp_Pnt{0,0,-10},200,100,20}.Shape();
+    SketchLayer hinge{{{140,-1},{140,80},{201,80}},{{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}}}};
+    const auto tape=designrc::geometry::cutStabilizerHinge(block,hinge,HingeCut::Tape);
+    const auto standard=designrc::geometry::cutStabilizerHinge(block,hinge,HingeCut::Standard);
+    CHECK(bodies(tape)==2&&bodies(standard)==2&&BRepCheck_Analyzer{tape}.IsValid()&&BRepCheck_Analyzer{standard}.IsValid());
+    CHECK(volume(tape)<volume(standard)&&volume(standard)<volume(block));
+    auto inside=[](const TopoDS_Shape& shape,gp_Pnt p){for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next()) {
+      BRepClass3d_SolidClassifier c{e.Current(),p,1e-7};if(c.State()==TopAbs_IN)return true;}return false;};
+    CHECK(!inside(tape,{145,40,0})&&inside(tape,{151,40,0}));
+    // Tape retains material next to the hinge at Top (+Z), and clears Bottom.
+    CHECK(inside(tape,{145,40,8})&&!inside(tape,{145,40,-8}));
+    CHECK(inside(standard,{141,40,0})&&!inside(standard,{145,40,8}));
+    CHECK(inside(tape,{180,79,0})&&inside(tape,{180,81,0})); // Return segment is square.
+    std::reverse(hinge.curves.begin(),hinge.curves.end());for(auto& c:hinge.curves)std::reverse(c.points.begin(),c.points.end());
+    CHECK(std::abs(volume(designrc::geometry::cutStabilizerHinge(block,hinge,HingeCut::Tape))-volume(tape))<1e-5);
+    auto shortHinge=hinge;shortHinge.points[0].setY(20);shortHinge.points[2].setX(180);
+    bool badHinge=false;try{designrc::geometry::cutStabilizerHinge(block,shortHinge,HingeCut::Tape);}catch(const std::exception&){badHinge=true;}CHECK(badHinge);
+    const auto cutHole=designrc::geometry::cutStabilizerShapes(block,{rectangle(20,20,30,30)},false);
+    CHECK(bodies(cutHole)==1&&std::abs(volume(cutHole)-(volume(block)-18000))<1e-4);
+    const auto cutSlot=designrc::geometry::cutStabilizerShapes(block,{rectangle(90,-10,20,120)},false);
+    CHECK(bodies(cutSlot)==2&&BRepCheck_Analyzer{cutSlot}.IsValid());
+    CHECK(std::abs(volume(cutSlot)-(volume(block)-40000))<1e-4);
+    SketchLayer roundCut{{{30,30},{40,20},{50,30},{40,40}},{{SketchTool::Spline,{0,1,2,3,0}}}};
+    const auto curvedHole=designrc::geometry::cutStabilizerShapes(block,{roundCut},false);
+    CHECK(bodies(curvedHole)==1&&BRepCheck_Analyzer{curvedHole}.IsValid()&&volume(curvedHole)<volume(block));
+    auto openCut=roundCut;openCut.curves[0].points.pop_back();bool openRejected=false;
+    try{designrc::geometry::cutStabilizerShapes(block,{openCut},false);}catch(const std::exception&){openRejected=true;}CHECK(openRejected);
+    const auto twoCuts=designrc::geometry::cutStabilizerShapes(block,{rectangle(10,10,10,10),rectangle(30,10,10,10)},false);
+    CHECK(std::abs(volume(twoCuts)-(volume(block)-4000))<1e-4);
     std::stop_source stop;stop.request_stop();bool stopped=false;
     try{designrc::geometry::buildStabilizerSolid({chain,defaultFoil,1,true},{},{stop.get_token()});}
     catch(const designrc::geometry::ProcessingCancelled&){stopped=true;}CHECK(stopped);
-    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==18);
+    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==20);
     auto legacy=encoded; legacy["version"]=15; legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
     CHECK(decodeProject(legacy).stabilizerOutlines[0].layers[0].curves.empty());
     for (const auto& oldTool : {"Airfoils","Airfoil Stations","Edit"}) {
@@ -167,6 +215,14 @@ int main(int argc,char** argv) {
       auto ls=outline["layers"].toArray();auto l=ls[0].toObject();l["leadingEdge"]=invalidIndex;ls[0]=l;outline["layers"]=ls;
       malformed["horizontalStabilizerOutline"]=outline;reject(malformed);
     }
+    auto legacyCuts=encoded;legacyCuts["version"]=19;legacyCuts.remove("horizontalStabilizerCuts");legacyCuts.remove("verticalStabilizerCuts");
+    CHECK(decodeProject(legacyCuts).stabilizerCuts[0].layers.size()==1&&decodeProject(legacyCuts).stabilizerCuts[0].layers[0].curves.empty());
+    auto malformedCuts=encoded;auto malformedSketch=malformedCuts["horizontalStabilizerCuts"].toObject();malformedSketch["layers"]=QJsonArray{};malformedCuts["horizontalStabilizerCuts"]=malformedSketch;reject(malformedCuts);
+    auto oldHinges=encoded;oldHinges["version"]=18;oldHinges.remove("stabilizerHingeCuts");oldHinges.remove("horizontalStabilizerHinge");oldHinges.remove("verticalStabilizerHinge");
+    CHECK(decodeProject(oldHinges).stabilizerHinges[0].layers[0].curves.empty());
+    CHECK(decodeProject(oldHinges).stabilizerHingeCuts[1]==HingeCut::Tape);
+    auto badCuts=encoded;badCuts["stabilizerHingeCuts"]=QJsonArray{0,2};reject(badCuts);
+    badCuts["stabilizerHingeCuts"]=QJsonArray{0};reject(badCuts);
     auto invalidAirfoil=encoded;invalidAirfoil["stabilizerAirfoils"]=QJsonArray{QJsonValue{}};reject(invalidAirfoil);
     invalidAirfoil["stabilizerAirfoils"]=QJsonArray{QJsonObject{{"name","Flat"},{"coordinates",QJsonArray{QJsonArray{1,0},QJsonArray{.5,0},QJsonArray{0,0},QJsonArray{.5,0},QJsonArray{1,0}}}},QJsonValue{}};reject(invalidAirfoil);
     auto legacy16=encoded;legacy16["version"]=16;legacy16.remove("stabilizerAirfoils");
@@ -191,6 +247,9 @@ int main(int argc,char** argv) {
       workspaces->actions()[i+3]->trigger(); app.processEvents();
       auto& editor=view->stabilizerSketchEditor(i);
       auto* panel=static_cast<StabilizerOutlinePanel*>(window.findChild<QWidget*>(i==0?"horizontalStabilizerOutlinePanel":"verticalStabilizerOutlinePanel"));
+      auto* cancel=window.findChild<QPushButton*>("cancelProcessing");
+      CHECK(!cancel->isVisible()&&!cancel->isEnabled());
+      CHECK(cancel->parentWidget()==window.findChild<QWidget*>("dataPanel"));
       CHECK(panel->isVisible()&&editor.state().editing&&!view->stabilizerSketchEditor(1-i).state().editing);
       QStringList names; for(auto* action:toolbar->actions())names.append(action->text());
       CHECK(names==QStringList({"Outline","Airfoil","Hinge Line","Cut"})); CHECK(toolbar->actions()[0]->isChecked());
@@ -233,15 +292,18 @@ int main(int argc,char** argv) {
       CHECK(window.openProjectFile(file,error));CHECK(editor.layers()[0].leadingEdge==3);
       // Generate using the default before the Airfoil panel is ever visited.
       tabs->setCurrentIndex(1);CHECK(window.property("modelProcessing").toBool());
-      CHECK(window.findChild<QPushButton*>("cancelProcessing")->isVisible());
+      CHECK(window.findChild<QPushButton*>("cancelProcessing")->isVisible()&&cancel->isEnabled());
       CHECK(!workspaces->isEnabled()&&!tabs->isEnabled());
+      const auto cancelCapture=qEnvironmentVariable("FOAM_STABILIZER_CAPTURE");
+      if(!cancelCapture.isEmpty()){app.processEvents();CHECK(window.grab().save(cancelCapture+"cancel"+QString::number(i)+".png"));}
       window.findChild<QPushButton*>("cancelProcessing")->click();waitForModel(window);
-      CHECK(window.statusBar()->currentMessage().contains("cancelled"));
+      CHECK(window.statusBar()->currentMessage().contains("cancelled"));CHECK(!cancel->isVisible()&&!cancel->isEnabled());
       tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);
       auto* solidView=tabs->widget(1);
       if(!solidView->property("stabilizerModelReady").toBool())throw std::runtime_error(window.statusBar()->currentMessage().toStdString());
-      CHECK(solidView->property("stabilizerBodyCount").toInt()==(i==0?2:1));
+      CHECK(solidView->property("stabilizerBodyCount").toInt()==1);
       const int revision=solidView->property("stabilizerModelRevision").toInt();
+      const int jobs=window.property("stabilizerModelJobCount").toInt();
       const auto modelCapture=qEnvironmentVariable("FOAM_STABILIZER_CAPTURE");
       if(!modelCapture.isEmpty()){app.processEvents();CHECK(window.screen()->grabWindow(window.winId()).save(modelCapture+"model"+QString::number(i)+".png"));}
       tabs->setCurrentIndex(0);
@@ -251,7 +313,7 @@ int main(int argc,char** argv) {
       CHECK(airfoilPanel->findChild<QLabel*>("stabilizerAirfoilName")->text()=="NACA-0009 9.0% smoothed");
       CHECK(airfoilPanel->findChild<QPushButton*>("loadStabilizerAirfoil")->text()=="Load Airfoil .dat File");
       toolbar->actions()[0]->trigger(); CHECK(editor.state().editing);
-      tabs->setCurrentIndex(1); CHECK(!editor.state().editing&&!panel->isEnabled()); waitForModel(window);CHECK(solidView->property("stabilizerModelRevision").toInt()==revision);tabs->setCurrentIndex(0); CHECK(editor.state().editing);
+      tabs->setCurrentIndex(1); CHECK(!editor.state().editing&&!panel->isEnabled()); waitForModel(window);CHECK(solidView->property("stabilizerModelRevision").toInt()==revision);CHECK(window.property("stabilizerModelJobCount").toInt()==jobs);CHECK(!window.property("modelProcessing").toBool());tabs->setCurrentIndex(0); CHECK(editor.state().editing);
       // A mismatched endpoint warns on either mode exit or 3D entry without moving it.
       auto state=editor.state();state.layers[0].points.back().setY(650);editor.restoreState(state);
       expectWarning(); if(i==0)toolbar->actions()[2]->trigger();else tabs->setCurrentIndex(1);
@@ -297,6 +359,60 @@ int main(int argc,char** argv) {
       CHECK(window.projectDocument().stabilizerAirfoils[i]);
       CHECK(!solidView->property("wingModelReady").toBool()&&!solidView->property("fuselageModelReady").toBool());
       tabs->setCurrentIndex(0);
+      toolbar->actions()[2]->trigger();
+      auto* hingePanel=static_cast<StabilizerHingePanel*>(window.findChild<QWidget*>(i==0?"horizontalStabilizerHingePanel":"verticalStabilizerHingePanel"));
+      CHECK(hingePanel->isVisible()&&!editor.state().editing);
+      auto& hingeEditor=view->stabilizerHingeEditor(i);
+      auto radios=hingePanel->findChildren<QRadioButton*>();CHECK(radios.size()==2&&radios[0]->isChecked());
+      radios[1]->click();CHECK(!radios[0]->isChecked()&&radios[1]->isChecked());
+      auto* draw=hingePanel->findChild<QPushButton*>();draw->click();
+      click({450,510});draw->click();CHECK(!draw->isChecked()&&hingeEditor.tool()==SketchTool::None);
+      CHECK(radios[1]->isChecked()&&!radios[0]->isChecked());draw->click();
+      click({450,510});click({450,300});click({460,250});
+      CHECK(hingeEditor.layers()[0].curves.size()==2&&hingeEditor.layers()[0].points.size()==3);
+      CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));
+      CHECK(hingeEditor.state().pending.size()==1&&hingeEditor.state().editing&&draw->isChecked());
+      CHECK(hingePanel->cut()==HingeCut::Standard);key(Qt::Key_Escape);CHECK(!draw->isChecked());
+      tabs->setCurrentIndex(1);waitForModel(window);
+      if(!solidView->property("stabilizerModelReady").toBool())throw std::runtime_error(window.statusBar()->currentMessage().toStdString());
+      CHECK(solidView->property("stabilizerBodyCount").toInt()==2);
+      const auto cutCapture=qEnvironmentVariable("FOAM_STABILIZER_CAPTURE");
+      if(!cutCapture.isEmpty()){app.processEvents();CHECK(window.screen()->grabWindow(window.winId()).save(cutCapture+"cutmodel"+QString::number(i)+".png"));}
+      tabs->setCurrentIndex(0);radios[0]->click();CHECK(radios[0]->isChecked()&&!radios[1]->isChecked());
+      const auto hingeCapture=qEnvironmentVariable("FOAM_STABILIZER_CAPTURE");
+      if(!hingeCapture.isEmpty()){app.processEvents();CHECK(window.grab().save(hingeCapture+"hinge"+QString::number(i)+".png"));}
+      click({450,420});key(Qt::Key_Delete);CHECK(hingeEditor.layers()[0].curves.size()==1);
+      click({455,275});key(Qt::Key_Delete);CHECK(hingeEditor.layers()[0].curves.empty());
+      toolbar->actions()[3]->trigger();
+      auto* cutPanel=static_cast<StabilizerCutPanel*>(window.findChild<QWidget*>(i==0?"horizontalStabilizerCutPanel":"verticalStabilizerCutPanel"));
+      auto& cutEditor=view->stabilizerCutEditor(i);CHECK(cutPanel->isVisible()&&cutEditor.state().editing&&!hingeEditor.state().editing);
+      auto cutButton=[&](QString name){for(auto* b:cutPanel->findChildren<QPushButton*>())if(b->text()==name)return b;throw std::runtime_error("Missing Cut button");};
+      auto* shapes=cutPanel->findChild<QComboBox*>("stabilizerCutShapes");
+      cutButton("Add Cut Shape")->click();click({300,420});click({350,420});
+      expectWarning();toolbar->actions()[1]->trigger();CHECK(warning.contains("closed loop"));
+      toolbar->actions()[3]->trigger();
+      click({350,420});click({350,450});click({350,450});click({300,450});click({300,450});click({300,420});
+      CHECK(closedSketchBoundary(cutEditor.layers()[0]));
+      cutButton("Add Cut Shape")->click();CHECK(shapes->count()==2&&shapes->currentIndex()==1);
+      for(const auto& segment:std::vector<std::pair<QPointF,QPointF>>{{{100,480},{700,480}},{{700,480},{700,520}},{{700,520},{100,520}},{{100,520},{100,480}}}){click(segment.first);click(segment.second);}
+      cutButton("Line")->click();CHECK(closedSketchBoundary(cutEditor.layers()[1]));
+      click({320,435});CHECK(shapes->currentIndex()==0); // Canvas selection of a complete shape.
+      CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));
+      CHECK(cutEditor.layers().size()==2&&shapes->count()==2&&shapes->currentIndex()==0);
+      const auto cutShapeCapture=qEnvironmentVariable("FOAM_STABILIZER_CAPTURE");
+      if(!cutShapeCapture.isEmpty()){app.processEvents();CHECK(window.grab().save(cutShapeCapture+"cutshapes"+QString::number(i)+".png"));}
+      tabs->setCurrentIndex(1);waitForModel(window);
+      if(!solidView->property("stabilizerModelReady").toBool())throw std::runtime_error(window.statusBar()->currentMessage().toStdString());
+      CHECK(solidView->property("stabilizerBodyCount").toInt()==(i==0?2:1));
+      if(!cutShapeCapture.isEmpty()){app.processEvents();CHECK(window.screen()->grabWindow(window.winId()).save(cutShapeCapture+"cutshapemodel"+QString::number(i)+".png"));}
+      const int cachedJobs=window.property("stabilizerModelJobCount").toInt();
+      tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);app.processEvents();
+      CHECK(window.property("stabilizerModelJobCount").toInt()==cachedJobs&&!window.property("modelProcessing").toBool());
+      tabs->setCurrentIndex(0);workspaces->actions()[0]->trigger();workspaces->actions()[i+3]->trigger();tabs->setCurrentIndex(1);app.processEvents();
+      CHECK(window.property("stabilizerModelJobCount").toInt()==cachedJobs&&solidView->property("stabilizerModelReady").toBool());
+      CHECK(window.statusBar()->currentMessage().contains("cached model"));
+      tabs->setCurrentIndex(0);toolbar->actions()[3]->trigger();shapes->setCurrentIndex(1);cutButton("Delete Cut Shape")->click();CHECK(cutEditor.layers().size()==1);
+      key(Qt::Key_Delete);CHECK(cutEditor.layers()[0].curves.empty());
       CHECK(window.saveProjectFile(file,error));workspaces->actions()[0]->trigger(); CHECK(!window.projectModified());
     }
     CHECK(!view->stabilizerSketchEditor(0).layers()[0].curves.empty()&&!view->stabilizerSketchEditor(1).layers()[0].curves.empty());

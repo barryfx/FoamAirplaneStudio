@@ -168,8 +168,11 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonObject tray{{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
   QJsonArray formerRects;for(const auto& r:p.formers.rectangles)formerRects.append(QJsonArray{r.x(),r.y(),r.width(),r.height()});
   QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm}};
-  return {{"format","FoamAirplaneStudio"},{"version",18},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"format","FoamAirplaneStudio"},{"version",20},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
+    {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
+    {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
+    {"stabilizerHingeCuts",QJsonArray{static_cast<int>(p.stabilizerHingeCuts[0]),static_cast<int>(p.stabilizerHingeCuts[1])}},
     {"horizontalStabilizerOutline",sketch(p.stabilizerOutlines[0])},{"verticalStabilizerOutline",sketch(p.stabilizerOutlines[1])},
     {"formers",formers},{"servoTray",tray},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
     {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"fuselageView",p.fuselageView},{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
@@ -178,7 +181,7 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>18)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>20)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
   auto r=object(json["reference"],"reference");
   p.reference.image.path=string(r["filename"],"reference filename");
@@ -350,6 +353,24 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   if (p.workspace == 3 || p.workspace == 4) {
     if (p.tool == "Airfoils") p.tool = "Airfoil";
     if (p.tool == "Airfoil Stations" || p.tool == "Edit") p.tool = "Outline";
+  }
+  if(version>=20)for(int i=0;i<2;++i) {
+    auto& cuts=p.stabilizerCuts[i];cuts=sketch(json[i==0?"horizontalStabilizerCuts":"verticalStabilizerCuts"],1000);
+    for(const auto& layer:cuts.layers)if(layer.leadingEdge)bad("cut shape leading edge");
+    if(cuts.editing && (p.workspace!=i+3 || p.tool!="Cut" || p.viewport!=0))bad("stabilizer cut workspace");
+    if(!cuts.pending.empty() && (!cuts.editing || cuts.tool==SketchTool::None))bad("stabilizer cut draft");
+  }
+  if(version>=19) {
+    const auto cuts=array(json["stabilizerHingeCuts"],"stabilizer hinge cuts",2);
+    if(cuts.size()!=2)bad("stabilizer hinge cut count");
+    for(int i=0;i<2;++i) {
+      p.stabilizerHingeCuts[i]=static_cast<HingeCut>(integer(cuts[i],"stabilizer hinge cut",0,1));
+      auto& h=p.stabilizerHinges[i];h=sketch(json[i==0?"horizontalStabilizerHinge":"verticalStabilizerHinge"],1);
+      if(h.tool==SketchTool::Spline || h.layers[0].leadingEdge)bad("stabilizer hinge tool");
+      for(const auto& curve:h.layers[0].curves)if(curve.type!=SketchTool::Line)bad("stabilizer hinge segment");
+      if(h.editing && (p.workspace!=i+3 || p.tool!="Hinge Line" || p.viewport!=0))bad("stabilizer hinge workspace");
+      if(!h.pending.empty() && (!h.editing || h.tool!=SketchTool::Line || h.pending.size()!=1))bad("stabilizer hinge draft");
+    }
   }
   if (version >= 17) {
     const auto entries = array(json["stabilizerAirfoils"], "stabilizer airfoils", 2);

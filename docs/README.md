@@ -23,7 +23,7 @@ Wing regeneration evidence remains in `baseline/regeneration-validation.md`.
 
 Stabilizer Outline editing and persistence are implemented (architecture/stabilizer-outlines.md).
 Stabilizer Airfoil and cancellable solid generation are implemented (architecture/stabilizer-solids.md).
-Stabilizer Hinge Line/Cut, assembly/interfaces, export workflows and undo remain future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
+Assembly/interfaces, export workflows and undo remain future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
 Profile Stations places vertical Side View sections (architecture/fuselage-stations.md,
 ADR-0020). Edit Profiles, solid generation, Thicken, Cut, Servo Tray and Formers are implemented.
 
@@ -47,6 +47,10 @@ Fuselage readiness and measured topology optimization: ADR-0026 and
 Former retaining rails and left/right main-body splitting: ADR-0029,
 `architecture/formers.md`, `architecture/fuselage-cuts.md` and
 `baseline/former-retainers-validation.md`.
+
+- [Stabilizer hinge lines](architecture/stabilizer-hinges.md)
+
+- [Stabilizer Cut Shapes](architecture/stabilizer-cuts.md)
 
 Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.

@@ -1,6 +1,6 @@
-# FoamAirplaneStudio project format, version 18
+# FoamAirplaneStudio project format, version 20
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 18`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 20`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
@@ -68,7 +68,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 18.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 20.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -97,7 +97,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 18; older
+into Panel 1, with others disabled. Current Save/Save As writes version 20; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -162,7 +162,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 18; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 20; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -202,7 +202,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints are transient. Save writes version 18; earlier versions remain readable.
+fingerprints are transient. Save writes version 20; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -228,7 +228,7 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 18. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 20. Generated cut
 bodies are transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -298,3 +298,26 @@ remaps it or clears it when the selected endpoint disappears. Selection mode and
 hover state are not stored. The selection participates in document dirty state and
 the component's generation fingerprint. Versions 1-17 load without a selection;
 the user must choose it. Existing files are upgraded only when saved.
+
+## Stabilizer hinge lines (version 19)
+
+`horizontalStabilizerHinge` and `verticalStabilizerHinge` are single-layer sketch
+records. They allow only Line curves, no leadingEdge, and a None/Line tool. A draft
+is one pending point with active Line editing in the corresponding Hinge Line/2D
+workspace. `stabilizerHingeCuts` is exactly two integers: 0 Tape, 1 Standard.
+Invalid enums, non-line curves, invalid indices or inconsistent drafts are rejected.
+Geometric separation validity is checked during generation so unfinished paths
+remain editable. Versions 1-18 default to empty hinges and Tape; no file changes
+until saving. Hinge geometry and style affect only their component's model cache.
+
+## Stabilizer Cut Shapes (version 20)
+
+`horizontalStabilizerCuts` and `verticalStabilizerCuts` are sketch records with
+1-1000 layers, one loop per layer. Each layer holds Line/Spline curves and points;
+leadingEdge is not allowed. `active` selects a shape and `selected` refers to a
+segment within it. Editing/drafts are allowed only in that component's Cut/2D
+workspace, and drafts require a drawing tool. Open/incomplete geometry is retained
+for editing; generation checks closure. An empty placeholder layer represents no
+Cut Shapes. Versions 1-19 load empty cuts. Selected layer/tool state is excluded
+from dirty fingerprints unless needed for a pending draft. Geometry is included in
+the stabilizer generation fingerprint. Cut-out material is removed, not retained.

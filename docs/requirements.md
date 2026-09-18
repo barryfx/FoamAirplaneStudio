@@ -231,7 +231,7 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 5.2 Symmetry
 
-- The horizontal stabilizer shall be modeled from one half of the stabilizer and mirrored across the aircraft centerline to create the complete horizontal stabilizer.
+- The horizontal stabilizer shall be modeled from one half of the stabilizer and mirrored across the aircraft centerline to create the complete horizontal stabilizer. Matching fixed halves and matching elevator halves shall each join across the centerline, yielding two bodies after a hinge cut (one body without a hinge cut).
 - The vertical stabilizer shall not use this mirror operation.
 
 ### 5.3 Stabilizer Planform
@@ -254,7 +254,7 @@ The software shall support designing an aircraft from imported reference drawing
 - Project files shall embed selected airfoil data.
 - Only Outline shall be selectable until a valid open outline with nonzero area and a selected leading-edge endpoint exists.
 - Entering 3D shall generate the selected stabilizer in its own worker with status progress and the shared Cancel control. Changes to outline, airfoil or physical scale invalidate only the affected stabilizer cache.
-- Hinge Line and Cut remain future editors.
+- Hinge Line supports connected segments and Tape/Standard relief on the longest segment; Cut supports multiple closed Line/Spline Cut Shapes with selection/deletion and through-thickness material removal.
 
 ### 5.5 Stabilizer Tips
 

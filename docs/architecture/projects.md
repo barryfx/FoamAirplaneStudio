@@ -40,7 +40,7 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 18;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 20;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
@@ -96,3 +96,7 @@ Version 16 adds independent horizontal/vertical stabilizer open outlines and dra
 Version 17 embeds each stabilizer airfoil selection, with bundled NACA009 defaults for versions 1–16. Stabilizer solids rebuild from outline, airfoil and reference scale.
 
 Version 18 persists each stabilizer leading-edge endpoint; older projects require an explicit choice before generation.
+
+Version 19 adds independent stabilizer hinge sketches/drafts and Tape/Standard choices.
+
+Version 20 adds per-stabilizer closed Cut Shape collections and drafts.

@@ -24,6 +24,8 @@ class ReferencePanel;
 class WingOutlinePanel;
 class FuselageOutlinePanel;
 class StabilizerOutlinePanel;
+class StabilizerHingePanel;
+class StabilizerCutPanel;
 class StabilizerAirfoilPanel;
 class FuselageProfilePanel;
 class FuselageThickenPanel;
@@ -93,6 +95,8 @@ private:
   ReferencePanel* referencePanel_{};
   WingOutlinePanel* wingOutlinePanel_{};
   std::array<StabilizerOutlinePanel*, 2> stabilizerOutlinePanels_{};
+  std::array<StabilizerHingePanel*,2> stabilizerHingePanels_{};
+  std::array<StabilizerCutPanel*,2> stabilizerCutPanels_{};
   void updateStabilizerEditors();
   void updateStabilizerProgress();
   void updateStabilizerModel(int index);

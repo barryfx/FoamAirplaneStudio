@@ -12,6 +12,9 @@ struct ProjectDocument {
   QString wingspanText, fuselageText;
   SketchState wing, airfoilSketch;
   std::array<SketchState, 2> stabilizerOutlines;
+  std::array<SketchState,2> stabilizerHinges;
+  std::array<SketchState,2> stabilizerCuts;
+  std::array<HingeCut,2> stabilizerHingeCuts{HingeCut::Tape,HingeCut::Tape};
   std::array<std::optional<domain::AirfoilProfile>, 2> stabilizerAirfoils;
   SketchState fuselage{std::vector<SketchLayer>(2)};
   SketchState fuselageProfiles;

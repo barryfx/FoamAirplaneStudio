@@ -39,12 +39,15 @@ class SketchEditor final : public QObject {
 public:
   explicit SketchEditor(QGraphicsView* view);
   void setLayerCount(int count);
+  void setLayerSelectionMode(bool enabled) { layerSelectionMode_=enabled; }
+  void deleteActiveLayer();
   void setActiveLayer(int index);
   void setEditing(bool enabled);
   void setTool(SketchTool tool);
   void setSelectingLeadingEdge(bool enabled);
   bool selectingLeadingEdge() const { return selectingLeadingEdge_; }
   void setSnapAcrossLayers(bool enabled) { snapAcrossLayers_ = enabled; }
+  void setContinuousLineMode(bool enabled) { continuousLineMode_=enabled; }
   void setClosedLoopMode(bool enabled) { closedLoopMode_ = enabled; }
   void setEscapeEndsSession(bool enabled) { escapeEndsSession_ = enabled; }
   void reset();
@@ -82,6 +85,8 @@ private:
   bool editing_{false};
   bool selectingLeadingEdge_{false};
   bool closedLoopMode_{false};
+  bool continuousLineMode_=false;
+  bool layerSelectionMode_=false;
   bool snapAcrossLayers_{true};
   bool escapeEndsSession_{false};
   ConstrainedLineEditor stations_;

@@ -42,6 +42,8 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
     connect(bar,&QScrollBar::sliderMoved,this,[this]{restoredView_.reset();});
   }
   for (auto& editor : stabilizerSketchEditors_) editor = new SketchEditor{this};
+  for(auto& editor:stabilizerHingeEditors_)editor=new SketchEditor{this};
+  for(auto& editor:stabilizerCutEditors_)editor=new SketchEditor{this};
   sketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_->setClosedLoopMode(true);
@@ -69,6 +71,8 @@ void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   QGraphicsView::drawForeground(painter, rect);
   sketchEditor_->paint(*painter);
   for (auto* editor : stabilizerSketchEditors_) editor->paint(*painter);
+  for(auto* editor:stabilizerHingeEditors_)editor->paint(*painter);
+  for(auto* editor:stabilizerCutEditors_)editor->paint(*painter);
   airfoilSketchEditor_->paint(*painter);
   fuselageSketchEditor_->paint(*painter);
   controlSurfaceEditor_->paint(*painter);
@@ -137,6 +141,8 @@ void PlanViewport::clearPlan() {
   setSceneRect(scene_->sceneRect());zoomAnchor_.reset();
   sketchEditor_->reset();
   for (auto* editor : stabilizerSketchEditors_) editor->reset();
+  for(auto* editor:stabilizerHingeEditors_)editor->reset();
+  for(auto* editor:stabilizerCutEditors_)editor->reset();
   airfoilSketchEditor_->reset();
   fuselageProfileEditor_->reset();
   servoTrayEditor_->restore({});
@@ -177,6 +183,8 @@ void PlanViewport::setReferenceBackground(const std::vector<ReferencePage>& page
     };
     sketchEditor_->mapPoints(remap);
     for (auto* editor : stabilizerSketchEditors_) editor->mapPoints(remap);
+    for(auto* editor:stabilizerHingeEditors_)editor->mapPoints(remap);
+    for(auto* editor:stabilizerCutEditors_)editor->mapPoints(remap);
     airfoilSketchEditor_->mapPoints(remap);
     fuselageSketchEditor_->mapPoints(remap);
     fuselageProfileEditor_->mapPoints(remap);

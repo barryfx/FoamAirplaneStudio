@@ -1,7 +1,10 @@
 #include "geometry/StabilizerSolidBuilder.h"
+#include "geometry/StabilizerHingeCut.h"
+#include "geometry/StabilizerCut.h"
 #include "gui/StabilizerOutlinePanel.h"
 #include "gui/SketchBoundary.h"
 #include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
@@ -130,12 +133,36 @@ TopoDS_Shape buildStabilizerSolid(const StabilizerSolidInput& input,
   GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass);
   if(!BRepCheck_Analyzer{shape}.IsValid() || !std::isfinite(mass.Mass()) || mass.Mass()<=1e-9)
     throw std::runtime_error("Stabilizer loft is not a valid positive-volume solid.");
+  if(!input.hingeLines.curves.empty()) {
+    report("Stabilizer: separating control surface and beveling hinge...");
+    auto lines=input.hingeLines;for(auto& p:lines.points)p=map(p);
+    shape=cutStabilizerHinge(shape,lines,input.hingeCut,control);
+  }
   if(input.horizontal) {
-    report("Horizontal stabilizer: mirroring right half...");
+    report("Horizontal stabilizer: joining mirrored halves...");
     gp_Trsf mirror;mirror.SetMirror(gp_Ax2{gp_Pnt{0,0,0},gp_Dir{0,1,0}});
-    BRep_Builder builder;TopoDS_Compound both;builder.MakeCompound(both);builder.Add(both,shape);
-    builder.Add(both,BRepBuilderAPI_Transform{shape,mirror,true}.Shape());shape=both;
-  } else {
+    BRep_Builder builder;TopoDS_Compound both;builder.MakeCompound(both);
+    // Fuse each body's matching half separately so hinge contact never fuses
+    // the elevator back into the fixed stabilizer.
+    for(TopExp_Explorer part{shape,TopAbs_SOLID};part.More();part.Next()) {
+      control.checkpoint();
+      const auto mirrored=BRepBuilderAPI_Transform{part.Current(),mirror,true}.Shape();
+      BRepAlgoAPI_Fuse fuse{part.Current(),mirrored,control.range()};control.checkpoint();
+      if(!fuse.IsDone())throw std::runtime_error("Could not join the mirrored stabilizer halves.");
+      int count=0;TopoDS_Shape joined;
+      for(TopExp_Explorer solid{fuse.Shape(),TopAbs_SOLID};solid.More();solid.Next()){joined=solid.Current();++count;}
+      if(count!=1 || !BRepCheck_Analyzer{joined}.IsValid())
+        throw std::runtime_error("Each horizontal stabilizer and elevator half must reach the centerline to form one joined body.");
+      builder.Add(both,joined);
+    }
+    shape=both;
+  }
+  if(!input.cutShapes.empty()) {
+    report("Stabilizer: applying Cut Shapes through all bodies...");
+    auto cuts=input.cutShapes;for(auto& layer:cuts)for(auto& p:layer.points)p=map(p);
+    shape=cutStabilizerShapes(shape,cuts,input.horizontal,control);
+  }
+  if(!input.horizontal) {
     report("Vertical stabilizer: orienting fin...");
     gp_Trsf rotation;rotation.SetRotation(gp_Ax1{gp_Pnt{0,0,0},gp_Dir{1,0,0}},std::numbers::pi/2);
     shape=BRepBuilderAPI_Transform{shape,rotation,true}.Shape();
