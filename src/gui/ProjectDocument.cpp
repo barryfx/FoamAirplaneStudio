@@ -1,5 +1,6 @@
 #include "gui/ProjectDocument.h"
 #include "gui/LengthEntry.h"
+#include <Standard_Failure.hxx>
 #include <QBuffer>
 #include <QFile>
 #include <QSaveFile>
@@ -167,8 +168,11 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   if(p.servoTray.rectangle){const auto& r=*p.servoTray.rectangle;trayRect=QJsonArray{r.x(),r.y(),r.width(),r.height()};}
   QJsonObject tray{{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
   QJsonArray formerRects;for(const auto& r:p.formers.rectangles)formerRects.append(QJsonArray{r.x(),r.y(),r.width(),r.height()});
-  QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm}};
-  return {{"format","FoamAirplaneStudio"},{"version",20},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  QJsonArray formerAngles;for(std::size_t i=0;i<p.formers.rectangles.size();++i)formerAngles.append(formerAngle(p.formers.rotationDegrees,i));
+  QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
+  QJsonArray offsets;for(auto offset:p.assembly.offsets)offsets.append(point(offset));
+  QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts}};
+  return {{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",24},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
@@ -181,8 +185,22 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>20)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>24)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
+  // Version 22 embedded generated models. Ignore that field completely: do not
+  // decode, decompress, validate or restore obsolete geometry caches.
+  if(version>=21) {
+    const auto assembly=object(json["assembly"],"assembly");
+    p.assembly.positioned=boolean(assembly["positioned"],"assembly positioned");
+    p.assembly.cuts=boolean(assembly["cuts"],"assembly cuts");
+    const auto offsets=array(assembly["offsets"],"assembly offsets",3);
+    if(offsets.size()!=3)bad("assembly offsets");
+    for(int i=0;i<3;++i) {
+      p.assembly.offsets[i]=point(offsets[i]);
+      if(std::abs(p.assembly.offsets[i].x())>1e7 || std::abs(p.assembly.offsets[i].y())>1e7)bad("assembly offset range");
+    }
+    if(p.assembly.cuts&&!p.assembly.positioned)bad("assembly cuts without placement");
+  }
   auto r=object(json["reference"],"reference");
   p.reference.image.path=string(r["filename"],"reference filename");
   p.reference.image.physicalSizeMm=size(r["physicalMm"]);
@@ -429,9 +447,17 @@ ProjectDocument decodeProject(const QJsonObject& json) {
       const auto r=array(value,"former rectangle",4);if(r.size()!=4)bad("former rectangle");
       const QRectF rect{number(r[0],"former x"),number(r[1],"former y"),number(r[2],"former width",0,1e12),number(r[3],"former height",1e-6,1e12)};
       if(rect.width()<=0)bad("zero former thickness");
-      for(const auto& other:p.formers.rectangles)if(rectanglesOverlap(rect,other))bad("overlapping formers");
-      if(p.servoTray.rectangle&&rectanglesOverlap(rect,*p.servoTray.rectangle))bad("former overlapping servo tray");
       p.formers.rectangles.push_back(rect);
+    }
+    if(version>=24) {
+      const auto angles=array(formers["rotationDegrees"],"former rotation angles",1000);
+      if(angles.size()!=static_cast<qsizetype>(p.formers.rectangles.size()))bad("former rotation count");
+      for(auto angle:angles)p.formers.rotationDegrees.push_back(number(angle,"former rotation angle",-360,360));
+    } else p.formers.rotationDegrees.resize(p.formers.rectangles.size(),0);
+    for(std::size_t i=0;i<p.formers.rectangles.size();++i) {
+      const auto& r=p.formers.rectangles[i];const double angle=p.formers.rotationDegrees[i];
+      for(std::size_t j=0;j<i;++j)if(formerMasksOverlap(r,angle,p.formers.rectangles[j],p.formers.rotationDegrees[j]))bad("overlapping formers");
+      if(p.servoTray.rectangle&&formerMasksOverlap(r,angle,*p.servoTray.rectangle))bad("former overlapping servo tray");
     }
   }
   if(p.workspace==2&&p.tool=="Firewall")p.tool="Formers";
@@ -484,6 +510,7 @@ bool writeProject(const QString& path,const ProjectDocument& project,QString& er
     QSaveFile file{path}; // Atomic replacement; a failed write retains the previous file.
     if(!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit()) {error=file.errorString();return false;}
     return true;
+  } catch(const Standard_Failure& e) {error=QString::fromUtf8(e.what());return {};
   } catch(const std::exception& e) {error=QString::fromUtf8(e.what());return false;}
 }
 std::optional<ProjectDocument> readProject(const QString& path,QString& error) {
@@ -494,6 +521,7 @@ std::optional<ProjectDocument> readProject(const QString& path,QString& error) {
     QJsonParseError parse;const auto json=QJsonDocument::fromJson(file.readAll(),&parse);
     if(parse.error!=QJsonParseError::NoError||!json.isObject())throw std::runtime_error("The project is not a valid JSON document.");
     return decodeProject(json.object());
+  } catch(const Standard_Failure& e) {error=QString::fromUtf8(e.what());return {};
   } catch(const std::exception& e) {error=QString::fromUtf8(e.what());return {};}
 }
 }

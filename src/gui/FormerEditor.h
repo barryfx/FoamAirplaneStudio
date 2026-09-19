@@ -4,10 +4,11 @@
 #include <functional>
 #include <optional>
 #include <vector>
+#include "gui/FormerPlacement.h"
 class QGraphicsView;
 class QPainter;
 namespace designrc::gui {
-struct FormerState { std::vector<QRectF> rectangles; double thicknessMm=3; };
+struct FormerState { std::vector<QRectF> rectangles; double thicknessMm=3; std::vector<double> rotationDegrees; };
 inline bool rectanglesOverlap(const QRectF& a,const QRectF& b) {
   const auto i=a.intersected(b);return i.width()>1e-7&&i.height()>1e-7;
 }
@@ -21,6 +22,7 @@ public:
   void setEditing(bool);
   void configure(double scale,QRectF side){scale_=scale;side_=side;}
   void setThickness(double mm);
+  void setRotation(double degrees);
   void add();
   void remove();
   bool allowsTray(const QRectF&) const;
@@ -34,7 +36,7 @@ signals:
 protected:
   bool eventFilter(QObject*,QEvent*) override;
 private:
-  bool allowed(const QRectF&,int ignore=-1) const;
+  bool allowed(const QRectF&,int ignore=-1,double angle=0) const;
   void refresh(bool data=false);
   QGraphicsView& view_;FormerState state_;QRectF side_,original_;
   double scale_=1;bool editing_=false;int selected_=-1,drag_=-1;

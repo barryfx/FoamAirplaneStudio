@@ -11,7 +11,7 @@ Menu Bar Taken from DesignRC (delete defaults from Edit menu)
 (ToolBar Buttons when Wing Selected)  Outline  |  Airfoil Stations  |  Airfoils  |  Dihedral  |  Ailerons/Flaps  |  Spars  |  Lightening
 (ToolBar Buttons when Fuselage Selected)  Outline  |  Profile Stations  |  Edit Profiles  |  Thicken  |  Cut  |  Servo Tray  |  Formers
 (ToolBar Buttons when Horiz or Vert Stab Selected)  Outline  |  Airfoil  |  Hinge Line  |  Cut  |
-(ToolBar Buttons when Assembly Selected)  Wing Location  |  Horiz Stab Location  |  Vert Stab Location
+(Assembly: no secondary toolbar. Data panel has instructions, Wing, Horiz Stab, Vert Stab and bottom Cut Intersections / Undo Cuts.)
 (When Export Selected, no secondary toolbar.  Dialog to select output directory and formats (step vs stl, dxf vs svg))
 
 -------------------------- Rest of Window --------------------------------------|
@@ -104,13 +104,16 @@ provides the inner cavity. A separate cavity-fitted tray sits on side ledges
 extending 5 mm inward and 5 mm down. Retain top-face geometry for later laser
 export. Persist the dimensioned rectangle; keep the completed rectangle visible.
 
-Fuselage / Formers: instructions above Width (thickness), Add Former and Delete
-Former. Add creates a full-height Side View rectangle; drag to move in either
+Fuselage / Formers: instructions above Width (thickness), Add Former, Rotation Angle and
+Delete Former. Rotation Angle is directly below Add Former, defaults to 0 for
+each new former, and applies to the selection in decimal degrees. Rotate about
+the mask center in Side View; negative is counter-clockwise. Add creates a full-height Side View rectangle; drag to move in either
 axis, or drag the top/bottom handles to change height. Width uses Reference units
 or explicit mm/in. Prevent overlap with formers or the tray in either editor.
 Generate separate cavity-fitted solids, clear of walls/supports. Add 4 mm fore/aft
 by 3 mm inward retaining rails ahead of and behind each former on both cavity
-sides, clearing removable inserts. Persist placements.
+sides, clearing removable inserts. Rotate masks, local height handles and rail
+slabs together. Persist placements and per-former angles.
 
 Stabilizers / Outline: shared Line/Spline editing with one independent open outline
 per component. Horizontal instructions request the right half including elevator,
@@ -125,3 +128,9 @@ Airfoil shows "Load the airfoil to use for the stabilizer from a .dat file.", th
 even before Airfoil is visited. Enable other tools only after a valid Outline.
 Entering 3D generates that stabilizer in its own worker with progress and Cancel.
 Hinge Line draws connected segments and applies Tape/Standard relief on the longest segment. Cut supports closed material-removal shapes. See architecture/stabilizer-solids.md.
+
+Assembly: on entry disable 2D View, activate 3D and show the left side centered
+on the fuselage. Select a component to translate with arrow keys (1 mm, Shift
+10 mm, Ctrl 0.1 mm). Cut Intersections validates rudder/elevator clearance, cuts
+fuselage seats and the horizontal fin slot, locks positioning and becomes Undo
+Cuts. Retain original caches and export the cut snapshot. See architecture/assembly.md.

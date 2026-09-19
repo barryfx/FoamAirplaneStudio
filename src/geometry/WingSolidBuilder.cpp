@@ -293,7 +293,7 @@ static TopoDS_Shape buildWingPanel(const WingSolidInput& input, const std::funct
   loft.Build(control.range());control.checkpoint(); if(!loft.IsDone()) throw std::runtime_error("OCCT could not loft the wing sections.");
   TopoDS_Shape half=loft.Shape();
   report("Validating wing solid...");
-  if(half.IsNull()||!TopExp_Explorer{half,TopAbs_SOLID}.More()||!BRepCheck_Analyzer{half}.IsValid())
+  if(half.IsNull()||!TopExp_Explorer{half,TopAbs_SOLID}.More()||!BRepCheck_Analyzer{half,true,control.parallel}.IsValid())
     throw std::runtime_error("The wing loft is not a valid solid; check outline and station placement.");
   if(std::any_of(input.controls.front().begin(),input.controls.front().end(),[](const auto& c){return c.enabled && c.rectangle;})) {
     report("Separating ailerons/flaps and cutting hinge bevels...");
@@ -445,7 +445,7 @@ TopoDS_Shape buildWingSolid(const WingSolidInput& input,const std::function<void
   struct PanelResult {TopoDS_Shape shape;double span=0;};
   std::vector<PanelResult> results(input.panels.size());std::mutex progressMutex;
   processing::runIndexedTasks(input.panels.size(),[&](std::size_t panel,std::stop_token token) {
-    const ProcessingControl control{options.maxPanelThreads==1 && !options.processing.stop.stop_possible()?std::stop_token{}:token};
+    const ProcessingControl control{options.maxPanelThreads==1 && !options.processing.stop.stop_possible()?std::stop_token{}:token,options.processing.parallel};
     const auto report=[&](const char* message) {
       control.checkpoint();
       if(progress) {

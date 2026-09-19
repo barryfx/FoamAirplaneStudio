@@ -25,6 +25,8 @@
 #include <QAction>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QDoubleSpinBox>
+#include <numbers>
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QSettings>
@@ -53,6 +55,20 @@ void geometryTests() {
   for(double x:{18.,26.})for(double y:{-18.5,18.5})for(double z:{-14.,0.,14.})CHECK(inside(retained,x,y,z));
   CHECK(!inside(retained,18,16,0));CHECK(!inside(retained,15,18.5,0));CHECK(!inside(retained,29,18.5,0));
   CHECK(std::abs(volume(BRepAlgoAPI_Common{retained,inserts[0]}.Shape()))<1e-6);
+  // Negative degrees tilt the top toward the nose in model coordinates,
+  // matching counter-clockwise rotation in the scene's downward Y axis.
+  const std::vector<QRectF> angledMask{{20,-30,4,60}};
+  for(double angle:{-30.,30.}) {
+    const auto angled=geometry::buildFormers(cavity,shell,angledMask,{},{},{},{angle});
+    const double slope=std::tan(angle*std::numbers::pi/180.);
+    CHECK(std::abs(volume(angled[0])-4800/std::cos(angle*std::numbers::pi/180.))<1e-4);
+    CHECK(inside(angled[0],22+slope*10,0,10));CHECK(!inside(angled[0],22-slope*10,0,10));
+    CHECK(std::abs(volume(BRepAlgoAPI_Cut{angled[0],cavity}.Shape()))<1e-6);
+    const auto rails=geometry::addFormerRetainers(shell,cavity,angledMask,angled,{},{},{angle});
+    CHECK(count(rails)==1);CHECK(std::abs(volume(BRepAlgoAPI_Common{rails,angled[0]}.Shape()))<1e-6);
+    for(double side:{-1.,1.})CHECK(inside(rails,22+slope*10+side*4/std::cos(angle*std::numbers::pi/180.),18.5,10));
+  }
+  bool rotatedOverlap=false;try{geometry::buildFormers(cavity,shell,{{20,-30,4,60},{34,-30,4,60}},{},{},{},{-30,30});}catch(const std::exception&){rotatedOverlap=true;}CHECK(rotatedOverlap);
   const auto halves=geometry::splitFuselageMainBody(retained);
   CHECK(count(halves)==2);CHECK(std::abs(volume(halves)-volume(retained))<1e-5);
   const auto supported=geometry::addServoTray(shell,cavity,{35,0,30,3});
@@ -109,7 +125,7 @@ int main(int argc,char** argv) {
     MainWindow window;window.show();app.processEvents();CHECK(window.openProjectFile(file,error));
     auto* tabs=window.findChild<QTabWidget*>("viewportTabs");auto* view=static_cast<PlanViewport*>(tabs->widget(0));view->fitInView(QRectF{0,0,900,500},Qt::KeepAspectRatio);app.processEvents();
     auto& editor=view->formerEditor();auto* toolbar=window.findChild<QToolBar*>("componentToolBar");CHECK(toolbar->actions()[6]->text()=="Formers");
-    auto* add=window.findChild<QPushButton*>("formerAdd");auto* width=window.findChild<QLineEdit*>("formerWidth");CHECK(add&&width);CHECK(readinessOnly||add->isVisible());
+    auto* add=window.findChild<QPushButton*>("formerAdd");auto* width=window.findChild<QLineEdit*>("formerWidth");auto* rotation=window.findChild<QDoubleSpinBox*>("formerRotationAngle");CHECK(add&&width&&rotation);CHECK(rotation->value()==0&&!rotation->isEnabled());CHECK(readinessOnly||add->isVisible());
     if(readinessOnly){
       auto* workspaces=window.findChild<QToolBar*>("workspaceToolBar");CHECK(workspaces);
       CHECK(workspaces->actions()[3]->isEnabled()&&workspaces->actions()[4]->isEnabled());
@@ -156,14 +172,27 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==20);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto v23=encoded;v23["version"]=23;auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
+    auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
+    bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);
     auto oldUi=old["ui"].toObject();oldUi["tool"]="Firewall";old["ui"]=oldUi;CHECK(decodeProject(old).tool=="Formers");
     auto bad=encoded;auto formers=bad["formers"].toObject();auto rects=formers["rectangles"].toArray();rects.append(rects[0]);formers["rectangles"]=rects;bad["formers"]=formers;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[4]->trigger();CHECK(!window.projectModified());
     view->fitInView(QRectF{0,0,900,500},Qt::KeepAspectRatio);app.processEvents();
     const auto pix=view->viewport()->grab().toImage();r=editor.state().rectangles[0];const auto loc=view->mapFromScene({r.left(),r.center().y()});const QPoint at{qRound(loc.x()*pix.devicePixelRatio()),qRound(loc.y()*pix.devicePixelRatio())};bool green=false;
     for(int y=-3;y<=3;++y)for(int x=-3;x<=3;++x)if(pix.rect().contains(at+QPoint{x,y})){const auto c=pix.pixelColor(at+QPoint{x,y});if(c.green()>170&&c.red()<130)green=true;}CHECK(green);
-    toolbar->actions()[6]->trigger();const auto capture=qEnvironmentVariable("FOAM_FORMER_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
+    toolbar->actions()[6]->trigger();click(editor.state().rectangles[0].center());CHECK(rotation->isEnabled());
+    rotation->setValue(-12.5);CHECK(editor.state().rotationDegrees[0]==-12.5);CHECK(editor.state().rotationDegrees[1]==0);
+    auto tilted=editor.state().rectangles[0];const auto transformed=formerTransform(tilted,-12.5);CHECK(transformed.map(QPointF{tilted.center().x(),tilted.top()}).x()<tilted.center().x());
+    CHECK(decodeProject(encodeProject(window.projectDocument())).formers.rotationDegrees[0]==-12.5);
+    CHECK(window.saveProjectFile(file,error));CHECK(readProject(file,error)->formers.rotationDegrees[0]==-12.5);
+    click(editor.state().rectangles[1].center());CHECK(rotation->value()==0);click(tilted.center());CHECK(rotation->value()==-12.5);
+    // Drag and resize in the tilted former's own coordinates.
+    drag(tilted.center(),tilted.center()+QPointF{-5,0});CHECK(std::abs(editor.state().rectangles[0].center().x()-tilted.center().x()+5)<2);
+    tilted=editor.state().rectangles[0];const auto transform=formerTransform(tilted,-12.5);
+    drag(transform.map(QPointF{tilted.center().x(),tilted.top()}),transform.map(QPointF{tilted.center().x(),tilted.top()+3}));CHECK(editor.state().rectangles[0].height()<tilted.height()-1);
+    const auto capture=qEnvironmentVariable("FOAM_FORMER_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
     if(app.arguments().contains("--editor-only")) {
       CHECK(window.findChild<QLabel*>("formerInstructions")->text().contains("4 mm fore/aft"));
       CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==0);
@@ -175,6 +204,8 @@ int main(int argc,char** argv) {
     CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("formerCount").toInt()==2);
     CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==5);CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
     const auto revision=tabs->widget(1)->property("fuselageModelRevision").toInt();tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==revision);
-    std::cout<<"Former UI: add, units, move, partial-height resize, delete, bidirectional overlap checks, persistence, overlay and generation/cache passed\n";
+    tabs->setCurrentIndex(0);click(editor.state().rectangles[0].center());rotation->setValue(-10.25);tabs->setCurrentIndex(1);waitForModel(window);
+    CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()>revision);
+    std::cout<<"Former UI: rotation, cache invalidation, add, units, move, partial-height resize, delete, bidirectional overlap checks, persistence, overlay and generation/cache passed\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}
 }

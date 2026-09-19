@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QPoint>
+#include "gui/ReferenceImage.h"
+#include "geometry/FuselageSolidBuilder.h"
 #include <QWidget>
 
 #include <AIS_InteractiveContext.hxx>
@@ -41,6 +43,8 @@ public:
                              const TopoDS_Shape& aluminum,
                              const TopoDS_Shape& steel,
                              const TopoDS_Shape& fiberglass);
+  void displayAssembly(const std::array<TopoDS_Shape,4>& parts,int selected);
+  void setAssemblyReference(const ProjectReference& reference, const geometry::FuselageSideTransform& transform);
   void clearShape();
   void fitAll();
   void setCameraView(CameraView cameraView);
@@ -62,6 +66,7 @@ private:
   void initializeViewer();
   void displayPendingShapes();
   void displayViewGizmo();
+  void clearAssemblyReference();
   void redraw();
 
   Handle(V3d_Viewer) viewer_;
@@ -76,6 +81,12 @@ private:
   TopoDS_Shape pendingSteelShape_;
   TopoDS_Shape pendingFiberglassShape_;
   QPoint lastMousePosition_;
+  std::optional<std::array<TopoDS_Shape,4>> pendingAssembly_;
+  int assemblySelected_=-1;
+  std::vector<Handle(AIS_Shape)> referenceObjects_;
+  std::vector<ReferencePage> assemblyReferencePages_;
+  bool assemblyReferenceToScale_=false;
+  geometry::FuselageSideTransform assemblyReferenceTransform_{};
   bool initialized_{false};
   bool foamAppearance_{false};
   bool orbiting_{false};

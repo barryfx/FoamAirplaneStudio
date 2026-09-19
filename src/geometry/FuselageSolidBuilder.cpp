@@ -137,6 +137,12 @@ std::vector<double> guidedPositions(const Loop& top,const Loop& side,double leng
 std::vector<QPointF> sampleFuselageProfile(const gui::SketchLayer& profile) {
   return normalizedProfile(boundary(profile));
 }
+FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& layer,std::optional<double> lengthMm) {
+  const auto loop=boundary(layer);const auto box=bounds(loop);
+  if(box.width()<1e-8)throw std::runtime_error("Fuselage outline needs a nose-to-tail length.");
+  const auto nose=span(loop,box.left());
+  return {box.left(),(nose.first+nose.second)/2,lengthMm.value_or(box.width())/box.width()};
+}
 FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std::function<void(const char*)>& progress,const ProcessingControl& processing) {
   processing.checkpoint();
   if(!input.formers.empty()&&!input.thicken)throw std::runtime_error("Enter Thicken before generating formers; formers need inner walls.");
@@ -149,8 +155,9 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(tb.width()<1e-8||sb.width()<1e-8)throw std::runtime_error("Fuselage outlines need a nose-to-tail length.");
   const double length=input.lengthMm.value_or(sb.width());
   const double topScale=length/tb.width(),sideScale=length/sb.width();
-  const auto topNose=span(top,tb.left()),sideNose=span(side,sb.left());
-  const double lateralOrigin=(topNose.first+topNose.second)/2,verticalOrigin=(sideNose.first+sideNose.second)/2;
+  const auto topNose=span(top,tb.left());
+  const double lateralOrigin=(topNose.first+topNose.second)/2;
+  const double verticalOrigin=fuselageSideTransform(input.outlines[1],input.lengthMm).verticalOrigin;
   struct Section {double t;Loop profile;double wall;};std::vector<Section> sections;
   for(const auto& station:input.stations) {
     processing.checkpoint();
@@ -206,7 +213,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(!loft.IsDone())throw std::runtime_error("Fuselage loft failed. Check profile loops and outline crossings.");
   if(progress)progress("Fuselage: merging coincident outer loft faces...");
   auto shape=simplifyFuselageTopology(loft.Shape(),processing);
-  if(!BRepCheck_Analyzer{shape}.IsValid())throw std::runtime_error("Fuselage loft is not a valid solid. Check for crossing profiles.");
+  if(!BRepCheck_Analyzer{shape,true,processing.parallel}.IsValid())throw std::runtime_error("Fuselage loft is not a valid solid. Check for crossing profiles.");
   int solids=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++solids;
   GProp_GProps props;BRepGProp::VolumeProperties(shape,props);
   if(solids!=1||std::abs(props.Mass())<1e-9)throw std::runtime_error("Fuselage did not produce one solid with positive volume.");
@@ -222,9 +229,9 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(!input.formers.empty()) {
     auto physical=[&](const QRectF& r){return QRectF{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};};
     std::vector<QRectF> formers;for(const auto& r:input.formers)formers.push_back(physical(r));
-    result.formers=buildFormers(cavity,shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing);
+    result.formers=buildFormers(cavity,shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing,input.formerRotationDegrees);
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
-    shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing);
+    shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees);
   }
   FuselageAlignmentSpec alignment;alignment.seamReference=shape;
   if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);
@@ -238,7 +245,10 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     for(const auto& former:result.formers)builder.Add(assembly,former);shape=assembly;
   }
   processing.checkpoint();if(progress)progress("Fuselage: preparing display mesh...");
-  BRepMesh_IncrementalMesh mesh{shape,.2,false,.3,false};processing.checkpoint();result.shape=shape;return result;
+  IMeshTools_Parameters parameters;parameters.Deflection=.2;parameters.Angle=.3;parameters.InParallel=processing.parallel;
+  BRepMesh_IncrementalMesh mesh{shape,parameters,processing.range()};processing.checkpoint();
+  if(!mesh.IsDone())throw std::runtime_error("Fuselage display meshing failed.");
+  result.shape=shape;return result;
 }
 TopoDS_Shape buildFuselageSolid(const FuselageSolidInput& input,const std::function<void(const char*)>& progress,const ProcessingControl& processing) {
   return buildFuselageModel(input,progress,processing).shape;

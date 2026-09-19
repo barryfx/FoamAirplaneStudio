@@ -293,7 +293,7 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 6.1 Wing Attachment
 
-- After component modeling, the user shall select the wing attachment location over the fuselage side view.
+- After component modeling, the user shall select the wing attachment location in the Assembly left-side 3D view using component selection and arrow keys.
 - The software shall position the wing relative to the fuselage using the selected attachment location.
 - Depending on the selected wing position, the software shall automatically determine whether the fuselage requires:
   - A conforming wing saddle, or
@@ -314,8 +314,9 @@ The software shall support designing an aircraft from imported reference drawing
 - The user shall select the vertical stabilizer location on top of the fuselage and/or horizontal stabilizer.
 - The software shall generate a fin slot from the upper surface of the supporting component.
 - If the horizontal stabilizer is mounted on top of the fuselage and supports/intersects the fin, the slot may pass through the horizontal stabilizer as required by the selected geometry.
-- The fin-slot depth shall not exceed the fuselage width at that location.
-- If the fin penetrates into the fuselage, the software shall remove/trim the required portion of the fin body so that it fits the generated slot and mating geometry.
+- The current Assembly process shall subtract the positioned fixed fin from the fuselage and/or horizontal stabilizer while preserving the fin itself (ADR-0033).
+- Before cutting, check only Rudder against Elevator and report their intersection in a popup. Fixed stabilizer and fuselage intersections do not block cutting.
+- Preserve original caches, use cut results for export, disable movement after cuts, and provide Undo Cuts to restore original parts at their current positions.
 
 ## 7. Final 3D Assembly
 
@@ -430,3 +431,11 @@ later DXF/SVG laser export, and describe operations above the data-panel control
 Fuselage readiness refinement: Thicken, Cut, Servo Tray and Formers need not be
 visited before generation. Complete outlines and assigned closed station profiles
 permit generation with default/saved walls and enable Horiz Stab and Vert Stab.
+
+Project files shall store design inputs and Assembly placement/cut intent, not generated
+models. Ignore embedded models from older files. Keep generated caches in session memory.
+
+Fuselage Formers: provide Rotation Angle directly below Add Former, defaulting
+to 0 degrees for each new former and editing only the selection. Negative angles
+rotate counter-clockwise about the Side View mask center. Apply the angle to
+the overlay, overlap checks, fitted solid and retaining rails; save it per former.

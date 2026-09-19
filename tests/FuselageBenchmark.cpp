@@ -36,9 +36,11 @@ int main(int argc,char** argv) {
       if(!project)throw std::runtime_error(error.toStdString());
       geometry::FuselageSolidInput input{project->fuselage.layers,project->fuselageStations.lines,project->fuselageProfiles.layers,
         project->reference.toScale?std::nullopt:project->reference.fuselageLengthMm,
-        project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles};
+        project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles,project->formers.rotationDegrees};
+      const bool parallel=!qEnvironmentVariableIsSet("FOAM_BENCH_SERIAL");
+      std::cout<<"Fuselage parallel mode: "<<parallel<<std::endl;
       const auto start=std::chrono::steady_clock::now();std::stop_source stop;
-      const auto shape=geometry::buildFuselageModel(input,[&](const char* p){std::cout<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"s "<<p<<std::endl;},{stop.get_token()}).shape;
+      const auto shape=geometry::buildFuselageModel(input,[&](const char* p){std::cout<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"s "<<p<<std::endl;},{stop.get_token(),parallel}).shape;
       std::cout<<"Build seconds: "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<std::endl;
 
       Bnd_Box box;BRepBndLib::AddOptimal(shape,box,false,false);double a,b,c,d,e,f;box.Get(a,b,c,d,e,f);

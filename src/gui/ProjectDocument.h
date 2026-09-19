@@ -6,8 +6,10 @@
 #include "gui/PlanViewport.h"
 #include "gui/OcctViewport.h"
 #include <QJsonObject>
+#include "gui/AssemblyState.h"
 namespace designrc::gui {
 struct ProjectDocument {
+  AssemblyState assembly;
   ProjectReference reference;
   QString wingspanText, fuselageText;
   SketchState wing, airfoilSketch;

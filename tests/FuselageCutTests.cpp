@@ -160,7 +160,7 @@ int main(int argc,char** argv) {
     // Finish and delete this draft so the geometry test contains only the Top path.
     key(Qt::Key_Escape);spline->click();const auto path=SketchEditor::fittedPath(editor.layers()[1].points,SketchTool::Spline);click(path.pointAtPercent(.5));key(Qt::Key_Delete);CHECK(editor.layers()[1].curves.empty());
     window.findChild<QPushButton*>("fuselageCutTop")->click();
-    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==20);
+    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);
     auto legacy=encoded;legacy["version"]=12;legacy.remove("fuselageCuts");CHECK(decodeProject(legacy).fuselageCuts.layers[0].curves.empty());
     auto bad=encoded;auto cuts=bad["fuselageCuts"].toObject();cuts["layers"]=QJsonArray{};bad["fuselageCuts"]=cuts;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[2]->trigger();CHECK(!editor.state().editing);CHECK(!window.projectModified());

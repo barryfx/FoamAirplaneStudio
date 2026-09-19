@@ -117,7 +117,7 @@ add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerA
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
@@ -139,7 +139,7 @@ add_executable(designrc WIN32
   src/geometry/StepExporter.h
   src/gui/WingWorkflow.cpp
   src/gui/WingWorkflow.h
-  src/gui/MainWindow.cpp
+  src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp
   src/gui/MainWindow.h
   src/gui/OcctViewport.cpp
   src/gui/OcctViewport.h
@@ -291,7 +291,7 @@ endif()
 if(DESIGNRC_BUILD_TESTS)
   enable_testing()
   add_executable(project_tests tests/ProjectTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(project_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -299,8 +299,20 @@ if(DESIGNRC_BUILD_TESTS)
   get_target_property(_foam_project_app_libraries designrc LINK_LIBRARIES)
   target_link_libraries(project_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME project_tests COMMAND project_tests)
+  add_executable(assembly_tests tests/AssemblyTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(assembly_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(assembly_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(assembly_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME assembly_tests COMMAND assembly_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  add_test(NAME project_persistence_ui_tests COMMAND assembly_tests --persistence-ui "${CMAKE_BINARY_DIR}")
+  if(NOT WIN32)
+    set_tests_properties(assembly_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
   add_executable(stabilizer_outline_tests tests/StabilizerOutlineTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(stabilizer_outline_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -312,7 +324,7 @@ if(DESIGNRC_BUILD_TESTS)
   endif()
 
   add_executable(fuselage_outline_tests tests/FuselageOutlineTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(fuselage_outline_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -324,7 +336,7 @@ if(DESIGNRC_BUILD_TESTS)
   endif()
 
   add_executable(fuselage_profile_tests tests/FuselageProfileTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(fuselage_profile_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -336,7 +348,7 @@ if(DESIGNRC_BUILD_TESTS)
   endif()
 
   add_executable(former_tests tests/FormerTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(former_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -351,7 +363,7 @@ if(DESIGNRC_BUILD_TESTS)
   endif()
 
   add_executable(servo_tray_tests tests/ServoTrayTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(servo_tray_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -365,7 +377,7 @@ if(DESIGNRC_BUILD_TESTS)
 
 
   add_executable(fuselage_cut_tests tests/FuselageCutTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(fuselage_cut_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -379,7 +391,7 @@ if(DESIGNRC_BUILD_TESTS)
 
 
   add_executable(fuselage_thicken_tests tests/FuselageThickenTests.cpp resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(fuselage_thicken_tests PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -440,7 +452,7 @@ if(DESIGNRC_BUILD_TESTS)
   endif()
   add_executable(station_workflow_tests tests/StationWorkflowTests.cpp
     resources/designrc.qrc
-    src/gui/MainWindow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
     src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
   set_target_properties(station_workflow_tests PROPERTIES AUTOMOC ON AUTORCC ON)

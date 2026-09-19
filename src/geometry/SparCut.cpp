@@ -32,15 +32,15 @@
 #include <vector>
 namespace designrc::geometry {
 namespace {
-void valid(const TopoDS_Shape& s,const char* message) {
+void valid(const TopoDS_Shape& s,const char* message,bool parallel) {
   int n=0;for(TopExp_Explorer e{s,TopAbs_SOLID};e.More();e.Next())++n;
   if(n!=1)throw std::runtime_error(std::string{message}+" ("+std::to_string(n)+" solids)");
-  if(!BRepCheck_Analyzer{s}.IsValid())throw std::runtime_error(std::string{message}+" (invalid topology)");
+  if(!BRepCheck_Analyzer{s,true,parallel}.IsValid())throw std::runtime_error(std::string{message}+" (invalid topology)");
 }
 TopoDS_Shape cut(const TopoDS_Shape& s,const TopoDS_Shape& tool,const ProcessingControl& control) {
   control.checkpoint();
   BRepAlgoAPI_Cut op;NCollection_List<TopoDS_Shape> args,tools;args.Append(s);tools.Append(tool);
-  op.SetArguments(args);op.SetTools(tools);op.SetNonDestructive(true);
+  op.SetArguments(args);op.SetTools(tools);op.SetNonDestructive(true);op.SetRunParallel(control.parallel);
   op.Build(control.range());control.checkpoint();if(!op.IsDone())throw std::runtime_error("Could not cut spar geometry.");return op.Shape();
 }
 
@@ -63,7 +63,7 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
     // Remove redundant coplanar loft seams before the numerous pocket cuts.
     // Keep geometry and topology validation; this is not an approximation.
     ShapeUpgrade_UnifySameDomain unify{original,true,true,false};unify.Build();
-    valid(unify.Shape(),"Could not prepare the main wing for lightening.");original=unify.Shape();
+    valid(unify.Shape(),"Could not prepare the main wing for lightening.",control.parallel);original=unify.Shape();
   }
   auto fixed=original;
   Bnd_Box bounds;BRepBndLib::Add(original,bounds);
@@ -158,7 +158,7 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
       }
     }
     tool.Build(control.range());control.checkpoint();if(!tool.IsDone())throw std::runtime_error("Could not construct the spar groove.");
-    sparTools[index]=tool.Shape();if(!split)fixed=cut(fixed,tool.Shape(),control);valid(fixed,"The spar cuts disconnect the fixed wing; change their sizes or locations.");
+    sparTools[index]=tool.Shape();if(!split)fixed=cut(fixed,tool.Shape(),control);valid(fixed,"The spar cuts disconnect the fixed wing; change their sizes or locations.",control.parallel);
     } catch(const Standard_Failure& e) {throw std::runtime_error(name+": "+e.what());}
       catch(const std::exception& e) {throw std::runtime_error(name+": "+e.what());}
   }
@@ -194,7 +194,7 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
     boundary.Add(gp_Pnt{x0-margin,y1+margin,midCenters.back().Z()});
     const auto sheet=BRepPrimAPI_MakePrism{boundary.Wire(),gp_Vec{x1-x0+2*margin,0,0}}.Shape();
     BRepAlgoAPI_Splitter splitter;NCollection_List<TopoDS_Shape> args,tools;args.Append(original);tools.Append(sheet);
-    splitter.SetArguments(args);splitter.SetTools(tools);splitter.Build(control.range());control.checkpoint();
+    splitter.SetArguments(args);splitter.SetTools(tools);splitter.SetRunParallel(control.parallel);splitter.Build(control.range());control.checkpoint();
     if(!splitter.IsDone())throw std::runtime_error("Could not split the main wing panel at mid-spar height.");
     std::vector<TopoDS_Shape> splitBodies;
     for(TopExp_Explorer e{splitter.Shape(),TopAbs_SOLID};e.More();e.Next())splitBodies.push_back(e.Current());
@@ -206,7 +206,7 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
     const bool firstTop=classify.State()==TopAbs_IN || classify.State()==TopAbs_ON;
     auto top=splitBodies[firstTop?0:1],bottom=splitBodies[firstTop?1:0];
     if(progress)progress("Validating split wing halves...");
-    valid(top,"The upper wing half is disconnected.");valid(bottom,"The lower wing half is disconnected.");
+    valid(top,"The upper wing half is disconnected.",control.parallel);valid(bottom,"The lower wing half is disconnected.",control.parallel);
     if(progress)progress("Checking split volume conservation...");
     GProp_GProps wholeMass,topMass,bottomMass;
     BRepGProp::VolumeProperties(original,wholeMass,1e-9);control.checkpoint();BRepGProp::VolumeProperties(top,topMass,1e-9);control.checkpoint();BRepGProp::VolumeProperties(bottom,bottomMass,1e-9);control.checkpoint();
@@ -214,7 +214,7 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
       throw std::runtime_error("The wing split did not preserve the main panel volume: "+std::to_string(wholeMass.Mass())+" -> "+std::to_string(topMass.Mass()+bottomMass.Mass())+" mm3.");
     if(progress)progress("Applying spar tools to split halves...");
     for(int i:{2,0,1})if(spars[i].enabled){top=cut(top,sparTools[i],control);bottom=cut(bottom,sparTools[i],control);}
-    valid(top,"The mid spar disconnects the upper wing half.");valid(bottom,"The mid spar disconnects the lower wing half.");
+    valid(top,"The mid spar disconnects the upper wing half.",control.parallel);valid(bottom,"The mid spar disconnects the lower wing half.",control.parallel);
     for(int i=0;i<2;++i)if(spars[i].enabled)fixed=cut(fixed,sparTools[i],control);
     TopoDS_Shape cavities;
     if(lighten) {
@@ -277,16 +277,17 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
     if(lighten && TopExp_Explorer{cavities,TopAbs_SOLID}.More()) {
       if(progress)progress("Hollowing upper and lower main-wing halves...");
       top=cut(top,cavities,control);bottom=cut(bottom,cavities,control);
-      valid(top,"Lightening disconnects the upper wing half; increase retained material.");
-      valid(bottom,"Lightening disconnects the lower wing half; increase retained material.");
+      valid(top,"Lightening disconnects the upper wing half; increase retained material.",control.parallel);
+      valid(bottom,"Lightening disconnects the lower wing half; increase retained material.",control.parallel);
     }
     if(spars[2].enabled) {
     if(progress)progress("Joining alignment tabs to lower wing...");
-    BRepAlgoAPI_Fuse join{bottom,pegs,control.range()};control.checkpoint();if(!join.IsDone())throw std::runtime_error("Could not attach alignment tabs.");bottom=join.Shape();
+    BRepAlgoAPI_Fuse join;NCollection_List<TopoDS_Shape> joinArgs,joinTools;joinArgs.Append(bottom);joinTools.Append(pegs);
+    join.SetArguments(joinArgs);join.SetTools(joinTools);join.SetRunParallel(control.parallel);join.Build(control.range());control.checkpoint();if(!join.IsDone())throw std::runtime_error("Could not attach alignment tabs.");bottom=join.Shape();
     if(progress)progress("Cutting matching alignment holes in upper wing...");
     top=cut(top,holes,control);
     }
-    valid(top,"Invalid upper spar half.");valid(bottom,"Invalid lower spar half.");
+    valid(top,"Invalid upper spar half.",control.parallel);valid(bottom,"Invalid lower spar half.",control.parallel);
     bodies[0]=top;bodies.insert(bodies.begin()+1,bottom);
     } catch(const Standard_Failure& e) {throw std::runtime_error(std::string{"Wing alignment/split/lightening: "}+e.what());}
       catch(const std::exception& e) {throw std::runtime_error(std::string{"Wing alignment/split/lightening: "}+e.what());}

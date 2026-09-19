@@ -42,6 +42,10 @@ Up to four independent panel tasks run concurrently (bounded by available CPUs),
 then assemble in order. Right-half display triangulations are mirrored with the
 solid instead of computing the same left-half mesh again.
 
+Within each panel, control/spar/split/hollowing Booleans and shape validation
+use OCCT's per-operation parallel mode. Geometry and feature ordering are
+unchanged. See regeneration.md for independent panel/kernel benchmark controls.
+
 While processing, the menus, shortcuts, toolbars, data editors and viewports are
 disabled. Only Cancel, at the bottom of the data panel, remains active. It requests
 cooperative OCCT interruption and changes to Cancelling until all workers stop.

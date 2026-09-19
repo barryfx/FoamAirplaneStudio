@@ -15,7 +15,7 @@ available when Specify Dimensions has both positive, finite Wingspan and Fuselag
 Length values (with or without an image), or Reference is to scale is selected
 with a loaded image and valid physical dimensions for every page. Loading an
 image alone does not unlock Wing. Hidden manual values do not override an invalid
-actual-scale selection. Fuselage additionally requires completed Wing airfoil assignments; Top/Side outline, station and profile editing plus solid generation are implemented (fuselage-profiles.md). Assembly and Export remain disabled.
+actual-scale selection. Fuselage additionally requires completed Wing airfoil assignments; Top/Side outline, station and profile editing plus solid generation are implemented (fuselage-profiles.md). Assembly unlocks after complete Fuselage profiles and valid stabilizer outlines; Export remains disabled.
 
 ReferenceWorkflow applies this rule at startup and on reference changes. Clearing
 or invalidating a required dimension disables Wing again; New resets the gate.

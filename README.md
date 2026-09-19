@@ -6,7 +6,7 @@ printing, plus outlines for laser cutting.
 
 ## Current progress
 
-As of September 18, 2026, Reference and Wing provide:
+As of September 19, 2026, Reference and Wing provide:
 
 - PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
 - Numbered panel outlines, reusable line/spline editing, curve-attached stations,
@@ -17,8 +17,8 @@ As of September 18, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-20 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text and view state. Versions 1-19 remain readable.
+- Portable version-24 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text, view state. Versions 1-23 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -27,7 +27,7 @@ Fuselage unlocks after Wing airfoil assignment and provides Top/Side closed-outl
 editing with the reusable sketch editor. Two valid outlines enable Profile Stations;
 it places vertical Side View sections with one click. Edit Profiles attaches section sketches
 to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Cut splits solid or hollow bodies along saved Top/Side Line and Spline paths. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
-Formers adds movable full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
+Formers adds movable, individually rotated full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
 
 Horiz Stab and Vert Stab provide independent open outlines, explicit leading-edge
 selection, a bundled NACA009 or imported DAT airfoil, and cached background
@@ -35,8 +35,10 @@ generation. Horizontal halves join into one stabilizer; the vertical fin is one
 body. Hinge Line separates the elevator/rudder with Tape or Standard relief,
 leaving two bodies. Closed Line/Spline Cut Shapes remove material through the
 thickness and can create additional bodies. Unchanged navigation reuses each
-component's successful model cache. Assembly/interfaces, export workflows and
-undo remain future work. Assembly and Export actions are disabled. STEP and DXF/SVG
+component's successful model cache. Assembly provides side-view positioning,
+control-surface collision checks, reversible intersection cuts and separate export
+geometry caches (see [Assembly](docs/architecture/assembly.md)). Export actions
+and general editor undo remain future work; Assembly includes Undo Cuts. STEP and DXF/SVG
 utilities remain available for reuse; STL export is future work.
 
 The former DesignRC field-driven wing/rib pipeline and persistence were removed.
@@ -78,6 +80,12 @@ suites that generate those components internally. Unfiltered CTest includes them
 The available tests cover project lifecycle, editors, workflow, wing/control/spar/lightening
 geometry, background processing, mesh orientation and retained domain/export code.
 The legacy `designrc_geometry_tests` target is an explicitly skipped placeholder.
+
+The September 19 [former rotation validation](docs/baseline/former-rotation-validation.md)
+records the full Debug build, 35 passing implemented tests after the workflow-test
+update, one intentionally skipped placeholder, and app launch. Parallel generation
+measurements are recorded for [Fuselage](docs/baseline/fuselage-parallel-validation.md)
+and [Wing](docs/baseline/wing-kernel-parallel-validation.md).
 
 The September 16 [regeneration validation](docs/baseline/regeneration-validation.md)
 records a successful Debug build, eight relevant passing suites and app launch.

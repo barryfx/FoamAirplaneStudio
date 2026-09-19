@@ -71,7 +71,7 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
   const auto plane=BRepBuilderAPI_MakeFace{gp_Pln{gp_Pnt{0,0,0},gp_Dir{0,1,0}}}.Shape();
   BRepAlgoAPI_Splitter splitter;NCollection_List<TopoDS_Shape> args,tools;
   args.Append(parts[index]);tools.Append(plane);splitter.SetArguments(args);splitter.SetTools(tools);
-  splitter.SetNonDestructive(true);splitter.SetFuzzyValue(1e-7);
+  splitter.SetNonDestructive(true);splitter.SetRunParallel(processing.parallel);splitter.SetFuzzyValue(1e-7);
   {auto range=processing.range();splitter.Build(range);}processing.checkpoint();
   if(!splitter.IsDone()||splitter.HasErrors()||bodyCount(splitter.Shape())!=2)
     throw std::runtime_error("The main fuselage must cross the centre plane to form two connected halves.");
@@ -79,7 +79,7 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
   std::array<TopoDS_Shape,2> halves;std::size_t halfIndex=0;
   for(TopExp_Explorer e{splitter.Shape(),TopAbs_SOLID};e.More();e.Next()) {
     processing.checkpoint();GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);
-    if(mass.Mass()<=1e-9||!BRepCheck_Analyzer{e.Current()}.IsValid())throw std::runtime_error("Invalid fuselage half after centre split.");
+    if(mass.Mass()<=1e-9||!BRepCheck_Analyzer{e.Current(),true,processing.parallel}.IsValid())throw std::runtime_error("Invalid fuselage half after centre split.");
     volume+=mass.Mass();halves[halfIndex++]=e.Current();
   }
   if(std::abs(volume-volumes[index])>std::max(1e-3,volumes[index]*1e-6))throw std::runtime_error("Centre split did not conserve fuselage material.");
@@ -130,7 +130,7 @@ TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchL
       const auto sheet=BRepPrimAPI_MakePrism{wire.Wire(),direction}.Shape();
       BRepAlgoAPI_Splitter splitter;NCollection_List<TopoDS_Shape> arguments,tools;
       arguments.Append(result);tools.Append(sheet);splitter.SetArguments(arguments);splitter.SetTools(tools);
-      splitter.SetNonDestructive(true);splitter.SetFuzzyValue(1e-7);
+      splitter.SetNonDestructive(true);splitter.SetRunParallel(processing.parallel);splitter.SetFuzzyValue(1e-7);
       {auto range=processing.range();splitter.Build(range);}processing.checkpoint();
       if(!splitter.IsDone()||splitter.HasErrors())throw std::runtime_error(label+" failed. Check for self-intersections or overlapping segments.");
       const auto split=splitter.Shape();
@@ -138,7 +138,7 @@ TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchL
       BRep_Builder builder;TopoDS_Compound solids;builder.MakeCompound(solids);double volume=0;
       for(TopExp_Explorer e{split,TopAbs_SOLID};e.More();e.Next()) {
         processing.checkpoint();const auto solid=e.Current();
-        if(!BRepCheck_Analyzer{solid}.IsValid())throw std::runtime_error(label+" produced an invalid body.");
+        if(!BRepCheck_Analyzer{solid,true,processing.parallel}.IsValid())throw std::runtime_error(label+" produced an invalid body.");
         GProp_GProps mass;BRepGProp::VolumeProperties(solid,mass);
         if(mass.Mass()<=1e-9)throw std::runtime_error(label+" produced an empty or reversed body.");
         volume+=mass.Mass();builder.Add(solids,solid);

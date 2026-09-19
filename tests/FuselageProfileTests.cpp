@@ -76,7 +76,7 @@ int main(int argc,char** argv) {
     CHECK(sketch.state().pending.size()==2&&spline->isChecked()&&!window.projectModified());
     key(Qt::Key_Escape);window.findChild<QPushButton*>("deleteFuselageProfile")->click();
     CHECK(window.saveProjectFile(path,error));
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==20);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);
     auto old=encoded;old["version"]=10;old.remove("fuselageProfiles");CHECK(!decodeProject(old).fuselageStations.lines[0].profile);
     auto invalid=encoded;auto fs=invalid["fuselageStations"].toObject();auto records=fs["lines"].toArray();auto record=records[0].toObject();record["profile"]=100000;records[0]=record;fs["lines"]=records;invalid["fuselageStations"]=fs;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

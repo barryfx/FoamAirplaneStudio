@@ -14,7 +14,12 @@ struct FuselageSolidInput {
   std::vector<gui::SketchLayer> cuts; // Optional Top/Side cut paths, applied after thickening.
   std::optional<QRectF> servoTray; // Side View rectangle; height is tray thickness.
   std::vector<QRectF> formers; // Side View masks; width is physical thickness after scaling.
+  std::vector<double> formerRotationDegrees; // Side View clockwise, about each mask center.
 };
+// Shared drawing-to-model alignment for reference imagery and fuselage geometry.
+struct FuselageSideTransform { double left, verticalOrigin, scale; };
+FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& side,
+    std::optional<double> lengthMm);
 struct FuselageBuildResult {TopoDS_Shape shape,body,servoTray,servoTrayTopFaces;std::vector<TopoDS_Shape> formers;};
 FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,
     const std::function<void(const char*)>& progress={},const ProcessingControl& processing={});

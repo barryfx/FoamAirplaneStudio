@@ -22,14 +22,14 @@ int solids(const TopoDS_Shape& shape) {
   int count=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++count;return count;
 }
 TopoDS_Shape subtract(const TopoDS_Shape& body,const TopoDS_Shape& tool,const ProcessingControl& processing) {
-  // The two-shape constructor already builds the Boolean result. Calling
-  // Build again repeats the intersections and reconstruction.
-  BRepAlgoAPI_Cut cut{body,tool,processing.range()};processing.checkpoint();
+  // Configure parallelism before the single Build call.
+  BRepAlgoAPI_Cut cut;NCollection_List<TopoDS_Shape> args,tools;args.Append(body);tools.Append(tool);
+  cut.SetArguments(args);cut.SetTools(tools);cut.SetRunParallel(processing.parallel);cut.Build(processing.range());processing.checkpoint();
   if(!cut.IsDone())throw std::runtime_error("OCCT could not cut a control surface.");
   return cut.Shape();
 }
-void valid(const TopoDS_Shape& shape,const char* message) {
-  if(shape.IsNull() || solids(shape)!=1 || !BRepCheck_Analyzer{shape}.IsValid())throw std::runtime_error(message);
+void valid(const TopoDS_Shape& shape,const char* message,bool parallel) {
+  if(shape.IsNull() || solids(shape)!=1 || !BRepCheck_Analyzer{shape,true,parallel}.IsValid())throw std::runtime_error(message);
 }
 }
 TopoDS_Shape cutControlSurfaces(const TopoDS_Shape& half,
@@ -107,10 +107,11 @@ TopoDS_Shape cutControlSurfaces(const TopoDS_Shape& half,
     };
     const auto prism=makePrism(rect);
     const auto movingPrism=endClearanceMm==0?prism:makePrism(inset);
-    BRepAlgoAPI_Common separate{fixed,movingPrism,processing.range()};processing.checkpoint(); // Constructor performs the operation once.
+    BRepAlgoAPI_Common separate;NCollection_List<TopoDS_Shape> args,tools;args.Append(fixed);tools.Append(movingPrism);
+    separate.SetArguments(args);separate.SetTools(tools);separate.SetRunParallel(processing.parallel);separate.Build(processing.range());processing.checkpoint();
     if(!separate.IsDone())throw std::runtime_error("OCCT could not separate the control surface.");
-    auto part=separate.Shape();valid(part,"The rectangle must select one connected control surface.");
-    fixed=subtract(fixed,prism,processing);valid(fixed,"The rectangle must leave one connected main wing body.");
+    auto part=separate.Shape();valid(part,"The rectangle must select one connected control surface.",processing.parallel);
+    fixed=subtract(fixed,prism,processing);valid(fixed,"The rectangle must leave one connected main wing body.",processing.parallel);
     auto bevel=[&](bool upper) {
       BRepOffsetAPI_ThruSections loft{true,true,1e-7};loft.CheckCompatibility(false);
       for(const auto sample:samples) {
@@ -130,7 +131,7 @@ TopoDS_Shape cutControlSurfaces(const TopoDS_Shape& half,
       part=subtract(part,loft.Shape(),processing);
     };
     bevel(false);if(control.hinge==gui::HingeCut::Standard)bevel(true);
-    valid(part,"The hinge bevel consumes or disconnects the control surface; use a deeper rectangle.");
+    valid(part,"The hinge bevel consumes or disconnects the control surface; use a deeper rectangle.",processing.parallel);
     moving.push_back(part);
   }
   if(moving.empty())return half;

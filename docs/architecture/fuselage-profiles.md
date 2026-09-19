@@ -66,3 +66,7 @@ workers and cached results. Navigating back to an unchanged Wing displays its
 cache without regeneration; Fuselage data is excluded from Wing's fingerprint.
 Status messages report preparation, alignment, lofting, meshing, completion,
 failure and cancellation. Stabilizers own independent builders and jobs (stabilizer-solids.md).
+
+The shared builder also parallelizes independent wall offsets and enables OCCT
+parallel Boolean, validation and meshing work. Loft/cavity/accessory/cut ordering
+is preserved. See regeneration.md for the per-operation serial comparison option.

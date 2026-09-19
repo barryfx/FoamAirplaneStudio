@@ -7,7 +7,10 @@
 #include "gui/WingWorkflow.h"
 #include "gui/ProjectDocument.h"
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/StabilizerSolidBuilder.h"
+#include "geometry/Assembly.h"
 
+class QVBoxLayout;
 class QTabWidget;
 class QTabBar;
 class QToolBar;
@@ -51,11 +54,43 @@ public:
   bool saveProjectFile(const QString& path,QString& error);
   bool openProjectFile(const QString& path,QString& error);
   bool projectModified() const;
+  // Exporters must use this snapshot rather than the uncut component caches.
+  std::optional<geometry::AssemblyParts> exportAssemblyParts() const;
 
 protected:
   void closeEvent(QCloseEvent* event) override;
 
 private:
+  friend class AssemblyWorkflowTest;
+  void buildAssemblyPanel(QVBoxLayout* layout);
+  void updateAssembly();
+  void displayAssembly(bool entry=false);
+  void moveAssembly(int key,Qt::KeyboardModifiers modifiers);
+  void toggleAssemblyCuts();
+  void pollAssemblyJob();
+  void invalidateAssembly();
+  QByteArray assemblyFingerprint() const;
+  bool assemblyProcessing() const { return assemblyPrepareJob_ || assemblyCutJob_; }
+  struct AssemblyPrepared {
+    TopoDS_Shape wing;
+    geometry::FuselageBuildResult fuselage;
+    std::array<geometry::StabilizerBuildResult,2> stabilizers;
+  };
+  AssemblyState assemblyState_;
+  geometry::AssemblyParts assemblyOriginals_;
+  std::optional<geometry::AssemblyParts> assemblyCutParts_;
+  QWidget* assemblyPanel_{};
+  std::array<QPushButton*,3> assemblySelect_{};
+  QPushButton* assemblyCutButton_{};
+  int assemblySelected_=-1;
+  QByteArray assemblySourceFingerprint_,assemblyAttemptFingerprint_,assemblyJobFingerprint_;
+  std::array<QByteArray,4> assemblyComponentFingerprints_;
+  std::size_t assemblyJobEpoch_{};
+  bool assemblyEntry_=false;
+  std::unique_ptr<processing::BackgroundJob<AssemblyPrepared>> assemblyPrepareJob_;
+  std::unique_ptr<processing::BackgroundJob<geometry::AssemblyCutResult>> assemblyCutJob_;
+  geometry::FuselageBuildResult fuselageModel_;
+  std::array<geometry::StabilizerBuildResult,2> stabilizerModels_;
   void buildMenus();
   void buildToolBars();
   void selectWorkspace(int index);
@@ -105,7 +140,7 @@ private:
   QByteArray stabilizerFingerprint(int index) const;
   bool stabilizerProcessing() const { return stabilizerJobs_[0] || stabilizerJobs_[1]; }
   std::array<StabilizerAirfoilPanel*,2> stabilizerAirfoilPanels_{};
-  std::array<std::unique_ptr<processing::BackgroundJob<TopoDS_Shape>>,2> stabilizerJobs_;
+  std::array<std::unique_ptr<processing::BackgroundJob<geometry::StabilizerBuildResult>>,2> stabilizerJobs_;
   std::array<TopoDS_Shape,2> stabilizerShapes_;
   std::array<QByteArray,2> builtStabilizerFingerprints_, stabilizerJobFingerprints_;
   std::array<std::size_t,2> stabilizerJobEpochs_{};

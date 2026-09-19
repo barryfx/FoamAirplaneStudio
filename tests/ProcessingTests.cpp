@@ -2,6 +2,7 @@
 #include "processing/IndexedTasks.h"
 #include "geometry/ProcessingControl.h"
 #include <barrier>
+#include <array>
 #include <atomic>
 #include <iostream>
 #include <condition_variable>
@@ -16,6 +17,12 @@ int main() {
       pair.arrive_and_wait();CHECK(active==2);pair.arrive_and_wait();--active;++complete;
     },{},2);
     CHECK(peak==2 && complete==6);
+    // Four component slots can all execute concurrently and publish independently.
+    std::barrier components{4};std::array<int,4> results{};
+    processing::runIndexedTasks(4,[&](std::size_t index,std::stop_token) {
+      components.arrive_and_wait();results[index]=static_cast<int>(index+1);
+    },{},4);
+    CHECK((results==std::array<int,4>{1,2,3,4}));
     std::atomic_int joined=0;bool failed=false;std::barrier failingPair{2};
     try {processing::runIndexedTasks(10,[&](std::size_t index,std::stop_token stop){
       failingPair.arrive_and_wait();

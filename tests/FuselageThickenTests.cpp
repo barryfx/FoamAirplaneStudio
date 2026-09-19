@@ -19,6 +19,7 @@
 #include <QScreen>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 using namespace designrc;
 using namespace designrc::gui;
 #define CHECK(c) do {if(!(c))throw std::runtime_error(std::string{#c}+" at "+std::to_string(__LINE__));}while(false)
@@ -88,7 +89,7 @@ int main(int argc,char** argv) {
     CHECK(source.stationEditor().lines()[0].thicknessMm==8.25);CHECK(window.saveProjectFile(file,error));
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[3]->trigger();app.processEvents();app.processEvents();
     const auto capture=qEnvironmentVariable("FOAM_THICKEN_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==20);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);
     auto legacy=encoded;legacy["version"]=11;legacy.remove("fuselageThickening");CHECK(!decodeProject(legacy).fuselageThickening);CHECK(!decodeProject(legacy).fuselageStations.lines[0].thicknessMm);
     auto invalid=encoded;auto stations=invalid["fuselageStations"].toObject();auto lines=stations["lines"].toArray();auto record=lines[0].toObject();record["thicknessMm"]=-1;lines[0]=record;stations["lines"]=lines;invalid["fuselageStations"]=stations;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
@@ -119,27 +120,36 @@ int main(int argc,char** argv) {
     }
     geometry::FuselageSolidInput input{{rectangle(0,0,200,40),rectangle(0,0,200,30)}, {},{rectangle(0,0,40,30)},200,true};
     ConstrainedLine a,b;a.first.position={50,0};a.profile=0;a.thicknessMm=8;b.first.position={150,0};b.profile=0;b.thicknessMm=5;auto nose=a;nose.first.position={0,0};auto tail=b;tail.first.position={200,0};input.stations={nose,a,b,tail};
+    const geometry::ProcessingControl mode{{},!app.arguments().contains("--serial")};
     std::cout<<"Building variable wall fixture..."<<std::endl;
-    auto shape=geometry::buildFuselageSolid(input,[](const char* m){std::cout<<m<<std::endl;});
+    auto shape=geometry::buildFuselageSolid(input,[](const char* m){std::cout<<m<<std::endl;},mode);
     for(const auto& [x,wall]:std::vector<std::pair<double,double>>{{50,8},{100,6.5},{150,5}}) {
       CHECK(inside(shape,x,-20+wall-.2,0));CHECK(!inside(shape,x,-20+wall+.2,0));
     }
     CHECK(!inside(shape,.1,0,0));CHECK(!inside(shape,199.9,0,0));
     GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass);CHECK(mass.Mass()>0&&mass.Mass()<240000);
     std::cout<<"Building closed-end wall fixture..."<<std::endl;
-    input.stations={a,b};shape=geometry::buildFuselageSolid(input);
-    CHECK(inside(shape,1,0,0));CHECK(inside(shape,199,0,0));CHECK(!inside(shape,100,0,0));
+    input.stations={a,b};shape=geometry::buildFuselageSolid(input,{},mode);
+    // Y=0 is the split seam, a boundary rather than interior material.
+    CHECK(inside(shape,1,1,0));CHECK(inside(shape,199,1,0));CHECK(!inside(shape,100,0,0));
     std::cout<<"Building open-nose, closed-tail fixture..."<<std::endl;
-    input.stations={nose,a,b};shape=geometry::buildFuselageSolid(input);
-    CHECK(!inside(shape,.1,0,0));CHECK(inside(shape,199,0,0));
+    input.stations={nose,a,b};shape=geometry::buildFuselageSolid(input,{},mode);
+    CHECK(!inside(shape,.1,0,0));CHECK(inside(shape,199,1,0));
     std::cout<<"Building closed-nose, open-tail fixture..."<<std::endl;
-    input.stations={a,b,tail};shape=geometry::buildFuselageSolid(input);
-    CHECK(inside(shape,1,0,0));CHECK(!inside(shape,199.9,0,0));
-    if(argc>1) {
+    input.stations={a,b,tail};shape=geometry::buildFuselageSolid(input,{},mode);
+    CHECK(inside(shape,1,1,0));CHECK(!inside(shape,199.9,0,0));
+    std::stop_source cancel;bool cancelled=false;
+    try {
+      geometry::buildFuselageSolid(input,[&](const char* stage) {
+        if(std::string_view{stage}.find("offsetting station walls")!=std::string_view::npos)cancel.request_stop();
+      },{cancel.get_token(),mode.parallel});
+    } catch(const geometry::ProcessingCancelled&){cancelled=true;}
+    CHECK(cancelled);
+    if(argc>1&&!app.arguments().contains("--serial")) {
       const auto actual=readProject(QString::fromLocal8Bit(argv[1]),error);CHECK(actual);
       geometry::FuselageSolidInput gentle{actual->fuselage.layers,actual->fuselageStations.lines,actual->fuselageProfiles.layers,actual->reference.toScale?std::nullopt:actual->reference.fuselageLengthMm,true};
       for(auto& station:gentle.stations)station.thicknessMm=station.first.position.x()<253.173265724253?8.:5.;
-      shape=geometry::buildFuselageSolid(gentle,[](const char* m){std::cout<<m<<std::endl;});
+      shape=geometry::buildFuselageSolid(gentle,[](const char* m){std::cout<<m<<std::endl;},mode);
       OcctViewport viewer;viewer.resize(1200,800);viewer.show();app.processEvents();viewer.displayShape(shape);app.processEvents();
       if(argc>2)CHECK(viewer.screen()->grabWindow(viewer.winId()).save(QString::fromLocal8Bit(argv[2])));
     }

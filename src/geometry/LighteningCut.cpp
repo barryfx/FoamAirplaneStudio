@@ -124,7 +124,7 @@ TopoDS_Shape lighteningCavities(const TopoDS_Shape& main,double wall,
   unite.SetNonDestructive(true);unite.SetRunParallel(true);unite.SetUseOBB(true);unite.Build(control.range());control.checkpoint();
   if(!unite.IsDone())throw std::runtime_error("Could not join lightening pocket sections.");
   unite.SimplifyResult(true,true);
-  if(!BRepCheck_Analyzer{unite.Shape()}.IsValid())throw std::runtime_error("Invalid joined lightening pockets.");
+  if(!BRepCheck_Analyzer{unite.Shape(),true,control.parallel}.IsValid())throw std::runtime_error("Invalid joined lightening pockets.");
   return unite.Shape();
 }
 }

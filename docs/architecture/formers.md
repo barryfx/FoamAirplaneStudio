@@ -2,7 +2,7 @@
 
 Formers replaces the former Firewall toolbar placeholder. It becomes available
 when every Fuselage station has a closed profile and opens Side View in 2D.
-The panel provides instructions, Width (thickness), Add Former and Delete Former.
+The panel provides instructions, Width (thickness), Add Former, Rotation Angle and Delete Former.
 Reference units apply to bare decimals; explicit mm/in suffixes override them.
 The initial thickness is 3 mm and is valid without editing. Zero thickness is
 rejected explicitly; positive thickness has no arbitrary minimum entry value. Selected formers show their own width; changing it
@@ -12,12 +12,13 @@ Add Former creates a vertical rectangle with a margin above and below the Side
 View bounds. It chooses the available fore/aft position closest to the view center,
 allowing touching edges. If none fits, it reports that no position is available.
 Drag inside to move in both axes, including up/down for a partial-height former.
-Drag the top or bottom edge/handle to resize vertically; thickness stays fixed.
+Drag the top or bottom edge/handle to resize along the former's local height;
+thickness stays fixed.
 Click empty space/Escape to deselect; Delete removes the selected former.
 Completed rectangles remain visible across 2D modes and remap with references.
 
-Positive-area Side View rectangle overlap is forbidden between formers and with
-the servo tray. Add, thickness changes, movement and resizing enforce the rule;
+Positive-area Side View rotated-mask overlap is forbidden between formers and with
+the servo tray. Add, angle/thickness changes, movement and resizing enforce the rule;
 rejected edits retain the last valid placement and show an explanation. Tray
 movement/resizing/creation is checked against formers too. Touching is permitted.
 This conservative 2D rule also rejects mask overlap outside the actual cavity.
@@ -42,7 +43,7 @@ produce an error. The main body is then split left/right (fuselage-cuts.md). Exp
 
 Version 15 persists rectangle masks and next-former thickness in physical mm.
 Earlier versions load no formers; the legacy Firewall tool name maps to Formers.
-Selection is transient. Model fingerprints include only completed rectangles,
+Selection is transient. Model fingerprints include completed rectangles and their rotation angles,
 so a next-thickness-only change does not regenerate. Generation uses the existing
 independent Fuselage worker and reports former progress/count without rebuilding Wing.
 
@@ -52,3 +53,22 @@ All completed rail shapes are fused to the shell in one multi-tool operation,
 including overlap resolution for rails belonging to nearby formers. Progress
 identifies the current former and the final wall-joining stage. Dimensions,
 sampling, Boolean tolerance and final validity checks are unchanged.
+
+## Per-former rotation
+
+Rotation Angle appears directly below Add Former. It is a decimal degree entry
+(three decimal places, -360 through 360), disabled without a selected former.
+Each newly added former starts at 0. Negative degrees rotate counter-clockwise
+in Side View about that mask's center; positive degrees rotate clockwise. Width
+is measured normal to the former, and top/bottom handles resize along its local
+height direction. Selection, overlay drawing, dragging, resizing, thickness
+changes and tray/former overlap checks all use the rotated mask. Touching remains
+allowed; edits causing positive-area overlap retain the last valid angle/position.
+
+Generation rotates the full-width slab about model +Y through its mask center
+before fitting it to the cavity and supported body. Retaining slabs rotate about
+the same center, retaining 4 mm width normal to the former and 3 mm inward depth.
+They extend through the cavity's full local height and clear removable inserts.
+Both Fuselage and Assembly snapshots include angles; changing an angle invalidates
+the shared Fuselage cache and dependent Assembly cuts. Project format 24 persists
+one angle per rectangle; earlier projects initialize all angles to zero.

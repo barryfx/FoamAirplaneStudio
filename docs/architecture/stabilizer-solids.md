@@ -39,7 +39,7 @@ a sampled approximation; no exact analytic skin or machining tolerance is claime
 Local X is chordwise, Y is span, Z is thickness. Horizontal generation mirrors the
 right half across Y=0 and fuses each matching pair into one solid body. With a hinge cut, the fixed stabilizer and elevator remain separate: two bodies total. Each pair must meet at the centerline; disconnected halves report an error. Vertical generation rotates its
 single body so span is +Z and thickness is along Y. Model origin is at the root
-leading endpoint; assembly placement remains future work. Hinge Line separates the elevator/rudder before final orientation.
+leading endpoint; Assembly applies saved X/Z translations (assembly.md). Hinge Line separates the elevator/rudder before final orientation.
 
 Each component owns its BackgroundJob, fingerprint, shape cache and camera state.
 Entering 3D generates without requiring an Airfoil visit. Outline/airfoil/physical
@@ -66,3 +66,7 @@ or cancelled attempt does not overwrite the previous successful shape/fingerprin
 Entering 3D with matching model inputs restores that component's cached shape,
 camera and readiness/body count without starting a worker. Returning from another
 workspace and moving between 2D/3D are covered by worker-start-count assertions.
+
+StabilizerBuildResult exposes fixed and moving roles separately through Cut Shapes,
+joining and orientation for Assembly collision checks. The shape-only builder
+remains available to existing callers.

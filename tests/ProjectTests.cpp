@@ -266,9 +266,11 @@ int main(int argc,char** argv) {
     p.tool="Dihedral";p.viewport=1;p.camera=CameraState{{300,-400,200},{100,0,0},{0,0,1},800,45,0};
     CHECK(writeProject(filename,p,error));if(window.projectModified())response(QMessageBox::Discard);
     CHECK(window.openProjectFile(filename,error));QApplication::processEvents();waitForModel(window);
-    restored=window.projectDocument();CHECK(restored.viewport==1&&restored.camera);
+    restored=window.projectDocument();CHECK(restored.viewport==0&&restored.camera);
     CHECK(std::abs(restored.camera->scale-800)<1e-7);CHECK(std::abs(restored.camera->eye[0]-300)<1e-7);
     CHECK(!window.projectModified());
+    CHECK(!window.property("modelProcessing").toBool());
+    window.findChild<QTabWidget*>("viewportTabs")->setCurrentIndex(1);waitForModel(window);
     CHECK(window.findChild<QTabWidget*>("viewportTabs")->widget(1)->property("wingModelReady").toBool());
     // Cancellation leaves source edits and the displayed model/camera intact,
     // while every GUI control except Cancel is disabled, including shortcuts.
@@ -338,11 +340,13 @@ int main(int argc,char** argv) {
     {
       MainWindow closing;closing.show();p.viewport=1;
       CHECK(writeProject(filename,p,error));CHECK(closing.openProjectFile(filename,error));
+      closing.findChild<QTabWidget*>("viewportTabs")->setCurrentIndex(1);
       CHECK(closing.property("modelProcessing").toBool());CHECK(!closing.close());
       waitForModel(closing);CHECK(!closing.isVisible());CHECK(!QApplication::overrideCursor());
     }
     {
       MainWindow replacement;replacement.show();CHECK(replacement.openProjectFile(filename,error));
+      replacement.findChild<QTabWidget*>("viewportTabs")->setCurrentIndex(1);
       CHECK(replacement.property("modelProcessing").toBool());
       auto empty=ProjectDocument{};CHECK(writeProject(filename,empty,error));CHECK(replacement.openProjectFile(filename,error));
       waitForModel(replacement);CHECK(!replacement.projectModified());
@@ -352,7 +356,8 @@ int main(int argc,char** argv) {
     }
     {
       MainWindow failed;failed.show();p.lightening.enabled=true;p.lightening.startMm=10000;
-      CHECK(writeProject(filename,p,error));CHECK(failed.openProjectFile(filename,error));waitForModel(failed);
+      CHECK(writeProject(filename,p,error));CHECK(failed.openProjectFile(filename,error));
+      failed.findChild<QTabWidget*>("viewportTabs")->setCurrentIndex(1);waitForModel(failed);
       CHECK(failed.statusBar()->currentMessage().startsWith("Wing generation failed:"));
       CHECK(failed.menuBar()->isEnabled());CHECK(!failed.findChild<QPushButton*>("cancelProcessing")->isVisible());
       CHECK(!failed.projectModified() && !QApplication::overrideCursor());

@@ -1,4 +1,5 @@
 #include "geometry/FuselageWall.h"
+#include "processing/IndexedTasks.h"
 #include "geometry/FuselageTopology.h"
 #include "geometry/FuselageSolidBuilder.h"
 #include <BRepOffsetAPI_MakeOffset.hxx>
@@ -98,11 +99,21 @@ TopoDS_Shape hollowFuselage(const TopoDS_Shape& outside,const std::vector<Fusela
   if(progress)progress("Fuselage: offsetting station walls inward...");
   std::vector<std::pair<std::size_t,std::vector<QPointF>>> inner;
   const double tailLimit=sections.back().x-(openTail?0:sections.back().thickness);
+  std::vector<std::optional<std::vector<QPointF>>> offsets(sections.size());
+  // Every offset constructs private OCCT topology from numeric section points.
+  // Workers write separate slots; cavity order/closure checks stay sequential.
+  processing::runIndexedTasks(sections.size(),[&](std::size_t i,std::stop_token stop) {
+    ProcessingControl{stop}.checkpoint();
+    if(sections[i].x>tailLimit+1e-8)return;
+    if(!openNose&&sections[i].x-sections.front().x<sections.front().thickness-1e-8)return;
+    offsets[i]=inset(sections[i]);
+  },processing.stop,processing.parallel?0u:1u);
+  processing.checkpoint();
   bool ended=false;
   for(std::size_t i=0;i<sections.size();++i) {
     processing.checkpoint();if(sections[i].x>tailLimit+1e-8)break;
     if(!openNose&&sections[i].x-sections.front().x<sections.front().thickness-1e-8)continue;
-    auto loop=inset(sections[i]);
+    auto loop=std::move(offsets[i]);
     if(i==0&&openNose&&!loop)throw std::runtime_error("The nose profile is too small for its wall thickness. Reduce the foremost station thickness.");
     if(!loop){
       if(openTail&&i+1==sections.size())throw std::runtime_error("The tail profile is too small for its wall thickness. Reduce the rearmost station thickness.");
@@ -122,7 +133,7 @@ TopoDS_Shape hollowFuselage(const TopoDS_Shape& outside,const std::vector<Fusela
   if(!cavity.IsDone())throw std::runtime_error("Inner wall loft failed.");
   if(progress)progress("Fuselage: merging coincident inner loft faces...");
   const auto cavityShape=simplifyFuselageTopology(cavity.Shape(),processing);
-  if(!BRepCheck_Analyzer{cavityShape}.IsValid())
+  if(!BRepCheck_Analyzer{cavityShape,true,processing.parallel}.IsValid())
     throw std::runtime_error("Inner wall loft failed. Reduce thickness or simplify the profile corners.");
   TopoDS_Solid solid;
   if(openNose||openTail) {
@@ -151,7 +162,7 @@ TopoDS_Shape hollowFuselage(const TopoDS_Shape& outside,const std::vector<Fusela
     if(progress)progress("Fuselage: retaining solid ends beyond the outermost profiles...");
   }
   BRepLib::OrientClosedSolid(solid);processing.checkpoint();
-  if(!BRepCheck_Analyzer{solid}.IsValid())throw std::runtime_error("The thickened fuselage is not a valid solid.");
+  if(!BRepCheck_Analyzer{solid,true,processing.parallel}.IsValid())throw std::runtime_error("The thickened fuselage is not a valid solid.");
   GProp_GProps before,after;BRepGProp::VolumeProperties(outside,before);BRepGProp::VolumeProperties(solid,after);
   if(after.Mass()<=0||after.Mass()>=std::abs(before.Mass()))throw std::runtime_error("Fuselage wall did not produce a positive hollow solid.");
   if(innerCavity)*innerCavity=cavityShape;

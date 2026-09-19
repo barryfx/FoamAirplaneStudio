@@ -40,6 +40,8 @@ int main(int argc,char** argv) {
       std::set<std::thread::id> panelThreads;
       const auto start=std::chrono::steady_clock::now();
       geometry::WingBuildOptions options;options.maxPanelThreads=qEnvironmentVariableIsSet("FOAM_BENCH_PARALLEL")?0:1;
+      options.processing.parallel=!qEnvironmentVariableIsSet("FOAM_BENCH_KERNEL_SERIAL");
+      std::cout<<"Additional kernel parallelism: "<<options.processing.parallel<<std::endl;
       const auto shape=geometry::buildWingSolid(input,[&](const char* p){if(std::string_view{p}.starts_with("Wing panel "))panelThreads.insert(std::this_thread::get_id());std::cout<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"s "<<p<<std::endl;},options);
       std::cout<<"Build seconds: "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<std::endl;
       std::cout<<"Panel worker threads: "<<panelThreads.size()<<std::endl;

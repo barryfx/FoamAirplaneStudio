@@ -23,7 +23,7 @@
 #include <stdexcept>
 namespace designrc::geometry {
 TopoDS_Shape cutStabilizerShapes(const TopoDS_Shape& body,const std::vector<gui::SketchLayer>& loops,
-    bool horizontal,const ProcessingControl& processing) {
+    bool horizontal,const ProcessingControl& processing,bool allowEmpty) {
   auto result=body;
   Bnd_Box bounds;BRepBndLib::Add(body,bounds);double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
   const double margin=std::max({x1-x0,y1-y0,z1-z0,1.});
@@ -66,6 +66,7 @@ TopoDS_Shape cutStabilizerShapes(const TopoDS_Shape& body,const std::vector<gui:
           throw std::runtime_error("Cut Shape produced an invalid remaining body.");
         builder.Add(remaining,e.Current());++count;
       }
+      if(!count && allowEmpty)return {};
       if(!count)throw std::runtime_error("Cut Shapes remove the entire stabilizer. Reduce or move the cut.");
       result=remaining;
     }

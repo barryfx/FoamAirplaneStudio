@@ -1,5 +1,12 @@
 #include "gui/OcctViewport.h"
 
+#include <AIS_TexturedShape.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
+#include <BRepBndLib.hxx>
+#include <Bnd_Box.hxx>
+#include <gp_Pln.hxx>
+#include <cstring>
 #include <Aspect_DisplayConnection.hxx>
 #include <Aspect_TypeOfTriedronPosition.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
@@ -18,6 +25,9 @@
 #include <QShowEvent>
 #include <QTimer>
 #include <QWheelEvent>
+#include <cmath>
+#include <algorithm>
+#include <gp_Trsf.hxx>
 #include <Quantity_Color.hxx>
 #include <V3d_TypeOfVisualization.hxx>
 #if defined(_WIN32)
@@ -129,6 +139,8 @@ void OcctViewport::initializeViewer() {
 }
 
 void OcctViewport::displayShape(const TopoDS_Shape& shape, bool fit) {
+  clearAssemblyReference();
+  pendingAssembly_.reset();
   foamAppearance_ = true;
   pendingWoodShape_ = shape;
   pendingCarbonFiberShape_.Nullify(); pendingAluminumShape_.Nullify();
@@ -144,6 +156,8 @@ void OcctViewport::displayMaterialShapes(const TopoDS_Shape& wood,
                                          const TopoDS_Shape& aluminum,
                                          const TopoDS_Shape& steel,
                                          const TopoDS_Shape& fiberglass) {
+  clearAssemblyReference();
+  pendingAssembly_.reset();
   foamAppearance_ = false;
   pendingWoodShape_ = wood;
   pendingCarbonFiberShape_ = carbonFiber;
@@ -153,6 +167,58 @@ void OcctViewport::displayMaterialShapes(const TopoDS_Shape& wood,
   if (context_.IsNull()) return;
   displayPendingShapes();
   fitAll();
+}
+
+void OcctViewport::displayAssembly(const std::array<TopoDS_Shape,4>& parts,int selected) {
+  pendingAssembly_=parts;assemblySelected_=selected;foamAppearance_=true;
+  if(context_.IsNull())initializeViewer();
+  if(context_.IsNull())return;
+  displayPendingShapes();view_->ZFitAll();redraw();
+}
+
+void OcctViewport::clearAssemblyReference() {
+  if(!context_.IsNull())for(const auto& object:referenceObjects_)context_->Remove(object,false);
+  referenceObjects_.clear();assemblyReferencePages_.clear();
+  setProperty("assemblyReferencePages",0);
+}
+void OcctViewport::setAssemblyReference(const ProjectReference& reference,const geometry::FuselageSideTransform& transform) {
+  bool same=reference.toScale==assemblyReferenceToScale_&&reference.image.pages.size()==assemblyReferencePages_.size()
+      &&transform.left==assemblyReferenceTransform_.left&&transform.verticalOrigin==assemblyReferenceTransform_.verticalOrigin
+      &&transform.scale==assemblyReferenceTransform_.scale;
+  for(std::size_t i=0;same&&i<reference.image.pages.size();++i)
+    same=reference.image.pages[i].pixels.cacheKey()==assemblyReferencePages_[i].pixels.cacheKey()
+      &&reference.image.pages[i].physicalSizeMm==assemblyReferencePages_[i].physicalSizeMm;
+  if(same)return;
+  clearAssemblyReference();
+  assemblyReferencePages_=reference.image.pages;assemblyReferenceToScale_=reference.toScale;assemblyReferenceTransform_=transform;
+  if(context_.IsNull())initializeViewer();
+  double top=0;
+  for(const auto& page:reference.image.pages) {
+    const QSizeF size=reference.toScale&&page.physicalSizeMm?*page.physicalSizeMm:QSizeF{page.pixels.size()};
+    if(page.pixels.isNull())continue;
+    const auto rgba=page.pixels.convertToFormat(QImage::Format_RGBA8888);
+    Handle(Image_PixMap) pixels=new Image_PixMap;
+    if(!pixels->InitTrash(Image_Format_RGBA,rgba.width(),rgba.height()))continue;
+    // OCCT textures consume bottom-up rows; Qt images use top-down rows.
+    pixels->SetTopDown(false);
+    for(int row=0;row<rgba.height();++row)
+      std::memcpy(pixels->ChangeRow(row),rgba.constScanLine(row),static_cast<std::size_t>(rgba.width())*4);
+    const double left=-transform.left*transform.scale;
+    const double bottom=(transform.verticalOrigin-top-size.height())*transform.scale;
+    // Plane U is +X and V is +Z, matching the side camera. Bottom layer draws
+    // the reference behind all model geometry without affecting model depth.
+    const gp_Pln plane{gp_Ax3{gp_Pnt{left,0,bottom},gp_Dir{0,-1,0},gp_Dir{1,0,0}}};
+    const auto face=BRepBuilderAPI_MakeFace{plane,0,size.width()*transform.scale,0,size.height()*transform.scale}.Face();
+    BRepMesh_IncrementalMesh mesh{face,.1};
+    Handle(AIS_TexturedShape) object=new AIS_TexturedShape{face};
+    object->SetTexturePixMap(pixels);object->SetTextureMapOn();object->SetTextureRepeat(false);
+    object->DisableTextureModulate();object->Attributes()->SetFaceBoundaryDraw(false);
+    object->Attributes()->SetShadingModel(Graphic3d_TOSM_UNLIT,true);
+    object->SetZLayer(Graphic3d_ZLayerId_BotOSD);
+    context_->Display(object,3,-1,false);referenceObjects_.push_back(object);
+    top+=size.height();
+  }
+  setProperty("assemblyReferencePages",static_cast<int>(referenceObjects_.size()));redraw();
 }
 
 void OcctViewport::displayPendingShapes() {
@@ -213,6 +279,20 @@ void OcctViewport::displayPendingShapes() {
     context_->Display(object, AIS_Shaded, -1, false);
     displayedShapes_.push_back(object);
   };
+  if(pendingAssembly_) {
+    const std::array<Quantity_Color,4> colors{
+      Quantity_Color{.83,.88,.94,Quantity_TOC_RGB},Quantity_Color{.65,.8,.95,Quantity_TOC_RGB},
+      Quantity_Color{.65,.88,.72,Quantity_TOC_RGB},Quantity_Color{.85,.73,.95,Quantity_TOC_RGB}};
+    for(int i=0;i<4;++i) {
+      const auto previous=displayedShapes_.size();display((*pendingAssembly_)[i],Appearance::Wood);
+      if(displayedShapes_.size()>previous) {
+        auto object=displayedShapes_.back();
+        object->SetColor(i==assemblySelected_?Quantity_Color{1.,.55,.12,Quantity_TOC_RGB}:colors[i]);
+        context_->Redisplay(object,false);
+      }
+    }
+    context_->UpdateCurrentViewer();return;
+  }
   display(pendingWoodShape_, Appearance::Wood);
   display(pendingCarbonFiberShape_, Appearance::CarbonFiber);
   display(pendingAluminumShape_, Appearance::Aluminum);
@@ -225,6 +305,8 @@ void OcctViewport::displayPendingShapes() {
 }
 
 void OcctViewport::clearShape() {
+  clearAssemblyReference();
+  pendingAssembly_.reset();
   pendingWoodShape_.Nullify();
   pendingCarbonFiberShape_.Nullify();
   pendingAluminumShape_.Nullify();
@@ -238,7 +320,10 @@ void OcctViewport::clearShape() {
 
 void OcctViewport::fitAll() {
   if (view_.IsNull()) return;
-  view_->FitAll(0.05, false);
+  if(pendingAssembly_) {
+    Bnd_Box bounds;for(const auto& shape:*pendingAssembly_)if(!shape.IsNull())BRepBndLib::Add(shape,bounds);
+    if(!bounds.IsVoid())view_->FitAll(bounds,0.05,false);
+  } else view_->FitAll(0.05, false);
   view_->ZFitAll();
   redraw();
 }
@@ -289,7 +374,7 @@ void OcctViewport::setCameraView(const CameraView cameraView) {
 }
 
 void OcctViewport::mousePressEvent(QMouseEvent* event) {
-  lastMousePosition_ = event->position().toPoint();
+  lastMousePosition_ = (event->position()*devicePixelRatioF()).toPoint();
   if (!view_.IsNull() && event->button() == Qt::LeftButton) {
     orbiting_ = true;
     view_->StartRotation(lastMousePosition_.x(), lastMousePosition_.y());
@@ -309,7 +394,7 @@ void OcctViewport::mousePressEvent(QMouseEvent* event) {
 }
 
 void OcctViewport::mouseMoveEvent(QMouseEvent* event) {
-  const QPoint position = event->position().toPoint();
+  const QPoint position = (event->position()*devicePixelRatioF()).toPoint();
   if (!view_.IsNull() && orbiting_) {
     view_->Rotation(position.x(), position.y());
     redraw();
@@ -332,10 +417,15 @@ void OcctViewport::mouseReleaseEvent(QMouseEvent* event) {
 
 void OcctViewport::wheelEvent(QWheelEvent* event) {
   if (view_.IsNull() || event->angleDelta().y() == 0) return;
-  const QPoint position = event->position().toPoint();
-  view_->StartZoomAtPoint(position.x(), position.y());
-  view_->ZoomAtPoint(position.x(), position.y(), position.x(),
-                     position.y() - event->angleDelta().y() / 4);
+  const QPoint position = (event->position()*devicePixelRatioF()).toPoint();
+  double bx,by,bz,ax,ay,az;
+  view_->Convert(position.x(),position.y(),bx,by,bz);
+  const double factor=std::pow(1.2,event->angleDelta().y()/120.);
+  view_->Camera()->SetScale(std::clamp(view_->Camera()->Scale()/factor,1e-6,1e12));
+  view_->Convert(position.x(),position.y(),ax,ay,az);
+  // Preserve the point on the camera plane beneath the cursor at any rotation.
+  gp_Trsf shift;shift.SetTranslation(gp_Vec{ax,ay,az}.Reversed()+gp_Vec{bx,by,bz});
+  view_->Camera()->Transform(shift);view_->ZFitAll();
   redraw();
   event->accept();
 }

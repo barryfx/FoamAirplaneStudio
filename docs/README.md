@@ -1,12 +1,12 @@
 # Documentation guide
 
-Current state: September 18, 2026.
+Current state: September 19, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
-- `formats/foam-project.md` specifies version 20 and migration from versions 1-19.
+- `formats/foam-project.md` specifies version 24 and migration from versions 1-23.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.
@@ -28,7 +28,9 @@ and moving bodies; closed Cut Shapes remove material and can separate more piece
 Each stabilizer reuses its successful model cache on unchanged navigation.
 See `architecture/stabilizer-hinges.md`, `architecture/stabilizer-cuts.md` and
 `baseline/stabilizer-cache-validation.md`.
-Assembly/interfaces, export workflows and undo remain future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
+Assembly positioning, collision checks and reversible interface cuts are implemented
+([Assembly](architecture/assembly.md), ADR-0033). Export workflows and general
+editor undo remain future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
 Profile Stations places vertical Side View sections (architecture/fuselage-stations.md,
 ADR-0020). Edit Profiles, solid generation, Thicken, Cut, Servo Tray and Formers are implemented.
 
@@ -61,6 +63,22 @@ Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.
 
 The latest documentation audit is recorded in
-[documentation audit](baseline/documentation-audit-2026-09-18.md).
+[documentation audit](baseline/documentation-audit-2026-09-19.md).
 Historical test commands are evidence, not authorization to rerun generation:
 follow the current restrictions in `../AGENTS.md`.
+
+Assembly implementation and reference underlay: [validation](baseline/assembly-validation.md)
+and [ADR-0033](adr/0033-assembly-placement-and-interface-caches.md).
+
+[Retiring persistent caches](adr/0035-retire-persistent-model-caches.md) describes format 23.
+
+[Cache and mouse validation](baseline/cache-ui-validation.md).
+
+[Input-only persistence validation](baseline/no-models-validation.md).
+
+[Shared Fuselage parallel generation measurements](baseline/fuselage-parallel-validation.md).
+
+[Wing internal parallelism measurements](baseline/wing-kernel-parallel-validation.md).
+
+Former rotation: [design](adr/0036-former-rotation.md) and
+[validation](baseline/former-rotation-validation.md).

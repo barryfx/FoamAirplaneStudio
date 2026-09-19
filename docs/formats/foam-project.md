@@ -1,19 +1,20 @@
-# FoamAirplaneStudio project format, version 20
+# FoamAirplaneStudio project format, version 24
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 20`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 21`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
 | Field | Meaning |
 | --- | --- |
 | reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan/fuselage length and their text fields |
+| assembly | Positioned flag, three physical X/Z translations and cut/uncut intent |
 | stabilizerAirfoils | Two entries in horizontal/vertical order: null for bundled NACA009, or embedded DAT name and normalized coordinates |
 | horizontalStabilizerOutline / verticalStabilizerOutline | Independent single-layer open sketches, tools, selections and pending points |
 | horizontalStabilizerHinge / verticalStabilizerHinge | Independent single-layer connected Line sketches and drafts |
 | stabilizerHingeCuts | Two hinge styles in horizontal/vertical order: 0 Tape, 1 Standard |
 | horizontalStabilizerCuts / verticalStabilizerCuts | Independent collections of closed Cut Shape sketch layers, tools, selections and drafts |
 | wingOutline | Numbered wing-panel sketch layers, active layer, current tool, selected curve, pending points and editing flag |
-| formers | Positive Side View rectangles and next-former thicknessMm |
+| formers | Positive Side View rectangles, per-former rotationDegrees and next-former thicknessMm |
 | servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
 | fuselageCuts | Top/Side cut sketch layers with active view/tool, selection, editing and pending points |
 | fuselageThickening | Boolean initialized by complete-model generation or Thicken entry; retained across modes |
@@ -71,12 +72,12 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 20.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 24.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
 an editable project field; version 2 rectangles and hinge settings remain
-unchanged. Opening an existing project regenerates its controls with this rule.
+unchanged. After opening an existing project, explicitly selecting 3D regenerates its controls with this rule.
 
 Leaving control-surface editing or selecting 3D clears enabled flags whose
 rectangles are null. The cleared flags are ordinary project changes and are
@@ -100,7 +101,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 20; older
+into Panel 1, with others disabled. Current Save/Save As writes version 24; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -165,7 +166,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 20; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 24; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -205,7 +206,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints are transient. Save writes version 20; earlier versions remain readable.
+fingerprints remain transient. Save writes version 24; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -231,8 +232,8 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 20. Generated cut
-bodies are transient. Invalid indices, layer counts or draft states reject Open.
+Versions 1-12 load empty cut layers. New saves write version 24. Generated cut
+bodies remain transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
 
@@ -250,8 +251,8 @@ Generated tray/support solids and top-face outlines remain transient.
 `formers` contains `rectangles`: up to 1000 [x,y,width,height] arrays in Side View
 scene coordinates, with finite values and positive width/height. `thicknessMm`
 is the next-former physical thickness, greater than zero through 10000 mm. Each rectangle
-retains its own thickness through its width and Reference scale. Positive-area
-rectangle overlaps with other formers or the tray are rejected. Touching is allowed.
+retains its own thickness through its width and Reference scale. Version 24 adds
+per-former angles (see below). Positive-area rotated-mask overlaps with other formers or the tray are rejected. Touching is allowed.
 Selection and generated shapes are transient. Versions 1-14 initialize no formers
 and a 3 mm next thickness. The legacy Fuselage tool name Firewall maps to Formers.
 
@@ -288,7 +289,7 @@ null (use the bundled resources/naca009.dat) or an object containing `name` and
 original file paths are not required to reopen. Reject invalid array counts,
 empty/multiline names, nonfinite coordinates and profiles with no thickness.
 Versions 1-16 receive null defaults without visiting Airfoil. Generated stabilizer
-shapes, workers, caches and cancellation state are transient. Changes to a selected
+workers, cancellation state, generated shapes and caches are transient. Changes to a selected
 airfoil affect document dirty state and only its component's geometry fingerprint.
 
 ## Stabilizer leading-edge endpoints (version 18)
@@ -324,3 +325,48 @@ for editing; generation checks closure. An empty placeholder layer represents no
 Cut Shapes. Versions 1-19 load empty cuts. Selected layer/tool state is excluded
 from dirty fingerprints unless needed for a pending draft. Geometry is included in
 the stabilizer generation fingerprint. Cut-out material is removed, not retained.
+
+## Assembly placement and cuts (version 21)
+
+`assembly` contains boolean `positioned`, `offsets` (exactly three `[x,z]` pairs
+in millimetres, ordered Wing, Horiz Stab, Vert Stab), and boolean `cuts`.
+Each coordinate must be finite and within +/-10,000,000 mm. `cuts=true` requires
+`positioned=true`. Versions 1-20 initialize false flags and zero offsets.
+The first successful Assembly preparation chooses starting positions when
+`positioned=false`. Opening a file always selects 2D; a saved Assembly workspace opens in Fuselage
+Side View. Explicit entry into Assembly selects 3D and prepares the models.
+
+Translations and cut intent affect document dirty state, but not individual
+component generation fingerprints. Selected component is transient. Source edits
+clear derived cut intent/caches while retaining translations. Solids and meshes are not serialized. Entering Assembly after Open
+rebuilds components and reapplies requested cuts. Failed/cancelled cuts remain uncut.
+Applications supporting only earlier formats reject current version 24. Original files change only on Save.
+
+## Retired model caches (version 22) and input-only saving (version 23)
+
+Version 22 embedded generated OCCT geometry and meshes in a `models` object.
+Version 23 no longer writes that field. The current reader accepts versions 1–24
+and ignores `models` entirely, including malformed or corrupt cache payloads.
+It performs no base64 decoding, decompression, checksum validation or BREP reads
+for obsolete caches. Normal design input validation and the 512 MiB file limit
+still apply. The JSON itself must be valid.
+
+All generated component, accessory, and original/cut Assembly geometry stays in
+memory for the current session. Saving does not clear those caches. Opening starts
+with empty caches and 2D selected; entering 3D or Assembly regenerates geometry
+from saved inputs and reapplies requested Assembly cuts. Saving an older file
+writes version 24 without its embedded models. Existing files remain unchanged
+until Save. Applications supporting only earlier formats reject current version 24.
+
+## Former rotation (version 24)
+
+`formers.rotationDegrees` is an array with exactly one finite number per
+`formers.rectangles` entry. Values range from -360 through 360 degrees. The
+rectangle stores unrotated center/width/height; rotation is about its center in
+Side View, negative counter-clockwise and positive clockwise. Width remains
+normal thickness. Positive-area overlap validation uses the rotated masks for
+former/former and former/tray pairs. Touching is allowed.
+
+Versions 1–23 initialize former angles to zero. New saves write version 24;
+older applications reject it rather than silently generating unrotated inserts.
+Version-22 model caches remain ignored, and generated models are never written.

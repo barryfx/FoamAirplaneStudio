@@ -5,7 +5,7 @@ inputs, stop source, copied progress queue and future result. It is independent
 of Qt and wing data so fuselage and stabilizer jobs can reuse it. `MainWindow`
 polls every 40 ms; only this GUI thread touches widgets or displays OCCT shapes.
 Wing, Fuselage and each stabilizer own separate jobs, input fingerprints and cached shapes.
-The editing lock permits one active component job at a time; each runs on its own
+The editing lock permits one active operation at a time (Assembly coordinates multiple component workers); individual component jobs run on their own
 worker, and Fuselage never calls the Wing builder. Switching components displays
 the cached shape. Wing regenerates only when Wing geometry inputs change.
 Stabilizer jobs use the same lock, progress queue, cancellation and publication checks; see stabilizer-solids.md.
@@ -53,7 +53,7 @@ job has stopped. Destruction joins as a final lifetime safeguard.
 
 `WingBuildOptions::maxPanelThreads=1` provides a sequential validation/benchmark
 path. With no external cancellation token, it avoids unnecessary kernel progress
-indicators. The application always supplies its job token. Regeneration adds no persistent fields to the current project format: jobs, cancellation flags and generated meshes are transient.
+indicators. The application always supplies its job token. Jobs and cancellation flags remain transient. Format 23 keeps generated shapes and meshes in memory only. Version-22 embedded geometry is ignored; explicit 3D entry after Open rebuilds models.
 
 Complete Fuselage outlines/profiles suffice to enter 3D. Missing wall defaults are
 initialized before snapshot capture, independent of optional tab visits. Cut, tray
@@ -73,3 +73,55 @@ tray/former inserts. See ADR-0029 for dimensions and cut-out classification.
 After the main fuselage centre split, four alignment pins and matching deeper
 sockets are derived from the retained seam material and local station walls.
 Cut-out pieces and inserts are appended unchanged. See ADR-0032.
+
+Assembly preparation and seat cutting use the same processing lock and cancellation
+controls. Preparation reuses current component caches and generates missing ones.
+Cuts deep-copy the placed originals, validate control-surface collisions, and
+publish a separate export snapshot only after success. Epoch and source fingerprints
+reject stale results; originals remain available for Undo Cuts.
+
+Opening a project always selects 2D View, regardless of its saved viewport, so
+opening alone never regenerates models. A saved Assembly workspace opens in
+Fuselage/Outline/Side View instead, preserving Assembly placements and cut intent.
+Explicitly selecting 3D View or entering Assembly starts model preparation.
+
+Assembly preparation schedules missing Wing, Fuselage, Horiz Stab and Vert Stab
+models concurrently through `runIndexedTasks`, bounded to four workers and the
+hardware concurrency. Valid caches are reused. Each task owns its input/result
+slot; progress is queued under the background job mutex. Failure cancels sibling
+tasks and joins them before reporting; cancellation publishes no partial snapshot.
+Wing panel concurrency is limited to one while other missing components are
+scheduled, avoiding nested worker pools; a lone missing Wing uses its normal panel
+parallelism. The GUI remains locked until the complete Assembly result is ready.
+
+## Fuselage internal parallelism
+
+The shared Fuselage builder uses OCCT's per-operation parallel mode for Boolean
+operations (servo supports, formers/rails, splitting and alignment features),
+shape validation and final meshing. Independent wall-section offsets use the
+bounded indexed scheduler; every offset builds private topology from numeric
+points. Results are gathered in source order before cavity-continuity checks.
+No worker mutates shared OCCT topology and no global OCCT setting is changed.
+
+`ProcessingControl::parallel=false` selects serial execution of these stages for
+benchmark comparison. The default is enabled. Geometry sampling, tolerances,
+feature dimensions, operation dependencies and validity checks are unchanged.
+The final mesh uses the same deflection/angle and now receives the cancellation
+indicator. Internal OCCT parallel work uses its scheduler alongside Assembly's
+component workers; the four-component limit is not a total kernel thread cap.
+
+## Wing internal parallelism
+
+Wing panels also use per-operation OCCT parallel Booleans for control-surface
+separation/bevels, spar grooves, access splits, hollowing cuts and alignment tabs.
+Panel, control, spar and pocket validation uses parallel shape analysis. Each
+panel still owns its topology; operation ordering and cancellation ranges are
+preserved, and no global kernel setting is changed. Existing panel concurrency,
+parallel meshing, pocket fusion and mirrored mesh reuse remain in place.
+
+`WingBuildOptions::processing.parallel=false` disables this additional kernel
+parallelism for comparisons. It does not disable the older parallel mesh/pocket
+fusion stages or panel scheduling. `FOAM_BENCH_KERNEL_SERIAL=1` exposes that
+comparison in `regeneration_benchmark`; `FOAM_BENCH_PARALLEL=1` separately enables
+the normal bounded panel scheduler. Kernel workers share CPU resources with
+panel and Assembly workers, so gains depend on the model and available cores.

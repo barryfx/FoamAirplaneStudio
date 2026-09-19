@@ -197,7 +197,7 @@ int main(int argc,char** argv) {
     std::stop_source stop;stop.request_stop();bool stopped=false;
     try{designrc::geometry::buildStabilizerSolid({chain,defaultFoil,1,true},{},{stop.get_token()});}
     catch(const designrc::geometry::ProcessingCancelled&){stopped=true;}CHECK(stopped);
-    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==20);
+    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==24);
     auto legacy=encoded; legacy["version"]=15; legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
     CHECK(decodeProject(legacy).stabilizerOutlines[0].layers[0].curves.empty());
     for (const auto& oldTool : {"Airfoils","Airfoil Stations","Edit"}) {

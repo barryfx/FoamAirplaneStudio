@@ -177,6 +177,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
     updateWorkspaceAvailability();
     invalidateWing();
   });
+  buildAssemblyPanel(dataLayout);
   splitter->addWidget(dataPanel_);
   splitter->addWidget(graphicsTabs_);
   splitter->setChildrenCollapsible(false);
@@ -239,7 +240,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   cancelProcessing_->hide();
   cancelProcessing_->setToolTip("Cancel model regeneration at the next safe point");
   connect(cancelProcessing_,&QPushButton::clicked,this,[this] {
-    if(!modelJob_&&!fuselageJob_&&!stabilizerProcessing())return;
+    if(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing())return;
+    if(assemblyPrepareJob_)assemblyPrepareJob_->cancel();if(assemblyCutJob_)assemblyCutJob_->cancel();
     for(auto& job:stabilizerJobs_)if(job)job->cancel();
     if(modelJob_)modelJob_->cancel();if(fuselageJob_)fuselageJob_->cancel();cancelProcessing_->setText("Cancelling...");cancelProcessing_->setEnabled(false);
     statusBar()->showMessage("Cancelling processing at the next safe point...");
@@ -278,6 +280,9 @@ void MainWindow::selectWorkspace(int index) {
   const int outgoing = dataPanel_->property("workspaceIndex").toInt()-3;
   if(outgoing>=0 && outgoing<2 && displayedComponent_==outgoing+3 && graphicsTabs_->currentWidget()==viewport_)
     stabilizerCameras_[outgoing]=viewport_->cameraState();
+  {QSignalBlocker block{graphicsTabs_};graphicsTabs_->setTabEnabled(0,index!=5); }
+  assemblyPanel_->setVisible(index==5);
+  if(index==5){assemblyEntry_=true;assemblyAttemptFingerprint_.clear();}
   componentToolBar_->clear();
   const std::array<QStringList, 7> tools{{
       {},
@@ -285,7 +290,7 @@ void MainWindow::selectWorkspace(int index) {
       {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
-      {"Wing Location", "Horiz Stab Location", "Vert Stab Location"},
+      {},
       {}
   }};
   referencePanel_->setVisible(index == 0);
@@ -335,6 +340,7 @@ void MainWindow::selectWorkspace(int index) {
     dataPanel_->setProperty("activeTool","Outline");
     if(!restoringProject_)graphicsTabs_->setCurrentWidget(planViewport_);
   }
+  if(index==5)graphicsTabs_->setCurrentWidget(viewport_);
   if(index==2)updateFuselageProgress();
   if(index==3 || index==4)updateStabilizerProgress();
   componentToolBar_->setVisible(!tools.at(index).empty());
@@ -435,7 +441,8 @@ void MainWindow::updateFuselageStationMode() {
   stations.setEnabled(active&&graphicsTabs_->currentIndex()==0&&fuselageOutlinePanel_->outlinesDefined());
 }
 void MainWindow::updateStabilizerProgress() {
-  if (restoringProject_ || stabilizerProcessing()) return;
+  if(!restoringProject_&&!property("modelProcessing").toBool())updateWorkspaceAvailability();
+  if (restoringProject_ || stabilizerProcessing() || assemblyProcessing()) return;
   const int index=dataPanel_->property("workspaceIndex").toInt()-3;
   if(index<0 || index>1)return;
   const bool valid=stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(index).layers().front());
@@ -524,6 +531,8 @@ void MainWindow::invalidateWing() {
 MainWindow::~MainWindow() {
   // No worker refers to this window. Destruction still joins before GUI-owned
   // snapshots/OCCT runtime resources are released.
+  if(assemblyPrepareJob_){assemblyPrepareJob_->cancel();assemblyPrepareJob_.reset();QApplication::restoreOverrideCursor();}
+  if(assemblyCutJob_){assemblyCutJob_->cancel();assemblyCutJob_.reset();QApplication::restoreOverrideCursor();}
   for(auto& job:stabilizerJobs_)if(job){job->cancel();job.reset();QApplication::restoreOverrideCursor();}
   if(modelJob_){modelJob_->cancel();modelJob_.reset();QApplication::restoreOverrideCursor();}
   if(fuselageJob_){fuselageJob_->cancel();fuselageJob_.reset();QApplication::restoreOverrideCursor();}
@@ -546,7 +555,8 @@ void MainWindow::setModelProcessing(bool active) {
 }
 
 void MainWindow::updateWingModel() {
-  if(restoringProject_ || modelJob_ || fuselageJob_ || stabilizerProcessing())return;
+  if(restoringProject_ || modelJob_ || fuselageJob_ || stabilizerProcessing() || assemblyProcessing())return;
+  if(dataPanel_->property("workspaceIndex").toInt()==5){updateAssembly();return;}
   const int stabilizer=dataPanel_->property("workspaceIndex").toInt()-3;
   if(stabilizer>=0 && stabilizer<2){updateStabilizerModel(stabilizer);return;}
   if(dataPanel_->property("workspaceIndex").toInt()==2){updateFuselageModel();return;}
@@ -580,6 +590,7 @@ void MainWindow::updateWingModel() {
 }
 
 void MainWindow::pollModelJob() {
+  if(assemblyProcessing()){pollAssemblyJob();return;}
   for(int i=0;i<2;++i)if(stabilizerJobs_[i]){pollStabilizerJob(i);return;}
   if(fuselageJob_){pollFuselageJob();return;}
   if(!modelJob_)return;
@@ -641,7 +652,7 @@ QByteArray MainWindow::stabilizerFingerprint(int index) const {
       {"airfoil",p["stabilizerAirfoils"].toArray()[index]}, {"scale",stabilizerScale()}}}.toJson(QJsonDocument::Compact);
 }
 void MainWindow::updateStabilizerModel(int index) {
-  if(restoringProject_ || modelJob_ || fuselageJob_ || stabilizerProcessing() || graphicsTabs_->currentWidget()!=viewport_)return;
+  if(restoringProject_ || modelJob_ || fuselageJob_ || stabilizerProcessing() || assemblyProcessing() || graphicsTabs_->currentWidget()!=viewport_)return;
   const auto fingerprint=stabilizerFingerprint(index);
   // A cache entry represents completed geometry only. Navigation must neither
   // launch a worker nor replace the successful fingerprint with an attempted one.
@@ -668,9 +679,9 @@ void MainWindow::updateStabilizerModel(int index) {
   }
   geometry::StabilizerSolidInput input{outline,stabilizerAirfoilPanels_[index]->airfoil(),stabilizerScale(),index==0,planViewport_->stabilizerHingeEditor(index).layers()[0],stabilizerHingePanels_[index]->cut(),planViewport_->stabilizerCutEditor(index).layers()};
   try {
-    stabilizerJobs_[index]=std::make_unique<processing::BackgroundJob<TopoDS_Shape>>(
+    stabilizerJobs_[index]=std::make_unique<processing::BackgroundJob<geometry::StabilizerBuildResult>>(
         [input=std::move(input)](std::stop_token stop,const auto& progress) {
-          return geometry::buildStabilizerSolid(input,progress,{stop});
+          return geometry::buildStabilizerModel(input,progress,{stop});
         });
     stabilizerJobFingerprints_[index]=fingerprint;stabilizerJobEpochs_[index]=projectEpoch_;
     setProperty("stabilizerModelJobCount",property("stabilizerModelJobCount").toInt()+1);
@@ -686,8 +697,8 @@ void MainWindow::pollStabilizerJob(int index) {
   if(!job->ready())return;
   const bool cancelled=job->cancelled();
   const bool obsolete=stabilizerJobEpochs_[index]!=projectEpoch_ || stabilizerJobFingerprints_[index]!=stabilizerFingerprint(index);
-  TopoDS_Shape shape;QString error;
-  try{shape=job->take();}
+  TopoDS_Shape shape;geometry::StabilizerBuildResult result;QString error;
+  try{result=job->take();shape=result.shape;}
   catch(const Standard_Failure& failure){error=QString::fromUtf8(failure.what());}
   catch(const std::exception& failure){error=QString::fromUtf8(failure.what());}
   catch(...){error="Unknown geometry processing failure.";}
@@ -702,7 +713,7 @@ void MainWindow::pollStabilizerJob(int index) {
     } else try {
       auto camera=stabilizerShapes_[index].IsNull()?stabilizerCameras_[index]:viewport_->cameraState();
       viewport_->displayShape(shape,!camera);if(camera)viewport_->restoreCamera(camera);
-      stabilizerShapes_[index]=shape;builtStabilizerFingerprints_[index]=stabilizerJobFingerprints_[index];displayedComponent_=index+3;
+      stabilizerModels_[index]=result;stabilizerShapes_[index]=shape;builtStabilizerFingerprints_[index]=stabilizerJobFingerprints_[index];displayedComponent_=index+3;
       stabilizerCameras_[index]=viewport_->cameraState();
       viewport_->setProperty("stabilizerModelReady",true);
       viewport_->setProperty("stabilizerModelRevision",viewport_->property("stabilizerModelRevision").toInt()+1);
@@ -722,11 +733,11 @@ QByteArray MainWindow::fuselageFingerprint() const {
   return QJsonDocument{QJsonObject{{"outlines",p["fuselageOutline"].toObject()["layers"]},
       {"stations",p["fuselageStations"].toObject()["lines"]},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
-      {"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},
+      {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},
       {"length",projectReference().toScale?QJsonValue{}:p["reference"].toObject()["fuselageLengthMm"]}}}.toJson(QJsonDocument::Compact);
 }
 void MainWindow::updateFuselageModel() {
-  if(restoringProject_||modelJob_||fuselageJob_||stabilizerProcessing()||graphicsTabs_->currentWidget()!=viewport_||dataPanel_->property("workspaceIndex").toInt()!=2)return;
+  if(restoringProject_||modelJob_||fuselageJob_||stabilizerProcessing()||assemblyProcessing()||graphicsTabs_->currentWidget()!=viewport_||dataPanel_->property("workspaceIndex").toInt()!=2)return;
   // A complete fuselage needs no optional tab visits. Initialize missing wall
   // defaults before taking the model snapshot, preserving explicit values.
   if(fuselageOutlinePanel_->outlinesDefined()&&fuselageProfilePanel_->allProfilesClosed()) {
@@ -748,7 +759,7 @@ void MainWindow::updateFuselageModel() {
   }
   geometry::FuselageSolidInput input{planViewport_->fuselageSketchEditor().layers(),
       planViewport_->fuselageSketchEditor().stationEditor().lines(),planViewport_->fuselageProfileEditor().layers(),
-      projectReference().toScale?std::nullopt:projectReference().fuselageLengthMm,fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles};
+      projectReference().toScale?std::nullopt:projectReference().fuselageLengthMm,fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees};
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
@@ -777,7 +788,7 @@ void MainWindow::pollFuselageJob() {
       viewport_->setProperty("servoTrayReady",!result.servoTray.IsNull());
       viewport_->setProperty("formerCount",static_cast<int>(result.formers.size()));
       const auto camera=restoredFuselageCamera_?restoredFuselageCamera_:fuselageShape_.IsNull()?std::nullopt:viewport_->cameraState();
-      fuselageShape_=shape;displayedComponent_=2;viewport_->displayShape(shape,!camera.has_value());if(camera)viewport_->restoreCamera(camera);
+      fuselageModel_=result;fuselageShape_=shape;displayedComponent_=2;viewport_->displayShape(shape,!camera.has_value());if(camera)viewport_->restoreCamera(camera);
       restoredFuselageCamera_.reset();
       viewport_->setProperty("fuselageModelReady",true);
       viewport_->setProperty("fuselageModelRevision",viewport_->property("fuselageModelRevision").toInt()+1);
@@ -801,6 +812,9 @@ void MainWindow::updateWorkspaceAvailability() {
   const bool fuselageReady=workspaceToolBar_->actions().at(2)->isEnabled()&&fuselageOutlinePanel_->outlinesDefined()&&fuselageProfilePanel_->allProfilesClosed();
   workspaceToolBar_->actions().at(3)->setEnabled(fuselageReady);
   workspaceToolBar_->actions().at(4)->setEnabled(fuselageReady);
+  workspaceToolBar_->actions().at(5)->setEnabled(fuselageReady &&
+      stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(0).layers().front()) &&
+      stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(1).layers().front()));
   const int current = dataPanel_->property("workspaceIndex").toInt();
   if (!workspaceToolBar_->actions().at(current)->isEnabled()) {
     const int fallback = referenceReady(projectReference()) ? 1 : 0;
@@ -873,10 +887,14 @@ void MainWindow::setCameraView(CameraView cameraView) {
 }
 
 void MainWindow::resetProject() {
+  if(assemblyPrepareJob_)assemblyPrepareJob_->cancel();if(assemblyCutJob_)assemblyCutJob_->cancel();
+  assemblyState_={};assemblyOriginals_={};assemblyCutParts_.reset();fuselageModel_={};stabilizerModels_={};
+  assemblySourceFingerprint_.clear();assemblyAttemptFingerprint_.clear();assemblySelected_=-1;
+  for(auto* button:assemblySelect_)button->setChecked(false);
   ++projectEpoch_;for(auto& job:stabilizerJobs_)if(job)job->cancel();if(modelJob_)modelJob_->cancel();if(fuselageJob_)fuselageJob_->cancel();
   ProcessingScope processing{this, "Creating empty project..."};
   restoringProject_=true;projectOpen_=true;centralWidget()->setEnabled(true);
-  workspaceToolBar_->setEnabled(!modelJob_&&!fuselageJob_&&!stabilizerProcessing());componentToolBar_->setEnabled(!modelJob_&&!fuselageJob_&&!stabilizerProcessing());
+  workspaceToolBar_->setEnabled(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing());componentToolBar_->setEnabled(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing());
   projectPath_.clear();
   builtWingFingerprint_.clear();builtFuselageFingerprint_.clear();
   for(int i=0;i<2;++i){builtStabilizerFingerprints_[i].clear();stabilizerShapes_[i].Nullify();stabilizerAirfoilPanels_[i]->restore({});stabilizerCameras_[i].reset();stabilizerCancelled_[i]=false;}
@@ -920,6 +938,7 @@ void MainWindow::resetProject() {
 
 ProjectDocument MainWindow::projectDocument() const {
   ProjectDocument p;
+  p.assembly=assemblyState_;
   p.reference=projectReference();
   p.wingspanText=findChild<QLineEdit*>("referenceWingspan")->text();
   p.fuselageText=findChild<QLineEdit*>("referenceFuselageLength")->text();
@@ -986,11 +1005,13 @@ QByteArray MainWindow::wingFingerprint() const {
 }
 bool MainWindow::projectModified() const {return projectOpen_ && projectFingerprint()!=savedFingerprint_;}
 void MainWindow::updateProjectTitle() {
+  if(!restoringProject_)invalidateAssembly();
   setWindowModified(projectModified());
   setWindowTitle(projectOpen_?(projectPath_.isEmpty()?"Untitled":QFileInfo{projectPath_}.fileName())+"[*] - FoamAirplaneStudio":"FoamAirplaneStudio");
-  if(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()){saveAction_->setEnabled(projectOpen_);saveAsAction_->setEnabled(projectOpen_);closeAction_->setEnabled(projectOpen_);}
+  if(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing()){saveAction_->setEnabled(projectOpen_);saveAsAction_->setEnabled(projectOpen_);closeAction_->setEnabled(projectOpen_);}
 }
 bool MainWindow::saveProjectFile(const QString& path,QString& error) {
+  invalidateAssembly();
   if(!projectOpen_) {error="No project is open.";return false;}
   ProcessingScope processing{this, "Saving project..."};
   if(!writeProject(path,projectDocument(),error)){processing.update("Save failed: " + error);return false;}
@@ -1023,7 +1044,8 @@ void MainWindow::closeProject() {
   statusBar()->showMessage("Project closed");
 }
 void MainWindow::closeEvent(QCloseEvent* event) {
-  if(modelJob_||fuselageJob_||stabilizerProcessing()) {
+  if(modelJob_||fuselageJob_||stabilizerProcessing()||assemblyProcessing()) {
+    if(assemblyPrepareJob_)assemblyPrepareJob_->cancel();if(assemblyCutJob_)assemblyCutJob_->cancel();
     for(auto& job:stabilizerJobs_)if(job)job->cancel();
     closingAfterProcessing_=true;if(modelJob_)modelJob_->cancel();if(fuselageJob_)fuselageJob_->cancel();cancelProcessing_->setText("Cancelling...");cancelProcessing_->setEnabled(false);
     statusBar()->showMessage("Cancelling processing before closing...");event->ignore();return;
@@ -1047,8 +1069,19 @@ bool MainWindow::openProjectFile(const QString& path,QString& error) {
   processing.update("Opened " + projectPath_ + (graphicsTabs_->currentIndex()==1 && !viewport_->property("wingModelReady").toBool() ? " | " + statusBar()->currentMessage() : QString{}));
   return true;
 }
-void MainWindow::restoreProject(const ProjectDocument& p) {
-  resetProject();restoringProject_=true;
+void MainWindow::restoreProject(const ProjectDocument& saved) {
+  // Opening is an editing operation: never regenerate from a saved 3D view.
+  // Assembly is 3D-only, so restore its data in the Fuselage 2D workspace.
+  auto p=saved;p.viewport=0;
+  if(p.workspace==5) {
+    p.workspace=2;p.tool="Outline";
+    // Keep a pending sketch attached to its original layer. Otherwise open Side
+    // View and keep the saved panel and active sketch layer consistent.
+    if(p.fuselage.pending.empty()){p.fuselage.active=1;p.fuselage.selected=-1;}
+    p.fuselageView=p.fuselage.active;
+  }
+
+  resetProject();restoringProject_=true;assemblyState_=p.assembly;
   statusBar()->showMessage("Restoring reference, sketches and project settings...");
   statusBar()->repaint();
   referencePanel_->restoreReference(p.reference);
@@ -1091,7 +1124,7 @@ void MainWindow::restoreProject(const ProjectDocument& p) {
   planViewport_->sketchEditor().stationEditor().setActivePanel(p.tool=="Airfoils"?p.airfoils.panel:p.selectedStationPanel);
   planViewport_->sketchEditor().stationEditor().restoreState(p.stations);
   if(p.splitterSizes.size()==2)static_cast<QSplitter*>(centralWidget())->setSizes({p.splitterSizes[0],p.splitterSizes[1]});
-  graphicsTabs_->setCurrentIndex(p.viewport);planViewport_->restoreView(p.plan);
+  graphicsTabs_->setCurrentIndex(workspace==5?1:p.viewport);planViewport_->restoreView(p.plan);
   planViewport_->controlSurfaceEditor().restore(p.controls);
   sparPanel_->restore(p.spars,p.reference.units,p.selectedSparPanel);
   lighteningPanel_->restore(p.lightening,p.reference.units);
@@ -1127,7 +1160,7 @@ void MainWindow::restoreProject(const ProjectDocument& p) {
   }
   if(workspace==3 || workspace==4)stabilizerCameras_[workspace-3]=p.camera;
   else if(workspace==2)restoredFuselageCamera_=p.camera;else restoredWingCamera_=p.camera;
-  restoringProject_=false;updateStabilizerProgress();wingDirty_=true;updateWingModel();viewport_->restoreCamera(p.camera);
+  restoringProject_=false;assemblySourceFingerprint_=assemblyFingerprint();updateStabilizerProgress();wingDirty_=true;updateWingModel();viewport_->restoreCamera(p.camera);
   savedFingerprint_=projectFingerprint();updateProjectTitle();
 }
 

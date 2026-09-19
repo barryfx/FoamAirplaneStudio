@@ -56,7 +56,7 @@ TopoDS_Wire section(const std::vector<domain::Point2>& foil, double leading, dou
   return wire.Wire();
 }
 }
-TopoDS_Shape buildStabilizerSolid(const StabilizerSolidInput& input,
+StabilizerBuildResult buildStabilizerModel(const StabilizerSolidInput& input,
     const std::function<void(const char*)>& progress, const ProcessingControl& control) {
   const auto report = [&](const char* message) { control.checkpoint(); if(progress) progress(message); };
   report("Stabilizer: sampling outline...");
@@ -157,20 +157,37 @@ TopoDS_Shape buildStabilizerSolid(const StabilizerSolidInput& input,
     }
     shape=both;
   }
-  if(!input.cutShapes.empty()) {
-    report("Stabilizer: applying Cut Shapes through all bodies...");
-    auto cuts=input.cutShapes;for(auto& layer:cuts)for(auto& p:layer.points)p=map(p);
-    shape=cutStabilizerShapes(shape,cuts,input.horizontal,control);
+  // Hinge separation returns fixed first, control second. Preserve those roles
+  // explicitly before Cut Shapes can split either role into several solids.
+  StabilizerBuildResult result;
+  int role=0;
+  for(TopExp_Explorer part{shape,TopAbs_SOLID};part.More();part.Next(),++role) {
+    auto value=part.Current();
+    if(!input.cutShapes.empty()) {
+      report("Stabilizer: applying Cut Shapes through all bodies...");
+      auto cuts=input.cutShapes;for(auto& layer:cuts)for(auto& p:layer.points)p=map(p);
+      value=cutStabilizerShapes(value,cuts,input.horizontal,control,true);
+    }
+    if(!value.IsNull() && !input.horizontal) {
+      report("Vertical stabilizer: orienting fin...");
+      gp_Trsf rotation;rotation.SetRotation(gp_Ax1{gp_Pnt{0,0,0},gp_Dir{1,0,0}},std::numbers::pi/2);
+      value=BRepBuilderAPI_Transform{value,rotation,true}.Shape();
+    }
+    if(role==0)result.fixed=value;else result.control=value;
   }
-  if(!input.horizontal) {
-    report("Vertical stabilizer: orienting fin...");
-    gp_Trsf rotation;rotation.SetRotation(gp_Ax1{gp_Pnt{0,0,0},gp_Dir{1,0,0}},std::numbers::pi/2);
-    shape=BRepBuilderAPI_Transform{shape,rotation,true}.Shape();
-  }
+  BRep_Builder builder;TopoDS_Compound combined;builder.MakeCompound(combined);
+  for(const auto& value:{result.fixed,result.control})if(!value.IsNull())builder.Add(combined,value);
+  if(result.fixed.IsNull() && result.control.IsNull())
+    throw std::runtime_error("Cut Shapes remove the entire stabilizer. Reduce or move the cut.");
+  shape=combined;
   report("Stabilizer: meshing display...");
   IMeshTools_Parameters parameters;parameters.Deflection=.1;parameters.Angle=.25;parameters.InParallel=false;
   BRepMesh_IncrementalMesh mesh{shape,parameters,control.range()};control.checkpoint();
   if(!mesh.IsDone())throw std::runtime_error("Stabilizer display meshing failed.");
-  report("Stabilizer: model ready.");return shape;
+  report("Stabilizer: model ready.");result.shape=shape;return result;
+}
+TopoDS_Shape buildStabilizerSolid(const StabilizerSolidInput& input,
+    const std::function<void(const char*)>& progress,const ProcessingControl& control) {
+  return buildStabilizerModel(input,progress,control).shape;
 }
 }

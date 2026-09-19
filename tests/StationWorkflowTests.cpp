@@ -146,13 +146,20 @@ int main(int argc, char** argv) {
   QTimer::singleShot(0, [&] { assert(!QApplication::activeModalWidget()); });
   assert(window.openProjectFile(savedProject,error)); app.processEvents();waitForModel(window);
   assert(workspace->actions()[2]->isEnabled());
+  assert(tabs->currentIndex()==0); // Open always defers regeneration in 2D.
   solidView->restoreCamera(camera);
   const int reopenedRevision=solidView->property("wingModelRevision").toInt();
   angle->setValue(3); app.processEvents();waitForModel(window);
   assert(window.projectModified()); checkCamera();
   assert(angle->value()==3);
+  assert(!solidView->property("wingModelReady").toBool());
+  assert(solidView->property("wingModelRevision").toInt()==reopenedRevision);
+  tabs->setCurrentIndex(1);app.processEvents();waitForModel(window);
   assert(solidView->property("wingModelReady").toBool());
   assert(solidView->property("wingModelRevision").toInt()==reopenedRevision+1);
+  // The first generated display after Open fits the model. Establish the
+  // custom camera after that first fit, then test retention on later rebuilds.
+  solidView->restoreCamera(camera);checkCamera();
   const QString wingCapture = qEnvironmentVariable("FOAM_WING_CAPTURE");
   if (!wingCapture.isEmpty()) assert(window.screen()->grabWindow(window.winId()).save(wingCapture));
   tabs->setCurrentIndex(0); angle->setValue(5); app.processEvents();waitForModel(window);

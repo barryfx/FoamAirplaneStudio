@@ -25,7 +25,7 @@ double volume(const TopoDS_Shape& shape) {GProp_GProps mass;BRepGProp::VolumePro
 template<class Operation> TopoDS_Shape booleanOp(const TopoDS_Shape& body,
     const NCollection_List<TopoDS_Shape>& tools,const ProcessingControl& processing) {
   processing.checkpoint();Operation operation;NCollection_List<TopoDS_Shape> arguments;arguments.Append(body);
-  operation.SetArguments(arguments);operation.SetTools(tools);operation.SetNonDestructive(true);operation.SetFuzzyValue(tolerance);
+  operation.SetArguments(arguments);operation.SetTools(tools);operation.SetNonDestructive(true);operation.SetRunParallel(processing.parallel);operation.SetFuzzyValue(tolerance);
   {auto range=processing.range();operation.Build(range);}processing.checkpoint();
   if(!operation.IsDone()||operation.HasErrors()||operation.Shape().IsNull())throw std::runtime_error("Could not create fuselage alignment pins and sockets.");
   return operation.Shape();
@@ -66,9 +66,9 @@ double wallAt(double x,const std::vector<std::pair<double,double>>& stations) {
   const auto& a=*(upper-1);const auto& b=*upper;const double t=(x-a.first)/(b.first-a.first),blend=t*t*(3-2*t);
   return a.second*(1-blend)+b.second*blend;
 }
-void requireOneSolid(const TopoDS_Shape& shape) {
+void requireOneSolid(const TopoDS_Shape& shape,bool parallel) {
   int count=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++count;
-  if(count!=1||volume(shape)<=tolerance||!BRepCheck_Analyzer{shape}.IsValid())throw std::runtime_error("Alignment pins or sockets disconnected or invalidated a fuselage half.");
+  if(count!=1||volume(shape)<=tolerance||!BRepCheck_Analyzer{shape,true,parallel}.IsValid())throw std::runtime_error("Alignment pins or sockets disconnected or invalidated a fuselage half.");
 }
 }
 std::array<TopoDS_Shape,2> addFuselageAlignmentPins(const TopoDS_Shape& mainBody,
@@ -154,7 +154,7 @@ std::array<TopoDS_Shape,2> addFuselageAlignmentPins(const TopoDS_Shape& mainBody
   auto result=halves;
   result[pinSide]=booleanOp<BRepAlgoAPI_Fuse>(halves[pinSide],pins,processing);
   result[socketSide]=booleanOp<BRepAlgoAPI_Cut>(halves[socketSide],sockets,processing);
-  for(const auto& half:result)requireOneSolid(half);
+  for(const auto& half:result)requireOneSolid(half,processing.parallel);
   const double volumeTolerance=std::max(1e-5,(pinVolume+socketVolume)*1e-5);
   if(std::abs(volume(result[pinSide])-volume(halves[pinSide])-pinVolume)>volumeTolerance||
       std::abs(volume(halves[socketSide])-volume(result[socketSide])-socketVolume)>volumeTolerance)

@@ -40,12 +40,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 20;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 24;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 20. See spars.md and ADR-0011.
+use version 24. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -100,3 +100,23 @@ Version 18 persists each stabilizer leading-edge endpoint; older projects requir
 Version 19 adds independent stabilizer hinge sketches/drafts and Tape/Standard choices.
 
 Version 20 adds per-stabilizer closed Cut Shape collections and drafts.
+
+Version 21 adds Assembly X/Z placements and cut intent. Explicitly selecting the
+Assembly tab activates its 3D-only view, prepares missing source models and
+reapplies requested cuts. Opening a project follows the 2D behavior below.
+Original and cut solid caches remain transient; see assembly.md.
+
+Opening a project always selects 2D View, regardless of its saved viewport, so
+opening alone never regenerates models. A saved Assembly workspace opens in
+Fuselage/Outline/Side View instead, preserving Assembly placements and cut intent.
+Explicitly selecting 3D View or entering Assembly starts model preparation.
+
+Version 23 saves design inputs and Assembly placement/cut intent only. All generated
+geometry remains in session caches and is rebuilt on explicit 3D/Assembly entry
+after Open. The reader accepts version 22 but ignores its entire `models` field,
+without BREP decoding, decompression or cache validation. Resaving removes that
+obsolete field. Saving never clears the current session caches. See ADR-0035.
+
+Version 24 adds per-former Rotation Angle in degrees about the Side View mask
+center; negative angles rotate counter-clockwise. Earlier projects load zero
+angles. See formers.md and ADR-0036. Current saves use version 24.

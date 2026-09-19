@@ -15,6 +15,9 @@ struct StabilizerSolidInput {
   gui::HingeCut hingeCut=gui::HingeCut::Tape;
   std::vector<gui::SketchLayer> cutShapes;
 };
+struct StabilizerBuildResult { TopoDS_Shape shape,fixed,control; };
+StabilizerBuildResult buildStabilizerModel(const StabilizerSolidInput& input,
+    const std::function<void(const char*)>& progress = {}, const ProcessingControl& control = {});
 TopoDS_Shape buildStabilizerSolid(const StabilizerSolidInput& input,
     const std::function<void(const char*)>& progress = {}, const ProcessingControl& control = {});
 }

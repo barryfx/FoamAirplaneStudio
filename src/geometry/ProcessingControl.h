@@ -14,6 +14,10 @@ public:
 // only the stop state is shared, so independent algorithms never share progress ranges.
 struct ProcessingControl {
   std::stop_token stop;
+  // Per-operation policy, never a global OCCT setting. False provides the
+  // serial comparison path for fuselage stages and additional wing kernel work.
+  // Wing's pre-existing panel/mesh parallelism has its own policy.
+  bool parallel=true;
   void checkpoint() const { if(stop.stop_requested())throw ProcessingCancelled{}; }
   struct OperationProgress {
     // OCCT ranges borrow their parent scope. Keep its indicator alive until the
