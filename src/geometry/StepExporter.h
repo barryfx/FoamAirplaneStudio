@@ -7,9 +7,11 @@
 #include <vector>
 
 namespace designrc::geometry {
+enum class StepAssemblyLayout { LegacyWing, Aircraft };
 
 void exportStepAssembly(const std::vector<NamedPartShape>& parts,
                         const std::filesystem::path& path,
-                        const std::string& assemblyName);
+                        const std::string& assemblyName,
+                        StepAssemblyLayout layout = StepAssemblyLayout::LegacyWing);
 
 } // namespace designrc::geometry

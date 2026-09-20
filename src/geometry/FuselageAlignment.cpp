@@ -96,7 +96,7 @@ std::array<TopoDS_Shape,2> addFuselageAlignmentPins(const TopoDS_Shape& mainBody
     if(progress)progress(("Fuselage: locating "+location+" alignment pin...").c_str());
     std::vector<double> fractions;
     for(int i=0;i<=15;++i)fractions.push_back(forward?.05+i*.02:.65+i*.02);
-    const double target=forward?.15:.85;
+    const double target=forward?.15:.75;
     std::stable_sort(fractions.begin(),fractions.end(),[&](double a,double b){return std::abs(a-target)<std::abs(b-target);});
     bool found=false;
     for(double fraction:fractions) {

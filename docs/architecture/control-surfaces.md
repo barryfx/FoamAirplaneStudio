@@ -30,7 +30,7 @@ ControlSurfacePanel owns widgets; PlanViewport owns the reusable rectangle edito
 Reference scale changes remap rectangle corners with other sketches. New and Close
 reset the controls; Open restores them; Save/Save As preserve settings, enabled
 flags, rectangles and an unfinished first corner. These fields were introduced in
-version 2; current saves use version 24. Version-1 projects open with both controls disabled. Model updates follow the existing
+version 2; current saves use version 25. Version-1 projects open with both controls disabled. Model updates follow the existing
 data-change detection and retain the 3D camera.
 
 The hinge Boolean operations execute once each. In OCCT 8, constructing Cut or

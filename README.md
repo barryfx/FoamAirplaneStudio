@@ -6,7 +6,7 @@ printing, plus outlines for laser cutting.
 
 ## Current progress
 
-As of September 19, 2026, Reference and Wing provide:
+As of September 20, 2026, Reference and Wing provide:
 
 - PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
 - Numbered panel outlines, reusable line/spline editing, curve-attached stations,
@@ -17,8 +17,8 @@ As of September 19, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-24 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text, view state. Versions 1-23 remain readable.
+- Portable version-25 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text, view state. Versions 1-24 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -29,6 +29,11 @@ it places vertical Side View sections with one click. Edit Profiles attaches sec
 to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Cut splits solid or hollow bodies along saved Top/Side Line and Spline paths. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
 Formers adds movable, individually rotated full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
 
+Holes adds closed Line/Spline loops for Top, Bottom, Left or Right, cutting only
+the selected wall. Holes and Cut share controls for adding, selecting and deleting
+multiple paths. Rear alignment pins start at 75% of the main-body length and
+front pins at 15%, with nearby safe positions used when needed.
+
 Horiz Stab and Vert Stab provide independent open outlines, explicit leading-edge
 selection, a bundled NACA009 or imported DAT airfoil, and cached background
 generation. Horizontal halves join into one stabilizer; the vertical fin is one
@@ -37,9 +42,9 @@ leaving two bodies. Closed Line/Spline Cut Shapes remove material through the
 thickness and can create additional bodies. Unchanged navigation reuses each
 component's successful model cache. Assembly provides side-view positioning,
 control-surface collision checks, reversible intersection cuts and separate export
-geometry caches (see [Assembly](docs/architecture/assembly.md)). Export actions
-and general editor undo remain future work; Assembly includes Undo Cuts. STEP and DXF/SVG
-utilities remain available for reuse; STL export is future work.
+geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers former STEP/DXF/STL and component STEP/STL from the current Assembly
+(see [Export](docs/architecture/export.md)). General editor undo, SVG and tray DXF
+remain future work; Assembly includes Undo Cuts.
 
 The former DesignRC field-driven wing/rib pipeline and persistence were removed.
 Legacy `.designrc` projects are not supported. Original DesignRC documentation is

@@ -37,7 +37,7 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamFuselageTests");QCoreApplication::setApplicationName("FoamFuselageTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
-    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==24);
+    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==25);
     auto legacy=canonical;legacy["version"]=8;legacy.remove("fuselageOutline");
     auto old=decodeProject(legacy);CHECK(old.fuselage.layers.size()==2 && old.fuselageView==-1);
     auto bad=canonical;auto f=bad["fuselageOutline"].toObject();f["layers"]=QJsonArray{};bad["fuselageOutline"]=f;

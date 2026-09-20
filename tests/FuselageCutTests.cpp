@@ -53,11 +53,14 @@ void alignmentTests() {
     const auto halves=sides(model);const double radius=.5*std::min(4.,wall);
     CHECK(std::abs(volume(model)-volume(body)+4*.5*std::acos(-1.)*radius*radius)<1e-4);
     CHECK(std::abs(volume(BRepAlgoAPI_Common{halves[0],halves[1]}.Shape()))<1e-6);
-    for(double x:{15.,85.})for(double z:{-15+wall*.5,15-wall*.5}) {
+    for(double x:{15.,75.})for(double z:{-15+wall*.5,15-wall*.5}) {
       CHECK(inside(halves[0],x,2.99,z));CHECK(!inside(halves[0],x,3.01,z));
       CHECK(!inside(halves[1],x,3.49,z));CHECK(inside(halves[1],x,3.51,z));
       CHECK(inside(halves[0],x+radius-.01,1,z));CHECK(!inside(halves[0],x+radius+.01,1,z));
       CHECK(inside(halves[1],x+radius+.01,1,z));
+    }
+    for(double z:{-15+wall*.5,15-wall*.5}) {
+      CHECK(!inside(halves[0],85,1,z));CHECK(inside(halves[1],85,1,z));
     }
     if(wall==5)if(const auto path=qgetenv("FOAM_ALIGNMENT_BREP");!path.isEmpty()) {
       BRep_Builder builder;TopoDS_Compound display;builder.MakeCompound(display);
@@ -70,7 +73,7 @@ void alignmentTests() {
   const double frontWall=2+4*(.15*.15*(3-2*.15));
   CHECK(inside(varied[0],15+frontWall*.5-.01,1,15-frontWall*.5));
   CHECK(!inside(varied[0],15+frontWall*.5+.01,1,15-frontWall*.5));
-  CHECK(inside(varied[0],85+1.99,1,12.5));CHECK(!inside(varied[0],85+2.01,1,12.5));
+  CHECK(inside(varied[0],75+1.99,1,12.5));CHECK(!inside(varied[0],75+2.01,1,12.5));
   // A hatch removes the preferred forward/top location. The remaining main
   // body must use another top location, rather than adding a pin to the hatch.
   std::vector<SketchLayer> cuts(2);cuts[1]=rectangle(10,-16,15,6);
@@ -160,7 +163,7 @@ int main(int argc,char** argv) {
     // Finish and delete this draft so the geometry test contains only the Top path.
     key(Qt::Key_Escape);spline->click();const auto path=SketchEditor::fittedPath(editor.layers()[1].points,SketchTool::Spline);click(path.pointAtPercent(.5));key(Qt::Key_Delete);CHECK(editor.layers()[1].curves.empty());
     window.findChild<QPushButton*>("fuselageCutTop")->click();
-    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);
+    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==25);
     auto legacy=encoded;legacy["version"]=12;legacy.remove("fuselageCuts");CHECK(decodeProject(legacy).fuselageCuts.layers[0].curves.empty());
     auto bad=encoded;auto cuts=bad["fuselageCuts"].toObject();cuts["layers"]=QJsonArray{};bad["fuselageCuts"]=cuts;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[2]->trigger();CHECK(!editor.state().editing);CHECK(!window.projectModified());

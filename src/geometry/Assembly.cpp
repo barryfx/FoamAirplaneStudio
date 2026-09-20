@@ -87,22 +87,39 @@ gui::AssemblyState initialAssemblyPlacement(const AssemblyParts& parts) {
 }
 AssemblyParts placeAssembly(const AssemblyParts& p,const gui::AssemblyState& s) {
   return {p.fuselage,move(p.wing,s.offsets[0]),move(p.horizontal,s.offsets[1]),
-      move(p.vertical,s.offsets[2]),move(p.elevator,s.offsets[1]),move(p.rudder,s.offsets[2])};
+      move(p.vertical,s.offsets[2]),move(p.elevator,s.offsets[1]),move(p.rudder,s.offsets[2]),p.fuselageParts,p.inserts};
 }
 TopoDS_Shape assemblyShape(const AssemblyParts& p) {
-  return compound({p.fuselage,p.wing,p.horizontal,p.vertical,p.elevator,p.rudder});
+  std::vector<TopoDS_Shape> shapes{p.fuselage,p.wing,p.horizontal,p.vertical,p.elevator,p.rudder};
+  for(const auto& insert:p.inserts)shapes.push_back(insert.shape);
+  return compound(shapes); // Display aggregation only; no union of touching parts.
 }
 AssemblyCutResult cutAssemblyIntersections(const AssemblyParts& placed,
     const std::function<void(const char*)>& progress,const ProcessingControl& control) {
   auto report=[&](const char* text){control.checkpoint();if(progress)progress(text);};
   report("Assembly: checking rudder and elevator clearance...");
   AssemblyCutResult result;
-  result.parts={copy(placed.fuselage),copy(placed.wing),copy(placed.horizontal),copy(placed.vertical),copy(placed.elevator),copy(placed.rudder)};
+  result.parts={placed.fuselageParts.empty()?copy(placed.fuselage):TopoDS_Shape{},
+      copy(placed.wing),copy(placed.horizontal),copy(placed.vertical),copy(placed.elevator),copy(placed.rudder)};
   auto& p=result.parts;
+  // Inserts bypass every Boolean and meshing operation. Sharing these immutable
+  // handles retains their exact geometry and independent component identities.
+  p.inserts=placed.inserts;
   if(overlaps(p.elevator,p.rudder,control))result.collisions.emplace_back("Elevator intersects Rudder");
   if(!result.collisions.empty())return result;
   report("Assembly: cutting wing and stabilizer seats in fuselage...");
-  p.fuselage=subtract(p.fuselage,{p.wing,p.horizontal,p.vertical},"Fuselage",control);
+  if(placed.fuselageParts.empty()) {
+    p.fuselage=subtract(p.fuselage,{p.wing,p.horizontal,p.vertical},"Fuselage",control);
+  } else {
+    // Seat cuts apply only to fuselage body pieces, never removable inserts.
+    std::vector<TopoDS_Shape> shapes;
+    for(const auto& source:placed.fuselageParts) {
+      auto part=source;
+      part.shape=subtract(copy(source.shape),{p.wing,p.horizontal,p.vertical},source.name.c_str(),control);
+      shapes.push_back(part.shape);p.fuselageParts.push_back(std::move(part));
+    }
+    p.fuselage=compound(shapes);
+  }
   report("Assembly: cutting fin slot in horizontal stabilizer...");
   p.horizontal=subtract(p.horizontal,{p.vertical},"Horiz Stab",control);
   report("Assembly: meshing cut parts...");

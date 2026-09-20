@@ -32,6 +32,7 @@ public:
   ControlSurfaceEditor& controlSurfaceEditor() { return *controlSurfaceEditor_; }
   FormerEditor& formerEditor() { return *formerEditor_; }
   ServoTrayEditor& servoTrayEditor() { return *servoTrayEditor_; }
+  SketchEditor& fuselageHoleEditor() { return *fuselageHoleEditor_; }
   SketchEditor& fuselageCutEditor() { return *fuselageCutEditor_; }
   SketchEditor& fuselageProfileEditor() { return *fuselageProfileEditor_; }
   SketchEditor& fuselageSketchEditor() { return *fuselageSketchEditor_; }
@@ -57,6 +58,7 @@ private:
   SketchEditor* fuselageSketchEditor_{};
   SketchEditor* fuselageProfileEditor_{};
   SketchEditor* fuselageCutEditor_{};
+  SketchEditor* fuselageHoleEditor_{};
   ServoTrayEditor* servoTrayEditor_{};
   FormerEditor* formerEditor_{};
   SketchEditor* airfoilSketchEditor_{};

@@ -2,7 +2,10 @@
 
 Cut becomes available with the other secondary tools when every station has a
 closed profile. It opens the 2D view and shows instructions, Top/Side selectors
-and Line/Spline tools. Top is the initial cut view. A separate two-layer
+and Add Cut, a path selector, Line/Spline tools and Delete Cut. Each connected
+path is separately selectable; Delete Cut removes its entire path. Add Cut
+finishes the previous drawing and begins a new path. These controls match Holes
+(fuselage-holes.md), which removes material through one chosen wall. Top is the initial cut view. A separate two-layer
 SketchEditor reuses endpoint snapping, connected Line/Spline drawing, point
 movement, selection and Delete. Escape finishes a spline. Closed paths are
 allowed but not required; multiple independent paths are supported. There is no
@@ -55,7 +58,7 @@ split: two at the top seam and two at the bottom seam. Pins on the negative-Y
 half project 3 mm; same-diameter sockets on the positive-Y half are 3.5 mm deep.
 Diameter is 4 mm or the local wall thickness if smaller. Wall values use the
 same station interpolation as generation, additionally capped by available skin.
-Targets are 15%/85% of the remaining main-body length; nearby positions within
+Targets are 15%/75% of the remaining main-body length; nearby positions within
 5-35%/65-95% are searched to avoid hatches, cavities and thin ends. The uncut
 body supplies the true skin location; exact containment in the post-cut main
 body ensures support, including 0.1 mm beyond each blind socket. No extra radial

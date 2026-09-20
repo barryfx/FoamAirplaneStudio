@@ -7,6 +7,7 @@
 #include <gp_Trsf.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepCheck_Analyzer.hxx>
+#include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepGProp.hxx>
 #include <Bnd_Box.hxx>
@@ -60,14 +61,34 @@ TopoDS_Shape addFormerRetainers(const TopoDS_Shape& body,const TopoDS_Shape& cav
       // cavity after rotation. Keep the zero-angle path exactly as before.
       const double radius=std::hypot(std::max(std::abs(x0-r.center().x()),std::abs(x1-r.center().x())),std::max(std::abs(z0-r.center().y()),std::abs(z1-r.center().y())))+1;
       const double bottom=angle==0?z0-1:r.center().y()-radius,top=angle==0?z1+1:r.center().y()+radius;
-      const auto slab=rotated(BRepPrimAPI_MakeBox{gp_Pnt{x,y0-1,bottom},4.,y1-y0+2,top-bottom}.Shape(),r,angle);
+      const auto slice=[&](double padding) {
+        return rotated(BRepPrimAPI_MakeBox{gp_Pnt{x-padding,y0-1,bottom},4.+2*padding,y1-y0+2,top-bottom}.Shape(),r,angle);
+      };
+      const auto slab=slice(0);
       const auto pocket=booleanOp<BRepAlgoAPI_Common>(cavity,slab,processing);
       if(!TopExp_Explorer{pocket,TopAbs_SOLID}.More())continue;
+      // A translated copy of pocket has coincident end caps. On faceted lofts
+      // OCCT can classify the central overlap as retained material without an
+      // error or invalid topology. Extend only the cutter along local X so its
+      // caps lie outside the actual 4 mm rail, preserving the cavity contour.
+      const auto clearancePocket=booleanOp<BRepAlgoAPI_Common>(cavity,slice(.1),processing);
       for(double offset:{-3.,3.}) {
         // Translation in Y removes the centre of the pocket, leaving a band
         // following the corresponding inner side, including taper and curvature.
         gp_Trsf move;move.SetTranslation(gp_Vec{0,offset,0});
-        auto rail=booleanOp<BRepAlgoAPI_Cut>(pocket,BRepBuilderAPI_Transform{pocket,move,true}.Shape(),processing);
+        const auto clearance=BRepBuilderAPI_Transform{clearancePocket,move,true}.Shape();
+        auto rail=booleanOp<BRepAlgoAPI_Cut>(pocket,clearance,processing);
+        // Topological validity alone cannot detect a retained cavity plug.
+        // Reject any residual solid whose interior mass centre is also inside
+        // the cutter. The first classification excludes concave-solid centres
+        // that fall outside their own material.
+        for(TopExp_Explorer solid{rail,TopAbs_SOLID};solid.More();solid.Next()) {
+          processing.checkpoint();GProp_GProps mass;BRepGProp::VolumeProperties(solid.Current(),mass);
+          const auto center=mass.CentreOfMass();
+          if(BRepClass3d_SolidClassifier{solid.Current(),center,1e-7}.State()==TopAbs_IN&&
+              BRepClass3d_SolidClassifier{clearance,center,1e-7}.State()==TopAbs_IN)
+            throw std::runtime_error("Former retaining rail subtraction left material inside its clearance.");
+        }
         Bnd_Box railBounds;BRepBndLib::AddOptimal(rail,railBounds,false,false);railBounds.SetGap(1e-7);
         // Conservative bounds only skip certainly disjoint inserts. Keep the
         // original bounds after clipping: they still enclose every residual rail.

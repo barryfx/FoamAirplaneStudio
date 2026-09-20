@@ -3,6 +3,7 @@
 #include "gui/DihedralPanel.h"
 #include "gui/LighteningPanel.h"
 #include "gui/ProcessingScope.h"
+#include "gui/ExportPanel.h"
 
 #include "gui/OcctViewport.h"
 #include "gui/PlanViewport.h"
@@ -131,6 +132,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   connect(&planViewport_->servoTrayEditor(),&ServoTrayEditor::changed,this,[this]{
     if(!restoringProject_)QTimer::singleShot(0,this,[this]{updateFuselageModel();});
   });
+  fuselageHolePanel_=new FuselageCutPanel{planViewport_->fuselageHoleEditor(),dataPanel_,true,&planViewport_->fuselageSketchEditor()};
+  dataLayout->addWidget(fuselageHolePanel_);
+  connect(&planViewport_->fuselageHoleEditor(),&SketchEditor::changed,this,[this]{if(!restoringProject_)QTimer::singleShot(0,this,[this]{updateFuselageModel();});});
   fuselageCutPanel_=new FuselageCutPanel{planViewport_->fuselageCutEditor(),dataPanel_};
   dataLayout->addWidget(fuselageCutPanel_);
   connect(&planViewport_->fuselageCutEditor(),&SketchEditor::changed,this,[this]{
@@ -178,6 +182,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
     invalidateWing();
   });
   buildAssemblyPanel(dataLayout);
+  exportPanel_=new ExportPanel{dataContents_};dataLayout->addWidget(exportPanel_,1);exportPanel_->hide();
+  exportPanel_->exportRequested=[this]{exportComponents();};
   splitter->addWidget(dataPanel_);
   splitter->addWidget(graphicsTabs_);
   splitter->setChildrenCollapsible(false);
@@ -277,17 +283,20 @@ void MainWindow::buildToolBars() {
 }
 
 void MainWindow::selectWorkspace(int index) {
+  if(index==6&&!exportAssemblyParts())return;
   const int outgoing = dataPanel_->property("workspaceIndex").toInt()-3;
   if(outgoing>=0 && outgoing<2 && displayedComponent_==outgoing+3 && graphicsTabs_->currentWidget()==viewport_)
     stabilizerCameras_[outgoing]=viewport_->cameraState();
-  {QSignalBlocker block{graphicsTabs_};graphicsTabs_->setTabEnabled(0,index!=5); }
+  {QSignalBlocker block{graphicsTabs_};graphicsTabs_->setTabEnabled(0,index!=5&&index!=6); }
   assemblyPanel_->setVisible(index==5);
+  exportPanel_->setVisible(index==6);
+  if(index==6)exportPanel_->setParts(geometry::assemblyExportParts(*exportAssemblyParts()));
   if(index==5){assemblyEntry_=true;assemblyAttemptFingerprint_.clear();}
   componentToolBar_->clear();
   const std::array<QStringList, 7> tools{{
       {},
       {"Outline", "Airfoil Stations", "Airfoils", "Dihedral", "Ailerons/Flaps", "Spars", "Lightening"},
-      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers"},
+      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
       {},
@@ -306,7 +315,7 @@ void MainWindow::selectWorkspace(int index) {
     connect(action, &QAction::triggered, this, [this, name] {
       dataPanel_->setProperty("activeTool", name);
       if ((dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && (name=="Outline" || name=="Hinge Line" || name=="Cut")) graphicsTabs_->setCurrentWidget(planViewport_);
-      if(dataPanel_->property("workspaceIndex").toInt()==2&&(name=="Outline"||name=="Profile Stations"||name=="Edit Profiles"||name=="Cut"||name=="Servo Tray"||name=="Formers"))graphicsTabs_->setCurrentWidget(planViewport_);
+      if(dataPanel_->property("workspaceIndex").toInt()==2&&(name=="Outline"||name=="Profile Stations"||name=="Edit Profiles"||name=="Cut"||name=="Servo Tray"||name=="Formers"||name=="Holes"))graphicsTabs_->setCurrentWidget(planViewport_);
       if(dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken")fuselageThickenPanel_->enter(fuselageWingLeadingEdge());
       const bool wingWorkspace=dataPanel_->property("workspaceIndex").toInt()==1;
       statusBar()->showMessage(wingWorkspace && name=="Outline"
@@ -320,6 +329,7 @@ void MainWindow::selectWorkspace(int index) {
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Profile Stations" ? "Hover on Side View top/bottom; left-click once to place a vertical profile station"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Edit Profiles" ? "Select a station; draw a closed section using Line or Spline; open 3D to generate the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken" ? "Set station wall thickness in Reference units, or enter mm/in; 3D generation now hollows the fuselage"
+          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Holes" ? "Choose a wall, Add Hole, then draw a closed loop inside its outline"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Cut" ? "Choose Top or Side View; draw a connected cut path, then open 3D to split the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Formers" ? "Enter former thickness, Add Former, then drag its position or top/bottom edges; overlapping placements are blocked"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Servo Tray" ? "Enter tray width and height, then drag the rectangle into position on Side View; Thicken provides inner walls; supports extend 5 mm inward and down"
@@ -340,7 +350,8 @@ void MainWindow::selectWorkspace(int index) {
     dataPanel_->setProperty("activeTool","Outline");
     if(!restoringProject_)graphicsTabs_->setCurrentWidget(planViewport_);
   }
-  if(index==5)graphicsTabs_->setCurrentWidget(viewport_);
+  if(index==5||index==6)graphicsTabs_->setCurrentWidget(viewport_);
+  if(index==6)displayAssembly();
   if(index==2)updateFuselageProgress();
   if(index==3 || index==4)updateStabilizerProgress();
   componentToolBar_->setVisible(!tools.at(index).empty());
@@ -351,6 +362,7 @@ void MainWindow::selectWorkspace(int index) {
   }
   statusBar()->showMessage(index == 0 ? "Set the project reference and dimensions" : index == 1 ? "Wing workspace ready" : index==2 ? "Fuselage workspace ready" : "Stabilizer Outline: trace one open line/spline chain including the control surface");
   updateEditorVisibility();
+  if(index==6)statusBar()->showMessage("Select Assembly parts and formats, then Export Components.");
 }
 
 void MainWindow::updatePanelCounts() {
@@ -425,6 +437,9 @@ void MainWindow::updateFuselageStationMode() {
   servoTrayPanel_->setVisible(tray);servoTrayPanel_->setEnabled(graphicsTabs_->currentIndex()==0);
   servoTrayPanel_->setActive(tray&&graphicsTabs_->currentIndex()==0);
   const bool cut=dataPanel_->property("workspaceIndex").toInt()==2 && dataPanel_->property("activeTool").toString()=="Cut";
+  const bool holes=dataPanel_->property("workspaceIndex").toInt()==2&&dataPanel_->property("activeTool").toString()=="Holes";
+  fuselageHolePanel_->setVisible(holes);fuselageHolePanel_->setEnabled(graphicsTabs_->currentIndex()==0);
+  fuselageHolePanel_->setActive(holes&&graphicsTabs_->currentIndex()==0,!restoringProject_);
   fuselageCutPanel_->setVisible(cut);
   fuselageCutPanel_->setEnabled(graphicsTabs_->currentIndex()==0);
   fuselageCutPanel_->setActive(cut&&graphicsTabs_->currentIndex()==0);
@@ -733,7 +748,7 @@ QByteArray MainWindow::fuselageFingerprint() const {
   return QJsonDocument{QJsonObject{{"outlines",p["fuselageOutline"].toObject()["layers"]},
       {"stations",p["fuselageStations"].toObject()["lines"]},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
-      {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},
+      {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},{"holes",p["fuselageHoles"].toObject()["layers"]},
       {"length",projectReference().toScale?QJsonValue{}:p["reference"].toObject()["fuselageLengthMm"]}}}.toJson(QJsonDocument::Compact);
 }
 void MainWindow::updateFuselageModel() {
@@ -759,7 +774,7 @@ void MainWindow::updateFuselageModel() {
   }
   geometry::FuselageSolidInput input{planViewport_->fuselageSketchEditor().layers(),
       planViewport_->fuselageSketchEditor().stationEditor().lines(),planViewport_->fuselageProfileEditor().layers(),
-      projectReference().toScale?std::nullopt:projectReference().fuselageLengthMm,fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees};
+      projectReference().toScale?std::nullopt:projectReference().fuselageLengthMm,fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees,planViewport_->fuselageHoleEditor().layers()};
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
@@ -815,6 +830,7 @@ void MainWindow::updateWorkspaceAvailability() {
   workspaceToolBar_->actions().at(5)->setEnabled(fuselageReady &&
       stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(0).layers().front()) &&
       stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(1).layers().front()));
+  updateExportAvailability();
   const int current = dataPanel_->property("workspaceIndex").toInt();
   if (!workspaceToolBar_->actions().at(current)->isEnabled()) {
     const int fallback = referenceReady(projectReference()) ? 1 : 0;
@@ -921,6 +937,7 @@ void MainWindow::resetProject() {
   planViewport_->clearPlan();
   fuselageProfilePanel_->setActive(false);
   fuselageCutPanel_->setActive(false);fuselageCutPanel_->restoreControls();
+  fuselageHolePanel_->setActive(false,false);fuselageHolePanel_->restoreControls();
   servoTrayPanel_->setActive(false);
   formerPanel_->setActive(false);
   fuselageOutlinePanel_->reset();
@@ -947,6 +964,7 @@ ProjectDocument MainWindow::projectDocument() const {
   p.fuselageThickening=fuselageThickenPanel_->enabled();
   p.fuselageProfiles=planViewport_->fuselageProfileEditor().state();
   p.fuselageCuts=planViewport_->fuselageCutEditor().state();
+  p.fuselageHoles=planViewport_->fuselageHoleEditor().state();
   p.servoTray=planViewport_->servoTrayEditor().state();
   p.formers=planViewport_->formerEditor().state();
   p.fuselageStations=planViewport_->fuselageSketchEditor().stationEditor().state();
@@ -966,7 +984,7 @@ QByteArray MainWindow::projectFingerprint() const {
   snapshot["controlSurfaces"]=controls;
   auto tray=snapshot["servoTray"].toObject();if(tray["first"].isNull())tray.remove("drawing");snapshot["servoTray"]=tray;
   snapshot.remove("ui"); // Still saved/restored, but navigation is not a document edit.
-  for (const char* key : {"wingOutline", "airfoilSketches", "fuselageOutline", "fuselageProfiles", "fuselageCuts", "horizontalStabilizerOutline", "verticalStabilizerOutline", "horizontalStabilizerHinge", "verticalStabilizerHinge", "horizontalStabilizerCuts", "verticalStabilizerCuts"}) {
+  for (const char* key : {"wingOutline", "airfoilSketches", "fuselageOutline", "fuselageProfiles", "fuselageCuts", "fuselageHoles", "horizontalStabilizerOutline", "verticalStabilizerOutline", "horizontalStabilizerHinge", "verticalStabilizerHinge", "horizontalStabilizerCuts", "verticalStabilizerCuts"}) {
     auto sketch = snapshot[key].toObject();
     sketch.remove("selected"); sketch.remove("editing");
     // A pending point's tool/layer gives it meaning; idle tool/tab choices do not.
@@ -1073,7 +1091,7 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   // Opening is an editing operation: never regenerate from a saved 3D view.
   // Assembly is 3D-only, so restore its data in the Fuselage 2D workspace.
   auto p=saved;p.viewport=0;
-  if(p.workspace==5) {
+  if(p.workspace==5||p.workspace==6) {
     p.workspace=2;p.tool="Outline";
     // Keep a pending sketch attached to its original layer. Otherwise open Side
     // View and keep the saved panel and active sketch layer consistent.
@@ -1142,6 +1160,8 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   auto profileState=p.fuselageProfiles;profileState.editing=workspace==2&&p.tool=="Edit Profiles"&&p.viewport==0&&profileState.editing;
   planViewport_->fuselageProfileEditor().restoreState(profileState);
   fuselageProfilePanel_->restoreControls();
+  auto holes=p.fuselageHoles;holes.editing=workspace==2&&p.tool=="Holes"&&p.viewport==0;
+  planViewport_->fuselageHoleEditor().restoreState(holes);fuselageHolePanel_->restoreControls();
   auto cuts=p.fuselageCuts;cuts.editing=workspace==2&&p.tool=="Cut"&&p.viewport==0;
   planViewport_->fuselageCutEditor().restoreState(cuts);fuselageCutPanel_->restoreControls();
   planViewport_->servoTrayEditor().restore(p.servoTray);
@@ -1207,8 +1227,6 @@ void MainWindow::pasteFocusedText() {
 }
 
 } // namespace designrc::gui
-
-
 
 
 

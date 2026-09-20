@@ -1,4 +1,5 @@
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/FuselageHoles.h"
 #include "geometry/FuselageTopology.h"
 #include "geometry/FuselageWall.h"
 #include "geometry/FuselageCut.h"
@@ -219,7 +220,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(solids!=1||std::abs(props.Mass())<1e-9)throw std::runtime_error("Fuselage did not produce one solid with positive volume.");
   if(props.Mass()<0)shape.Reverse();
   TopoDS_Shape cavity;FuselageBuildResult result;
-  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty())?&cavity:nullptr);
+  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty())?&cavity:nullptr);
   if(input.servoTray) {
     const auto& r=*input.servoTray;
     const QRectF physical{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};
@@ -232,6 +233,11 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     result.formers=buildFormers(cavity,shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing,input.formerRotationDegrees);
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
     shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees);
+  }
+  if(!input.holes.empty()) {
+    if(progress)progress("Fuselage: cutting holes through the selected walls...");
+    shape=cutFuselageHoles(shape,cavity,input.holes,input.outlines,
+        {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},processing);
   }
   FuselageAlignmentSpec alignment;alignment.seamReference=shape;
   if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);

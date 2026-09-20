@@ -117,12 +117,19 @@ add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerA
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
 target_include_directories(foam_project PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_project PUBLIC foam_airfoils TKernel TKMath)
+
+add_library(foam_export
+  src/geometry/ComponentExporter.cpp src/geometry/ComponentExporter.h
+  src/geometry/StepExporter.cpp src/geometry/StepExporter.h
+  src/gui/ExportPanel.cpp src/gui/ExportPanel.h)
+target_include_directories(foam_export PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
+target_link_libraries(foam_export PUBLIC foam_wing designrc_domain Qt6::Widgets TKDESTEP TKXCAF TKDESTL)
 
 add_executable(designrc WIN32
   resources/designrc.qrc
@@ -135,8 +142,6 @@ add_executable(designrc WIN32
   src/gui/ReferenceWorkflow.h
   src/geometry/OcctRibBuilder.cpp
   src/geometry/OcctRibBuilder.h
-  src/geometry/StepExporter.cpp
-  src/geometry/StepExporter.h
   src/gui/WingWorkflow.cpp
   src/gui/WingWorkflow.h
   src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp
@@ -165,6 +170,7 @@ target_compile_definitions(designrc PRIVATE
   DESIGNRC_RELEASE_DATE="September 13, 2026"
 )
 target_link_libraries(designrc PRIVATE
+  foam_export
   foam_sketch
   foam_dialogs
   foam_airfoils
@@ -307,9 +313,10 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(assembly_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(assembly_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME assembly_tests COMMAND assembly_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  add_test(NAME export_tests COMMAND assembly_tests --export "${CMAKE_CURRENT_BINARY_DIR}")
   add_test(NAME project_persistence_ui_tests COMMAND assembly_tests --persistence-ui "${CMAKE_BINARY_DIR}")
   if(NOT WIN32)
-    set_tests_properties(assembly_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(assembly_tests export_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
   add_executable(stabilizer_outline_tests tests/StabilizerOutlineTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
@@ -354,6 +361,7 @@ if(DESIGNRC_BUILD_TESTS)
   set_target_properties(former_tests PROPERTIES AUTOMOC ON AUTORCC ON)
   target_include_directories(former_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(former_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME fuselage_holes_tests COMMAND former_tests --holes "${CMAKE_BINARY_DIR}")
   add_test(NAME former_tests COMMAND former_tests)
   add_test(NAME fuselage_readiness_tests COMMAND former_tests --readiness-only)
   add_test(NAME former_defaults_tests COMMAND former_tests --defaults-only)
@@ -534,8 +542,6 @@ if(DESIGNRC_BUILD_TESTS)
     TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh TKShHealing TKDESTEP TKXCAF)
   add_test(NAME designrc_step_export_tests COMMAND designrc_step_export_tests)
 endif()
-
-
 
 
 

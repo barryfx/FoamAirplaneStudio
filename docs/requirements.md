@@ -215,7 +215,7 @@ The software shall support designing an aircraft from imported reference drawing
 - Add retaining rails immediately ahead of and behind each former on both inner
   sides, 4 mm fore/aft by 3 mm inward, clipped to the cavity and clear of inserts
   (ADR-0029).
-- Future export will expose former solids/outlines alongside other parts.
+- Assembly Export exposes former solids/outlines alongside other parts.
 
 ### 4.8 User-Defined Fuselage Part Separation
 
@@ -333,12 +333,27 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 8.1 Solid Body Export
 
+- Export shall be available only after the current Assembly has successfully
+  generated and shall use its placed 3D components, including active Assembly cuts.
+- The data panel shall show instructions, exclusive Formers STEP/DXF/STL choices,
+  exclusive Components STEP/STL choices, All, former/component checkboxes, and
+  a bottom Export Components button. All selects or clears every entry.
+- Formers shall be listed first as Former N, numbered from the nose toward the tail.
+- Export Components shall ask for an output directory and remember that directory.
+  Selected components shall share one STEP file or use individual STL files;
+  formers shall default to STEP in that same file, with individual DXF or STL
+  available through their radio group. Formers and the servo tray shall remain
+  standalone solids, never joined to the fuselage by Assembly.
+
 - The software shall allow generated solid bodies to be exported in:
   - STEP (`.step`)
   - STL (`.stl`)
 - Export shall support the separate bodies created during the design process, including manufacturing splits and control surfaces.
 
 ### 8.2 Formers and Servo Tray Export
+
+Current Assembly Export implements former STEP/DXF/STL and servo-tray STEP/STL.
+SVG and servo-tray DXF below remain planned.
 
 - The former and servo tray outlines/profiles shall be exportable as a two-dimensional file in:
   - SVG (`.svg`)
@@ -350,6 +365,8 @@ The software shall support designing an aircraft from imported reference drawing
 - FoamAirplaneStudio shall automatically propose appropriate descriptive filenames for exported components.
 - Default filenames shall identify the corresponding airplane part/body where practical.
 - The user shall be able to change the proposed filenames before export.
+
+The current Export panel uses fixed descriptive filenames; filename editing remains planned.
 
 ## 9. Principal Generated Bodies
 
@@ -439,3 +456,14 @@ Fuselage Formers: provide Rotation Angle directly below Add Former, defaulting
 to 0 degrees for each new former and editing only the selection. Negative angles
 rotate counter-clockwise about the Side View mask center. Apply the angle to
 the overlay, overlap checks, fitted solid and retaining rails; save it per former.
+
+### Fuselage Holes and multiple Cut paths
+
+- Holes offers Top, Bottom, Left and Right wall choices, with Top/Bottom using
+  Top View and Left/Right using Side View.
+- Add, path selector, Line/Spline and Delete controls are shared with Cut.
+- Holes require closed loops entirely inside the associated outline. Leaving
+  with an incomplete loop shows a dialog and retains the draft.
+- Generation removes only the selected wall, bounded by the inner cavity; unsafe
+  footprints that could cut both walls are rejected.
+- Cut retains multiple independent open/closed paths and all split bodies.

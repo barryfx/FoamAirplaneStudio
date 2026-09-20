@@ -1,6 +1,6 @@
-# FoamAirplaneStudio project format, version 24
+# FoamAirplaneStudio project format, version 25
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 21`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 25`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
@@ -17,6 +17,7 @@ coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 | formers | Positive Side View rectangles, per-former rotationDegrees and next-former thicknessMm |
 | servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
 | fuselageCuts | Top/Side cut sketch layers with active view/tool, selection, editing and pending points |
+| fuselageHoles | Top/Bottom/Left/Right closed-loop sketch layers with active wall/tool, selection, editing and pending points |
 | fuselageThickening | Boolean initialized by complete-model generation or Thicken entry; retained across modes |
 | fuselageStations | Vertical Side View sections with top/bottom curve anchors, optional profile slot, optional thicknessMm and selected index |
 | fuselageProfiles | Stable cross-section sketch slots, active layer/tool, selection, editing state and pending points |
@@ -72,7 +73,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 24.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 25.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -101,7 +102,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 24; older
+into Panel 1, with others disabled. Current Save/Save As writes version 25; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -166,7 +167,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 24; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 25; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -206,7 +207,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints remain transient. Save writes version 24; earlier versions remain readable.
+fingerprints remain transient. Save writes version 25; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -232,7 +233,7 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 24. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 25. Generated cut
 bodies remain transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -340,12 +341,12 @@ Translations and cut intent affect document dirty state, but not individual
 component generation fingerprints. Selected component is transient. Source edits
 clear derived cut intent/caches while retaining translations. Solids and meshes are not serialized. Entering Assembly after Open
 rebuilds components and reapplies requested cuts. Failed/cancelled cuts remain uncut.
-Applications supporting only earlier formats reject current version 24. Original files change only on Save.
+Applications supporting only earlier formats reject current version 25. Original files change only on Save.
 
 ## Retired model caches (version 22) and input-only saving (version 23)
 
 Version 22 embedded generated OCCT geometry and meshes in a `models` object.
-Version 23 no longer writes that field. The current reader accepts versions 1–24
+Version 23 no longer writes that field. The current reader accepts versions 1–25
 and ignores `models` entirely, including malformed or corrupt cache payloads.
 It performs no base64 decoding, decompression, checksum validation or BREP reads
 for obsolete caches. Normal design input validation and the 512 MiB file limit
@@ -355,8 +356,8 @@ All generated component, accessory, and original/cut Assembly geometry stays in
 memory for the current session. Saving does not clear those caches. Opening starts
 with empty caches and 2D selected; entering 3D or Assembly regenerates geometry
 from saved inputs and reapplies requested Assembly cuts. Saving an older file
-writes version 24 without its embedded models. Existing files remain unchanged
-until Save. Applications supporting only earlier formats reject current version 24.
+writes version 25 without its embedded models. Existing files remain unchanged
+until Save. Applications supporting only earlier formats reject current version 25.
 
 ## Former rotation (version 24)
 
@@ -367,6 +368,15 @@ Side View, negative counter-clockwise and positive clockwise. Width remains
 normal thickness. Positive-area overlap validation uses the rotated masks for
 former/former and former/tray pairs. Touching is allowed.
 
-Versions 1–23 initialize former angles to zero. New saves write version 24;
+Versions 1–23 initialize former angles to zero. New saves write version 25;
 older applications reject it rather than silently generating unrotated inserts.
 Version-22 model caches remain ignored, and generated models are never written.
+
+## Version 25
+
+Adds `fuselageHoles`, a SketchState with exactly four layers in Top, Bottom,
+Left, Right order. Each layer may contain multiple independent closed loops or
+unfinished drafts. Active layer, selected curve, tool, editing and pending points
+use the existing sketch representation. Versions 1-24 load four empty layers.
+Existing two-layer `fuselageCuts` remains unchanged; its connected paths are now
+managed individually by the shared Add/Delete controls.

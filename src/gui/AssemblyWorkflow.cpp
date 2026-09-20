@@ -7,6 +7,9 @@
 #include "gui/StabilizerAirfoilPanel.h"
 #include "gui/StabilizerHingePanel.h"
 #include "gui/PlanViewport.h"
+#include "gui/ExportPanel.h"
+#include "gui/FileSelectionDialog.h"
+#include "gui/ProcessingScope.h"
 #include "geometry/WingSolidBuilder.h"
 #include "processing/IndexedTasks.h"
 #include <BRepBndLib.hxx>
@@ -19,10 +22,73 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
+#include <QAction>
+#include <QToolBar>
+#include <QDir>
+#include <QFile>
+#include <QSaveFile>
+#include <QTemporaryDir>
 #include <Standard_Failure.hxx>
 #include <algorithm>
+#include <TopExp_Explorer.hxx>
+#include <numbers>
+#include <numeric>
+#include <cmath>
 
 namespace designrc::gui {
+void MainWindow::updateExportAvailability() {
+  if(!workspaceToolBar_)return;
+  const bool ready=projectOpen_&&!property("modelProcessing").toBool()&&exportAssemblyParts().has_value();
+  workspaceToolBar_->actions().at(6)->setEnabled(ready);
+  if(exportPanel_)exportPanel_->setEnabled(ready);
+}
+void MainWindow::exportComponents() {
+  if(!exportAssemblyParts()) {
+    updateExportAvailability();
+    QMessageBox::warning(this,"Export Components","Generate the current Assembly before exporting.");return;
+  }
+  const auto selected=exportPanel_->selectedParts();if(selected.empty())return;
+  FileSelectionDialog dialog{this,"componentExportDirectory","Export Components",QFileDialog::Directory};
+  dialog.setOption(QFileDialog::ShowDirsOnly,true);
+  if(dialog.exec()!=QDialog::Accepted||dialog.selectedFiles().isEmpty())return;
+  const QDir destination{dialog.selectedFiles().front()};
+  const auto names=geometry::exportFileNames(selected,exportPanel_->formerFormat(),exportPanel_->componentFormat());
+  QStringList existing;
+  for(const auto& name:names)if(destination.exists(QString::fromStdString(name)))existing<<QString::fromStdString(name);
+  if(!existing.empty()&&QMessageBox::question(this,"Replace exported files?",
+      "Replace these files in the selected folder?\n"+existing.join('\n'),QMessageBox::Yes|QMessageBox::No,QMessageBox::No)!=QMessageBox::Yes)return;
+  QString error;int written=0;
+  {
+    ProcessingScope scope{this,"Exporting selected Assembly components..."};
+    try {
+      // Finish all CAD conversions before replacing any destination file.
+      // Qt handles Unicode destination paths and atomic per-file replacement.
+      QTemporaryDir staging;
+      if(!staging.isValid())throw std::runtime_error("Could not create export staging directory.");
+      geometry::writeComponentExports(selected,exportPanel_->formerFormat(),exportPanel_->componentFormat(),
+          std::filesystem::path{staging.path().toStdWString()});
+      for(const auto& name:names) {
+        const auto filename=QString::fromStdString(name);
+        QFile input{QDir{staging.path()}.filePath(filename)};
+        QSaveFile output{destination.filePath(filename)};
+        if(!input.open(QIODevice::ReadOnly)||!output.open(QIODevice::WriteOnly))
+          throw std::runtime_error(("Cannot write "+filename+": "+output.errorString()).toStdString());
+        while(!input.atEnd()) {
+          const auto bytes=input.read(1024*1024);
+          if(bytes.isEmpty()&&input.error()!=QFile::NoError)throw std::runtime_error("Could not read staged export.");
+          if(output.write(bytes)!=bytes.size())throw std::runtime_error(output.errorString().toStdString());
+        }
+        if(!output.commit())throw std::runtime_error(output.errorString().toStdString());
+        ++written;
+      }
+    } catch(const Standard_Failure& e){error=QString::fromUtf8(e.what());}
+      catch(const std::exception& e){error=QString::fromUtf8(e.what());}
+  }
+  if(!error.isEmpty()) {
+    QMessageBox::warning(this,"Export failed",QString{"%1\n%2 of %3 files written."}.arg(error).arg(written).arg(names.size()));
+    statusBar()->showMessage("Export failed: "+error);
+  } else statusBar()->showMessage(QString{"Exported %1 files to %2"}.arg(written).arg(destination.absolutePath()));
+}
 void MainWindow::buildAssemblyPanel(QVBoxLayout* layout) {
   assemblyPanel_=new QWidget{dataContents_};assemblyPanel_->setObjectName("assemblyPanel");
   auto* box=new QVBoxLayout{assemblyPanel_};box->setContentsMargins(0,0,0,0);
@@ -65,6 +131,7 @@ void MainWindow::invalidateAssembly() {
   assemblyOriginals_={};assemblyCutParts_.reset();assemblyState_.cuts=false;
   assemblySourceFingerprint_.clear();assemblyAttemptFingerprint_.clear();
   setProperty("assemblyReady",false);
+  updateExportAvailability();
 }
 std::optional<geometry::AssemblyParts> MainWindow::exportAssemblyParts() const {
   if(assemblyOriginals_.fuselage.IsNull() || assemblySourceFingerprint_!=assemblyFingerprint())return {};
@@ -90,7 +157,7 @@ void MainWindow::updateAssembly() {
   geometry::WingSolidInput wing{p.wing.layers,p.stations.lines,airfoilPanel_->library().entries(),
       p.reference.toScale?std::nullopt:p.reference.wingspanMm,p.dihedralDegrees,p.controls.panels,p.spars,p.lightening};
   geometry::FuselageSolidInput fuselage{p.fuselage.layers,p.fuselageStations.lines,p.fuselageProfiles.layers,
-      p.reference.toScale?std::nullopt:p.reference.fuselageLengthMm,p.fuselageThickening,p.fuselageCuts.layers,p.servoTray.rectangle,p.formers.rectangles,p.formers.rotationDegrees};
+      p.reference.toScale?std::nullopt:p.reference.fuselageLengthMm,p.fuselageThickening,p.fuselageCuts.layers,p.servoTray.rectangle,p.formers.rectangles,p.formers.rotationDegrees,p.fuselageHoles.layers};
   std::vector<geometry::StabilizerSolidInput> stabilizers;
   for(int i=0;i<2;++i)stabilizers.push_back({p.stabilizerOutlines[i].layers.front(),stabilizerAirfoilPanels_[i]->airfoil(),
       stabilizerScale(),i==0,p.stabilizerHinges[i].layers.front(),p.stabilizerHingeCuts[i],p.stabilizerCuts[i].layers});
@@ -130,7 +197,9 @@ void MainWindow::displayAssembly(bool entry) {
   const auto parts=assemblyCutParts_?*assemblyCutParts_:geometry::placeAssembly(assemblyOriginals_,assemblyState_);
   geometry::AssemblyParts h;h.horizontal=parts.horizontal;h.elevator=parts.elevator;
   geometry::AssemblyParts v;v.vertical=parts.vertical;v.rudder=parts.rudder;
-  viewport_->displayAssembly({parts.fuselage,parts.wing,geometry::assemblyShape(h),geometry::assemblyShape(v)},
+  std::vector<TopoDS_Shape> displayed{parts.fuselage,parts.wing,geometry::assemblyShape(h),geometry::assemblyShape(v)};
+  for(const auto& insert:parts.inserts)displayed.push_back(insert.shape);
+  viewport_->displayAssembly(displayed,
       assemblyState_.cuts||assemblySelected_<0?-1:assemblySelected_+1);
   const auto& reference=projectReference();
   const auto& outlines=planViewport_->fuselageSketchEditor().layers();
@@ -146,6 +215,7 @@ void MainWindow::displayAssembly(bool entry) {
     viewport_->restoreCamera(CameraState{{cx,-scale*3,cz},{cx,0,cz},{0,0,1},scale,45,0});
   }
   displayedComponent_=5;setProperty("assemblyReady",true);setProperty("assemblyCuts",assemblyState_.cuts);
+  updateExportAvailability();
   for(auto* button:assemblySelect_)button->setEnabled(!assemblyState_.cuts);
   assemblyCutButton_->setEnabled(true);assemblyCutButton_->setText(assemblyState_.cuts?"Undo Cuts":"Cut Intersections");
   statusBar()->showMessage(assemblyState_.cuts?"Assembly cuts ready for export. Undo Cuts to reposition.":"Assembly: select a component and move it with arrow keys (1 mm; Shift 10 mm; Ctrl 0.1 mm).");
@@ -201,8 +271,33 @@ void MainWindow::pollAssemblyJob() {
       servoTrayTopFaces_=prepared.fuselage.servoTrayTopFaces;stabilizerModels_=prepared.stabilizers;
       builtWingFingerprint_=assemblyComponentFingerprints_[0];builtFuselageFingerprint_=assemblyComponentFingerprints_[1];
       for(int i=0;i<2;++i){stabilizerShapes_[i]=prepared.stabilizers[i].shape;builtStabilizerFingerprints_[i]=assemblyComponentFingerprints_[i+2];}
-      assemblyOriginals_={fuselageShape_,wingShape_,prepared.stabilizers[0].fixed,prepared.stabilizers[1].fixed,
+      assemblyOriginals_={prepared.fuselage.body,wingShape_,prepared.stabilizers[0].fixed,prepared.stabilizers[1].fixed,
           prepared.stabilizers[0].control,prepared.stabilizers[1].control};
+      int bodyNumber=0;
+      for(TopExp_Explorer body{prepared.fuselage.body,TopAbs_SOLID};body.More();body.Next())
+        assemblyOriginals_.fuselageParts.push_back({"Fuselage "+std::to_string(++bodyNumber),body.Current(),{}});
+      if(!prepared.fuselage.servoTray.IsNull())
+        assemblyOriginals_.inserts.push_back({"Servo Tray",prepared.fuselage.servoTray,{}});
+      const auto document=projectDocument();
+      std::vector<std::size_t> order(prepared.fuselage.formers.size());
+      std::iota(order.begin(),order.end(),0);
+      std::stable_sort(order.begin(),order.end(),[&](auto a,auto b){
+        return document.formers.rectangles.at(a).center().x()<document.formers.rectangles.at(b).center().x();
+      });
+      if(!order.empty()) {
+        const auto transform=geometry::fuselageSideTransform(document.fuselage.layers[1],
+            document.reference.toScale?std::nullopt:document.reference.fuselageLengthMm);
+        int number=0;
+        for(auto i:order) {
+          const auto center=document.formers.rectangles.at(i).center();
+          const double angle=document.formers.rotationDegrees.at(i)*std::numbers::pi/180.;
+          const gp_Pnt origin{(center.x()-transform.left)*transform.scale,0,
+              (transform.verticalOrigin-center.y())*transform.scale};
+          // X of the planar drawing is aircraft Y; drawing Y is local up.
+          const gp_Pln plane{gp_Ax3{origin,gp_Dir{std::cos(angle),0,-std::sin(angle)},gp_Dir{0,1,0}}};
+          assemblyOriginals_.inserts.push_back({"Former "+std::to_string(++number),prepared.fuselage.formers[i],plane});
+        }
+      }
       assemblySourceFingerprint_=assemblyJobFingerprint_;
       if(!assemblyState_.positioned)assemblyState_=geometry::initialAssemblyPlacement(assemblyOriginals_);
       displayAssembly(true);assemblyEntry_=false;

@@ -1,7 +1,8 @@
 # File and directory dialog history
 
 All file/directory choosers use FileSelectionDialog rather than QFileDialog's
-static helpers. Reference Image, Airfoil DAT and project Open/Save As use it.
+static helpers. Reference Image, Airfoil DAT, project Open/Save As and the Assembly
+Export directory chooser use it. Export uses the `componentExportDirectory` key.
 New Open, Save, import, export and directory choosers must use this shared class
 with a stable purpose key and the appropriate file/accept modes.
 

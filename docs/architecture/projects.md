@@ -40,12 +40,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 24;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 25;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 24. See spars.md and ADR-0011.
+use version 25. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -119,4 +119,14 @@ obsolete field. Saving never clears the current session caches. See ADR-0035.
 
 Version 24 adds per-former Rotation Angle in degrees about the Side View mask
 center; negative angles rotate counter-clockwise. Earlier projects load zero
-angles. See formers.md and ADR-0036. Current saves use version 24.
+angles. See formers.md and ADR-0036. Current saves use version 25.
+
+Export uses session Assembly geometry (export.md). Saving from Export retains
+that workspace choice, but opening returns to Fuselage Side View in 2D, as for
+Assembly. Output selections/formats are transient; the directory is remembered
+in QSettings independently of the project.
+
+Version 25 adds four fuselage hole layers (Top/Bottom/Left/Right), including
+drafts. Holes participate in input-only persistence, remapping, dirty checks and
+fuselage/Assembly invalidation. Older projects load empty holes. Cut retains its
+existing two layers while providing whole connected-path selection and deletion.

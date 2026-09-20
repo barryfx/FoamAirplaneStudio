@@ -6,10 +6,20 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <optional>
+#include <gp_Pln.hxx>
 
 namespace designrc::geometry {
+struct AssemblyPart {
+  std::string name;
+  TopoDS_Shape shape;
+  // Present only for formers: manufacturing section in its local mid-plane.
+  std::optional<gp_Pln> formerPlane;
+};
 struct AssemblyParts {
   TopoDS_Shape fuselage,wing,horizontal,vertical,elevator,rudder;
+  std::vector<AssemblyPart> fuselageParts; // Body manufacturing pieces only.
+  std::vector<AssemblyPart> inserts; // Standalone formers/tray; never fused or seat-cut.
 };
 struct AssemblyCutResult {
   AssemblyParts parts;

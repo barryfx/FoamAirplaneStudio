@@ -43,7 +43,7 @@ public:
                              const TopoDS_Shape& aluminum,
                              const TopoDS_Shape& steel,
                              const TopoDS_Shape& fiberglass);
-  void displayAssembly(const std::array<TopoDS_Shape,4>& parts,int selected);
+  void displayAssembly(const std::vector<TopoDS_Shape>& parts,int selected);
   void setAssemblyReference(const ProjectReference& reference, const geometry::FuselageSideTransform& transform);
   void clearShape();
   void fitAll();
@@ -81,7 +81,7 @@ private:
   TopoDS_Shape pendingSteelShape_;
   TopoDS_Shape pendingFiberglassShape_;
   QPoint lastMousePosition_;
-  std::optional<std::array<TopoDS_Shape,4>> pendingAssembly_;
+  std::optional<std::vector<TopoDS_Shape>> pendingAssembly_;
   int assemblySelected_=-1;
   std::vector<Handle(AIS_Shape)> referenceObjects_;
   std::vector<ReferencePage> assemblyReferencePages_;

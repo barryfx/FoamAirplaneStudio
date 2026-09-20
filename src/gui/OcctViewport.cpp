@@ -169,7 +169,7 @@ void OcctViewport::displayMaterialShapes(const TopoDS_Shape& wood,
   fitAll();
 }
 
-void OcctViewport::displayAssembly(const std::array<TopoDS_Shape,4>& parts,int selected) {
+void OcctViewport::displayAssembly(const std::vector<TopoDS_Shape>& parts,int selected) {
   pendingAssembly_=parts;assemblySelected_=selected;foamAppearance_=true;
   if(context_.IsNull())initializeViewer();
   if(context_.IsNull())return;
@@ -283,11 +283,12 @@ void OcctViewport::displayPendingShapes() {
     const std::array<Quantity_Color,4> colors{
       Quantity_Color{.83,.88,.94,Quantity_TOC_RGB},Quantity_Color{.65,.8,.95,Quantity_TOC_RGB},
       Quantity_Color{.65,.88,.72,Quantity_TOC_RGB},Quantity_Color{.85,.73,.95,Quantity_TOC_RGB}};
-    for(int i=0;i<4;++i) {
+    for(std::size_t i=0;i<pendingAssembly_->size();++i) {
       const auto previous=displayedShapes_.size();display((*pendingAssembly_)[i],Appearance::Wood);
       if(displayedShapes_.size()>previous) {
         auto object=displayedShapes_.back();
-        object->SetColor(i==assemblySelected_?Quantity_Color{1.,.55,.12,Quantity_TOC_RGB}:colors[i]);
+        object->SetColor(static_cast<int>(i)==assemblySelected_?Quantity_Color{1.,.55,.12,Quantity_TOC_RGB}:
+            i<colors.size()?colors[i]:Quantity_Color{.85,.72,.5,Quantity_TOC_RGB});
         context_->Redisplay(object,false);
       }
     }

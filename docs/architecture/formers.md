@@ -39,7 +39,7 @@ projects 3 mm inward along Y. Cavity clipping follows the available full side
 height even for partial-height formers; other former/tray solids are subtracted
 so rails cannot penetrate removable inserts. Existing supports may merge with
 rails. Empty portions beyond the cavity are omitted; disconnected supports
-produce an error. The main body is then split left/right (fuselage-cuts.md). Export controls remain future work.
+produce an error. The main body is then split left/right (fuselage-cuts.md). Assembly Export defaults formers to separate named solids in the combined STEP file, with individual DXF/STL files also available (export.md).
 
 Version 15 persists rectangle masks and next-former thickness in physical mm.
 Earlier versions load no formers; the legacy Firewall tool name maps to Formers.
@@ -49,6 +49,14 @@ independent Fuselage worker and reports former progress/count without rebuilding
 
 Retainer construction skips insert cuts only when conservative bounding boxes
 are disjoint. Potentially touching/overlapping inserts still use exact OCCT cuts.
+The sideways-shifted clearance slice extends 0.1 mm beyond each end of the rail
+in its local thickness direction. This avoids coincident end faces in the
+subtraction, which can otherwise retain a cavity plug despite valid topology.
+The rail itself remains 4 mm wide with 3 mm inward depth. An interior-centroid
+classification check rejects residual solids whose interior centre remains
+inside the clearance tool; it supplements, rather than replaces, final topology
+validation. The padding rotates with the former and does not enlarge the rail.
+See `../baseline/former-rail-clearance-fix.md` for the GentleLady diagnosis.
 All completed rail shapes are fused to the shell in one multi-tool operation,
 including overlap resolution for rails belonging to nearby formers. Progress
 identifies the current former and the final wall-joining stage. Dimensions,

@@ -56,3 +56,12 @@ Reproduce with `FOAM_ALIGNMENT_BREP` set to an output path and
 `fuselage_cut_tests --alignment-only`; the existing `former_tests --preview-brep`
 helper displays the saved fixture. `git diff --check` passed. Rebuilt Debug
 application launched after testing. No Wing generation tests were run.
+
+## Rear placement adjustment — 2026-09-20
+Moved the preferred rear placement from 85% to 75% of main-body length; the
+front target and safe-placement search ranges remain unchanged. The focused
+regression checks both rear pins and sockets at 75%, absence at the old 85%
+location, and the existing depth, diameter, thin/variable-wall and safety cases.
+Debug application and test target rebuilt successfully. Only
+`fuselage_alignment_tests` ran and passed in 2.28 s. Logs are
+`build/rear-alignment-build.log` and `build/rear-alignment-tests.log`.

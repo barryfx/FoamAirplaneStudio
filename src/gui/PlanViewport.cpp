@@ -59,6 +59,8 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   fuselageCutEditor_->setLayerCount(2);
   fuselageCutEditor_->setClosedLoopMode(true);
   fuselageCutEditor_->setSnapAcrossLayers(false);
+  fuselageHoleEditor_=new SketchEditor{this};fuselageHoleEditor_->setLayerCount(4);
+  fuselageHoleEditor_->setClosedLoopMode(true);fuselageHoleEditor_->setSnapAcrossLayers(false);
   servoTrayEditor_=new ServoTrayEditor{*this};
   formerEditor_=new FormerEditor{*this};
   formerEditor_->tray=[this]{return servoTrayEditor_->state().rectangle;};
@@ -78,6 +80,7 @@ void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   controlSurfaceEditor_->paint(*painter);
   fuselageProfileEditor_->paint(*painter);
   fuselageCutEditor_->paint(*painter);
+  fuselageHoleEditor_->paint(*painter);
   servoTrayEditor_->paint(*painter);
   formerEditor_->paint(*painter);
 }
@@ -148,6 +151,7 @@ void PlanViewport::clearPlan() {
   servoTrayEditor_->restore({});
   formerEditor_->restore({});
   fuselageCutEditor_->reset();fuselageCutEditor_->setLayerCount(2);
+  fuselageHoleEditor_->reset();fuselageHoleEditor_->setLayerCount(4);
   fuselageSketchEditor_->reset();
   fuselageSketchEditor_->setLayerCount(2);
   controlSurfaceEditor_->restore({});
@@ -191,6 +195,7 @@ void PlanViewport::setReferenceBackground(const std::vector<ReferencePage>& page
     servoTrayEditor_->mapPoints(remap);
     formerEditor_->mapPoints(remap);
     fuselageCutEditor_->mapPoints(remap);
+    fuselageHoleEditor_->mapPoints(remap);
     controlSurfaceEditor_->mapPoints(remap);
   }
   referencePages_ = pages;

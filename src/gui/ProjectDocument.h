@@ -21,6 +21,7 @@ struct ProjectDocument {
   SketchState fuselage{std::vector<SketchLayer>(2)};
   SketchState fuselageProfiles;
   SketchState fuselageCuts{std::vector<SketchLayer>(2)};
+  SketchState fuselageHoles{std::vector<SketchLayer>(4)};
   ServoTrayState servoTray;
   FormerState formers;
   bool fuselageThickening=false;

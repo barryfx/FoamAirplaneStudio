@@ -172,20 +172,20 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
   QJsonArray offsets;for(auto offset:p.assembly.offsets)offsets.append(point(offset));
   QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts}};
-  return {{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",24},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",25},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
     {"stabilizerHingeCuts",QJsonArray{static_cast<int>(p.stabilizerHingeCuts[0]),static_cast<int>(p.stabilizerHingeCuts[1])}},
     {"horizontalStabilizerOutline",sketch(p.stabilizerOutlines[0])},{"verticalStabilizerOutline",sketch(p.stabilizerOutlines[1])},
-    {"formers",formers},{"servoTray",tray},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
+    {"formers",formers},{"servoTray",tray},{"fuselageHoles",sketch(p.fuselageHoles)},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
     {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"fuselageView",p.fuselageView},{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
       {"plan",QJsonObject{{"zoom",p.plan.zoom},{"center",point(p.plan.center)}}},{"camera",camera},{"splitter",split}}}};
 }
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>24)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>25)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
   // Version 22 embedded generated models. Ignore that field completely: do not
   // decode, decompress, validate or restore obsolete geometry caches.
@@ -461,6 +461,13 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     }
   }
   if(p.workspace==2&&p.tool=="Firewall")p.tool="Formers";
+  if(version>=25) {
+    p.fuselageHoles=sketch(json["fuselageHoles"],4);
+    const auto& holes=p.fuselageHoles;
+    if(holes.layers.size()!=4)bad("fuselage hole wall count");
+    if(holes.editing&&(p.workspace!=2||p.tool!="Holes"||p.viewport!=0))bad("fuselage hole editing workspace");
+    if(!holes.pending.empty()&&(!holes.editing||holes.tool==SketchTool::None))bad("fuselage hole draft tool");
+  }
   if(version>=13) {
     p.fuselageCuts=sketch(json["fuselageCuts"],2);
     const auto& cuts=p.fuselageCuts;

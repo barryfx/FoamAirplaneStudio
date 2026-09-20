@@ -67,6 +67,8 @@ void geometryTests() {
     const auto rails=geometry::addFormerRetainers(shell,cavity,angledMask,angled,{},{},{angle});
     CHECK(count(rails)==1);CHECK(std::abs(volume(BRepAlgoAPI_Common{rails,angled[0]}.Shape()))<1e-6);
     for(double side:{-1.,1.})CHECK(inside(rails,22+slope*10+side*4/std::cos(angle*std::numbers::pi/180.),18.5,10));
+    for(double z:{-10.,0.,10.})for(double side:{-1.,1.})
+      CHECK(!inside(rails,22+slope*z+side*4/std::cos(angle*std::numbers::pi/180.),0,z));
   }
   bool rotatedOverlap=false;try{geometry::buildFormers(cavity,shell,{{20,-30,4,60},{34,-30,4,60}},{},{},{},{-30,30});}catch(const std::exception&){rotatedOverlap=true;}CHECK(rotatedOverlap);
   const auto halves=geometry::splitFuselageMainBody(retained);
@@ -95,12 +97,26 @@ void geometryTests() {
   const auto taper=BRepPrimAPI_MakePrism{BRepBuilderAPI_MakeFace{wire.Wire()}.Face(),gp_Vec{0,0,30}}.Shape();
   const auto taperedBody=BRepAlgoAPI_Cut{outer,taper}.Shape();shapes=geometry::buildFormers(taper,taperedBody,{{20,-30,4,60}});
   CHECK(std::abs(volume(BRepAlgoAPI_Common{shapes[0],taperedBody}.Shape()))<1e-6);
+  const auto taperedRails=geometry::addFormerRetainers(taperedBody,taper,{{20,-30,4,60}},shapes);
+  CHECK(count(taperedRails)==1);
+  CHECK(std::abs(volume(taperedRails)-volume(taperedBody)-4*4*3*30)<1e-5);
+  for(double x:{16.5,18.,19.5,24.5,26.,27.5})for(double z:{-14.,0.,14.}) {
+    const double innerSide=20-(x-5)/9.;
+    CHECK(!inside(taperedRails,x,0,z));
+    for(double side:{-1.,1.}) {
+      CHECK(inside(taperedRails,x,side*(innerSide-1.5),z));
+      CHECK(!inside(taperedRails,x,side*(innerSide-3.5),z));
+    }
+  }
   std::cout<<"Former geometry: full/partial height, cavity fit, ledge clearance, overlaps, taper, invalid placement and cancellation passed\n";
 }
+#include "FuselageHolesChecks.h"
 int main(int argc,char** argv) {
+  qInstallMessageHandler([](QtMsgType,const QMessageLogContext&,const QString& text){std::cerr<<text.toStdString()<<std::endl;});
   QApplication app{argc,argv};QTemporaryDir dir;QCoreApplication::setOrganizationName("FoamFormerTests");QCoreApplication::setApplicationName("FoamFormerTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
+    if(app.arguments().contains("--holes")){holeChecks(app,argc>2?QString::fromLocal8Bit(argv[2]):dir.path());return 0;}
     if(app.arguments().contains("--preview-brep")){
       CHECK(argc==4);TopoDS_Shape shape;BRep_Builder builder;CHECK(BRepTools::Read(shape,argv[2],builder));
       OcctViewport viewer;viewer.resize(1200,800);viewer.show();app.processEvents();viewer.displayShape(shape);
@@ -172,7 +188,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==24);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==25);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
     auto v23=encoded;v23["version"]=23;auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
     auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
     bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);
@@ -207,5 +223,6 @@ int main(int argc,char** argv) {
     tabs->setCurrentIndex(0);click(editor.state().rectangles[0].center());rotation->setValue(-10.25);tabs->setCurrentIndex(1);waitForModel(window);
     CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()>revision);
     std::cout<<"Former UI: rotation, cache invalidation, add, units, move, partial-height resize, delete, bidirectional overlap checks, persistence, overlay and generation/cache passed\n";
-  }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}
+  }catch(const Standard_Failure& e){std::cerr<<e.what()<<std::endl;return 1;}
+   catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}
 }

@@ -36,7 +36,7 @@ int main(int argc,char** argv) {
       if(!project)throw std::runtime_error(error.toStdString());
       geometry::FuselageSolidInput input{project->fuselage.layers,project->fuselageStations.lines,project->fuselageProfiles.layers,
         project->reference.toScale?std::nullopt:project->reference.fuselageLengthMm,
-        project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles,project->formers.rotationDegrees};
+        project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles,project->formers.rotationDegrees,project->fuselageHoles.layers};
       const bool parallel=!qEnvironmentVariableIsSet("FOAM_BENCH_SERIAL");
       std::cout<<"Fuselage parallel mode: "<<parallel<<std::endl;
       const auto start=std::chrono::steady_clock::now();std::stop_source stop;

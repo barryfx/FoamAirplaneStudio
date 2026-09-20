@@ -40,6 +40,7 @@ class ControlSurfacePanel;
 class SparPanel;
 class DihedralPanel;
 class LighteningPanel;
+class ExportPanel;
 struct ProjectReference;
 enum class CameraView;
 
@@ -62,6 +63,10 @@ protected:
 
 private:
   friend class AssemblyWorkflowTest;
+  friend class ExportWorkflowTest;
+  void updateExportAvailability();
+  void exportComponents();
+  ExportPanel* exportPanel_{};
   void buildAssemblyPanel(QVBoxLayout* layout);
   void updateAssembly();
   void displayAssembly(bool entry=false);
@@ -151,6 +156,7 @@ private:
   FuselageProfilePanel* fuselageProfilePanel_{};
   FuselageThickenPanel* fuselageThickenPanel_{};
   FuselageCutPanel* fuselageCutPanel_{};
+  FuselageCutPanel* fuselageHolePanel_{};
   ServoTrayPanel* servoTrayPanel_{};
   FormerPanel* formerPanel_{};
   double fuselageWingLeadingEdge() const;
@@ -184,4 +190,3 @@ private:
 };
 
 } // namespace designrc::gui
-

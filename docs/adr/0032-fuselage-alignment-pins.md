@@ -13,7 +13,8 @@ parts and removable inserts. Pins belong to the negative-Y half and point into
 the positive-Y half. Sockets have the same diameter (no extra radial clearance)
 and 0.5 mm extra axial depth. A 0.25 mm embedded root joins each pin to its half.
 
-Target 15% and 85% of the retained main body's length. Search 5-35% and 65-95%
+Target 15% and 75% of the retained main body's length (rear target moved from
+85% on 2026-09-20 at the user's request). Search 5-35% and 65-95%
 in 2% increments, closest target first, independently for top and bottom. Use the
 uncut supported body to identify the true top/bottom skin, so a missing hatch
 region cannot be confused with the opposite wall. Diameter is min(4 mm, smoothly

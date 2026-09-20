@@ -134,7 +134,7 @@ TopoDS_Shape groupedShape(const GroupedPart& group, BRep_Builder& builder) {
 
 void exportStepAssembly(const std::vector<NamedPartShape>& parts,
                         const std::filesystem::path& path,
-                        const std::string& assemblyName) {
+                        const std::string& assemblyName, StepAssemblyLayout layout) {
   if (parts.empty())
     throw std::invalid_argument("STEP export requires generated 3D parts");
   if (path.empty()) throw std::invalid_argument("STEP export requires a file path");
@@ -142,7 +142,8 @@ void exportStepAssembly(const std::vector<NamedPartShape>& parts,
   AssemblyNode hierarchy;
   for (const auto& part : parts) {
     if (part.shape.IsNull()) continue;
-    const auto location = partLocation(part.name);
+    const auto location = layout == StepAssemblyLayout::Aircraft
+        ? PartLocation{{},part.name} : partLocation(part.name);
     AssemblyNode* node = &hierarchy;
     for (const auto& name : location.assemblyPath)
       node = &childNode(*node, name);
@@ -192,7 +193,7 @@ void exportStepAssembly(const std::vector<NamedPartShape>& parts,
     }
   };
   const TDF_Label wingDefinition = shapeTool->NewShape();
-  const auto wingName = extendedName("Wing");
+  const auto wingName = extendedName(layout == StepAssemblyLayout::Aircraft ? "Components" : "Wing");
   TDataStd_Name::Set(wingDefinition, wingName);
   const TDF_Label wingComponent = shapeTool->AddComponent(
       assembly, wingDefinition, TopLoc_Location{});
@@ -207,6 +208,8 @@ void exportStepAssembly(const std::vector<NamedPartShape>& parts,
         shapeTool->AddComponent(wingDefinition, partShape, false);
     const auto name = extendedName(key.first);
     TDataStd_Name::Set(component, name);
+    TDF_Label definition;
+    if(shapeTool->GetReferredShape(component,definition))TDataStd_Name::Set(definition,name);
   }
   shapeTool->UpdateAssemblies();
 
