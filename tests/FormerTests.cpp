@@ -123,7 +123,8 @@ int main(int argc,char** argv) {
       bool captured=false;QTimer::singleShot(1000,&app,[&]{captured=viewer.screen()->grabWindow(viewer.winId()).save(QString::fromLocal8Bit(argv[3]));app.quit();});app.exec();CHECK(captured);return 0;
     }
     if(app.arguments().contains("--geometry-only")){geometryTests();return 0;}
-    ProjectDocument p;p.reference.wingspanMm=1000;p.reference.fuselageLengthMm=400;p.wingspanText="1000 mm";p.fuselageText="400 mm";
+    // A mirrored 90-unit half-span establishes 1 mm per scene unit.
+    ProjectDocument p;p.reference.wingspanMm=180;p.reference.fuselageLengthMm=400;p.wingspanText="180 mm";p.fuselageText="400 mm";
     p.wing.layers[0]=rectangle(10,10,90,70);p.wing.layers[0].curves.pop_back();
     p.stations.lines={{{0,0,0,{10,10}},{0,2,1,{10,80}},LineAlignment::Vertical,0},{{0,0,1,{100,10}},{0,2,0,{100,80}},LineAlignment::Vertical,0}};
     p.airfoils.entries.push_back({"NACA",domain::AirfoilProfile::nacaSymmetric(.12),{},{}});
@@ -188,7 +189,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==25);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==28);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
     auto v23=encoded;v23["version"]=23;auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
     auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
     bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);

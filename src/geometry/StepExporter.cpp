@@ -218,8 +218,8 @@ void exportStepAssembly(const std::vector<NamedPartShape>& parts,
   writer.SetColorMode(false);
   writer.SetNameMode(true);
   writer.SetPropsMode(true);
-  const auto fileName = path.string();
-  if (!writer.Perform(document, fileName.c_str()))
+  const auto fileName = path.u8string();
+  if (!writer.Perform(document, reinterpret_cast<const char*>(fileName.c_str())))
     throw std::runtime_error("OpenCascade could not write the STEP assembly");
 }
 

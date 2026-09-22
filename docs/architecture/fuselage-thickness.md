@@ -43,7 +43,14 @@ same drawn-up landmark correspondence as the outer profiles. The sampled ruled
 loft approximates the smooth thickness law, without discrete thickness steps.
 
 Nose and tail follow the same rule independently. An end is open when the nearest
-profile lies at the corresponding registered outline endpoint (1e-6 mm tolerance).
+profile lies at the corresponding registered outline endpoint. Model-only end
+registration makes an explicit straight end edge vertical when it is within 2
+degrees of vertical and its axial drift is at most 0.5 mm at the final model scale.
+The outermost station within 0.5 mm of such a plane is registered onto the plane
+and opens that end. Interior stations keep their positions. Curved, pointed and
+more strongly sloping ends retain the strict 1e-6 mm endpoint test. Both views
+use the corrected end midpoint for alignment, including reference/part placement.
+The drawing and saved project inputs are unchanged. See ADR-0044.
 An annular rim joins the outer and inner skins there. If the outlines extend past
 the outermost profile, that end stays closed: an axial end wall is retained and
 narrow tips remain solid. A station terminating an outline must leave room for

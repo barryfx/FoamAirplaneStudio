@@ -14,6 +14,8 @@
 namespace designrc::gui {
 bool isSketchEndpoint(const SketchLayer& layer, std::size_t index) {
   if(index>=layer.points.size())return false;
+  for(const auto& curve:layer.curves)if(curve.type==SketchTool::Circle&&
+      std::find(curve.points.begin(),curve.points.end(),index)!=curve.points.end())return false;
   int degree=0;
   for(const auto& curve:layer.curves)
     for(std::size_t i=1;i<curve.points.size();++i) {
@@ -32,6 +34,7 @@ void SketchEditor::refresh() {
   stations_.synchronize(); view_->viewport()->update(); emit changed(); }
 SketchState SketchEditor::state() const { return {layers_,pending_,tool_,active_,selected_,editing_}; }
 void SketchEditor::restoreState(const SketchState& state) {
+  circlePreview_.reset();
   selectingLeadingEdge_=false;
   layers_=state.layers; pending_=state.pending; tool_=state.tool;
   active_=state.active; selected_=state.selected; editing_=state.editing; dragging_=-1;
@@ -85,6 +88,7 @@ void SketchEditor::setSelectingLeadingEdge(bool enabled) {
   view_->viewport()->update(); emit changed();
 }
 void SketchEditor::reset() {
+  highlightedLayer_=-1;
   selectingLeadingEdge_=false;
   stations_.reset();
   pending_.clear(); layers_ = std::vector<SketchLayer>(1);
@@ -140,6 +144,20 @@ int SketchEditor::nearest(QPointF position) const {
 }
 QPainterPath SketchEditor::fittedPath(const std::vector<QPointF>& points, SketchTool type) {
   QPainterPath path;
+  if(type==SketchTool::Circle) {
+    if(points.size()!=2)return path;
+    const double radius=QLineF{points[0],points[1]}.length();
+    if(!std::isfinite(radius)||radius<1e-8)return path;
+    // Match the existing sampled profile-boundary pipeline. Persist only the
+    // center and radius handle, so sampling never changes the editable circle.
+    constexpr int samples=256;
+    for(int i=0;i<=samples;++i) {
+      const double angle=2*std::acos(-1.)*i/samples;
+      const auto point=points[0]+QPointF{radius*std::cos(angle),radius*std::sin(angle)};
+      if(i==0)path.moveTo(point);else path.lineTo(point);
+    }
+    path.closeSubpath();return path;
+  }
   if (points.empty()) return path;
   path.moveTo(points.front());
   if (points.size() < 2) return path;
@@ -166,6 +184,11 @@ QPainterPath SketchEditor::fittedPath(const std::vector<QPointF>& points, Sketch
   return path;
 }
 void SketchEditor::pick(QPointF position) {
+  if(tool_==SketchTool::Circle) {
+    if(pending_.empty()){pending_.push_back(position);circlePreview_=position;}
+    else if(QLineF{pending_.front(),position}.length()>=1e-8){pending_.push_back(position);finish();}
+    view_->viewport()->update();return;
+  }
   const int snapped = nearest(position);
   if (snapped >= 0) position = layers_[active_].points[snapped];
   for (const auto& layer : layers_) {
@@ -190,12 +213,15 @@ void SketchEditor::pick(QPointF position) {
   view_->viewport()->update();
 }
 void SketchEditor::finish() {
+  circlePreview_.reset();
   if(pending_.empty())return; // Navigation must not resynchronize unchanged anchors.
   if (pending_.size() >= 2 && !fittedPath(pending_, tool_).isEmpty()) {
     auto& layer = layers_[active_];
     SketchCurve curve{tool_, {}};
     for (auto point : pending_) {
-      const auto found = std::find(layer.points.begin(), layer.points.end(), point);
+      // Circle handles are independent of other curves, even at coincident
+      // coordinates: their center is not an outline junction.
+      const auto found = tool_==SketchTool::Circle?layer.points.end():std::find(layer.points.begin(), layer.points.end(), point);
       if (found == layer.points.end()) {
         curve.points.push_back(layer.points.size()); layer.points.push_back(point);
       } else curve.points.push_back(static_cast<std::size_t>(found - layer.points.begin()));
@@ -209,7 +235,7 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
   if (!editing_) return false;
   if (event->type() == QEvent::KeyPress && tool_ == SketchTool::None &&
       static_cast<QKeyEvent*>(event)->key() == Qt::Key_Delete) {
-    if(layerSelectionMode_)deleteActiveLayer();else deleteSelected(); return true;
+    deleteSelected(); return true;
   }
   if (event->type() == QEvent::KeyPress && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
     if(selectingLeadingEdge_)setSelectingLeadingEdge(false);
@@ -218,6 +244,10 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
     return true;
   }
   if (watched != view_->viewport()) return false;
+  if(event->type()==QEvent::MouseMove&&tool_==SketchTool::Circle&&pending_.size()==1) {
+    circlePreview_=view_->mapToScene(static_cast<QMouseEvent*>(event)->position().toPoint());
+    view_->viewport()->update();return true;
+  }
   if (event->type() == QEvent::MouseButtonPress) {
     auto* mouse = static_cast<QMouseEvent*>(event);
     if (mouse->button() != Qt::LeftButton) return false;
@@ -256,8 +286,10 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
     if (!(mouse->buttons() & Qt::LeftButton)) { dragging_ = -1; return false; }
     auto& layer = layers_[active_];
     selected_ = -1;
-    const auto before = layer.points[dragging_];
+    const auto before = layer.points;
     layer.points[dragging_] = view_->mapToScene(mouse->position().toPoint());
+    for(const auto& curve:layer.curves)if(curve.type==SketchTool::Circle&&curve.points.front()==dragging_)
+      layer.points[curve.points[1]]+=layer.points[dragging_]-before[dragging_];
     for (const auto& curve : layer.curves) {
       std::vector<QPointF> points;
       for (auto id : curve.points) points.push_back(layer.points[id]);
@@ -266,7 +298,7 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
       if (std::any_of(uniquePoints.begin(), uniquePoints.end(), [&](QPointF p) {
           return std::count(uniquePoints.begin(), uniquePoints.end(), p) > 1;
         }) || fittedPath(points, curve.type).isEmpty()) {
-        layer.points[dragging_] = before; break;
+        layer.points = before; break;
       }
     }
     refresh(); return true;
@@ -277,6 +309,14 @@ bool SketchEditor::eventFilter(QObject* watched, QEvent* event) {
   }
   return false;
 }
+void SketchEditor::setShowOpenEndpoints(bool enabled) {
+  if(showOpenEndpoints_==enabled)return;
+  showOpenEndpoints_=enabled;view_->viewport()->update();
+}
+void SketchEditor::setHighlightedLayer(int index) {
+  if(highlightedLayer_==index)return;
+  highlightedLayer_=index;view_->viewport()->update();
+}
 void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
   painter.save();
   const double radius = 4.0 / std::max(1e-9, view_->transform().m11());
@@ -285,10 +325,11 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
     const auto& layer = layers_[i];
     // Keep completed outlines equally legible outside Outline mode. The dark
     // border separates light blue from white paper; blue stands out on ink.
-    QPen pen{layerSelectionMode_ && editing_ && i==active_ ? QColor{255,140,0} : QColor{80,200,255}};
+    const bool highlighted=i==highlightedLayer_;
+    QPen pen{highlighted || (layerSelectionMode_ && editing_ && i==active_) ? QColor{255,140,0} : QColor{80,200,255}};
     pen.setCosmetic(true); pen.setWidthF(3);
-    QPen border{QColor{20, 65, 95}};
-    border.setCosmetic(true); border.setWidthF(5);
+    QPen border{highlighted?QColor{Qt::white}:QColor{20,65,95}};
+    border.setCosmetic(true); border.setWidthF(highlighted?7:5);
     painter.setBrush(Qt::NoBrush);
     for (const auto& curve : layer.curves) {
       std::vector<QPointF> points;
@@ -328,7 +369,35 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
     QPen pen{QColor{220, 110, 0}}; pen.setCosmetic(true); pen.setStyle(Qt::DashLine);
     painter.setPen(pen); painter.setBrush(Qt::white);
     painter.drawPath(fittedPath(pending_, tool_));
+    if(tool_==SketchTool::Circle&&pending_.size()==1&&circlePreview_)
+      painter.drawPath(fittedPath({pending_.front(),*circlePreview_},SketchTool::Circle));
     for (auto point : pending_) painter.drawEllipse(point, radius, radius);
+  }
+  if(showOpenEndpoints_) {
+    // Draw last so selection and pending-curve strokes cannot cover the warnings.
+    QPen border{Qt::white};border.setCosmetic(true);border.setWidthF(2);
+    painter.setPen(border);painter.setBrush(QColor{220,35,35});
+    for(int i=0;i<static_cast<int>(layers_.size());++i) {
+      if(activeOnly&&i!=active_)continue;
+      const auto& layer=layers_[i];
+      auto points=layer.points;std::vector<int> degree(points.size());
+      for(const auto& curve:layer.curves)for(std::size_t j=1;j<curve.points.size();++j) {
+        ++degree[curve.points[j-1]];++degree[curve.points[j]];
+      }
+      // Pending points use coordinates until committed. Include their snapped
+      // connections so extending a chain moves its red end as it is drawn.
+      if(editing_&&i==active_&&pending_.size()>=2) {
+        std::vector<std::size_t> ids;
+        for(auto point:pending_) {
+          auto found=std::find(points.begin(),points.end(),point);
+          if(found==points.end()) {ids.push_back(points.size());points.push_back(point);degree.push_back(0);}
+          else ids.push_back(static_cast<std::size_t>(found-points.begin()));
+        }
+        for(std::size_t j=1;j<ids.size();++j){++degree[ids[j-1]];++degree[ids[j]];}
+      }
+      for(std::size_t j=0;j<points.size();++j)
+        if(degree[j]==1)painter.drawEllipse(points[j],radius*1.5,radius*1.5);
+    }
   }
   painter.restore();
   stations_.paint(painter);

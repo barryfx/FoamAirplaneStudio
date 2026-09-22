@@ -29,7 +29,7 @@ struct ProjectReference {
   bool toScale{false};
   ProjectUnits units{ProjectUnits::Millimeters};
   std::optional<double> wingspanMm;
-  std::optional<double> fuselageLengthMm;
+  std::optional<double> fuselageLengthMm; // Legacy file field; not used for scaling.
 };
 } // namespace designrc::gui
 

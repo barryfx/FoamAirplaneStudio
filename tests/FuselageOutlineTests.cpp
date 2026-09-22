@@ -10,6 +10,7 @@
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QPainter>
 #include <QSettings>
 #include <QTabWidget>
 #include <QTemporaryDir>
@@ -37,7 +38,7 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamFuselageTests");QCoreApplication::setApplicationName("FoamFuselageTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
-    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==25);
+    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==28);
     auto legacy=canonical;legacy["version"]=8;legacy.remove("fuselageOutline");
     auto old=decodeProject(legacy);CHECK(old.fuselage.layers.size()==2 && old.fuselageView==-1);
     auto bad=canonical;auto f=bad["fuselageOutline"].toObject();f["layers"]=QJsonArray{};bad["fuselageOutline"]=f;
@@ -45,6 +46,33 @@ int main(int argc,char** argv) {
     SketchLayer closed{{{0,0},{100,0},{100,80},{0,80}},{{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}},{SketchTool::Line,{3,0}}}};
     CHECK(closedSketchBoundary(closed));auto branched=closed;branched.curves.push_back({SketchTool::Line,{0,2}});CHECK(!closedSketchBoundary(branched));
     auto multiple=closed;for(auto pt:closed.points)multiple.points.push_back(pt+QPointF{200,0});for(auto curve:closed.curves){for(auto& id:curve.points)id+=4;multiple.curves.push_back(curve);}CHECK(!closedSketchBoundary(multiple));
+    {
+      PlanViewport diagnosisView;auto& diagnosisEditor=diagnosisView.fuselageSketchEditor();
+      FuselageOutlinePanel diagnosisPanel{diagnosisEditor};auto state=diagnosisEditor.state();
+      state.layers={multiple,{}};diagnosisEditor.restoreState(state);
+      auto problems=diagnosisPanel.invalidViews();
+      CHECK(problems.size()==2&&problems[0].contains("2 separate closed loops")&&problems[1].contains("no outline"));
+      state.layers={branched,closed};diagnosisEditor.restoreState(state);
+      CHECK(diagnosisPanel.invalidViews().size()==1&&diagnosisPanel.invalidViews()[0].contains("branching"));
+      auto open=closed;open.curves.pop_back();state.layers={open,closed};diagnosisEditor.restoreState(state);
+      CHECK(diagnosisPanel.invalidViews()[0].contains("2 unconnected endpoints"));
+      const auto diagnosisFile=qEnvironmentVariable("FOAM_OUTLINE_DIAGNOSIS_PROJECT");
+      if(!diagnosisFile.isEmpty()) {
+        QString error;const auto project=readProject(diagnosisFile,error);CHECK(project);
+        diagnosisEditor.restoreState(project->fuselage);problems=diagnosisPanel.invalidViews();
+        CHECK(problems.size()==2&&problems[0].contains("2 separate closed loops")&&problems[1].contains("no outline"));
+      }
+      const auto repairedFile=qEnvironmentVariable("FOAM_OUTLINE_REPAIRED_PROJECT");
+      if(!repairedFile.isEmpty()) {
+        QString error;const auto project=readProject(repairedFile,error);CHECK(project);
+        diagnosisEditor.restoreState(project->fuselage);CHECK(diagnosisPanel.outlinesDefined());
+        MainWindow preview;preview.resize(1200,760);preview.show();
+        CHECK(preview.openProjectFile(repairedFile,error));app.processEvents();
+        CHECK(!preview.property("modelProcessing").toBool());
+        auto* repairedPanel=static_cast<FuselageOutlinePanel*>(preview.findChild<QWidget*>("fuselageOutlinePanel"));
+        CHECK(repairedPanel&&repairedPanel->outlinesDefined());
+      }
+    }
     QString error;const auto filename=dir.filePath("fuselage.foam");CHECK(writeProject(filename,p,error));
     MainWindow window;window.show();app.processEvents();CHECK(window.openProjectFile(filename,error));app.processEvents();
     auto* view=static_cast<PlanViewport*>(window.findChild<QTabWidget*>("viewportTabs")->widget(0));auto& editor=view->fuselageSketchEditor();
@@ -62,7 +90,19 @@ int main(int argc,char** argv) {
     top->click();CHECK(top->isChecked()&&!side->isEnabled());CHECK(!window.projectModified());
     button("Line")->click();CHECK(editor.tool()==SketchTool::Line);CHECK(!window.projectModified());
     const std::vector<QPointF> corners{{200,150},{600,150},{600,250},{200,250}};
-    for(int i=0;i<4;++i){click(corners[i]);click(corners[(i+1)%4]);}
+    auto redEndpoint=[&](QPointF point) {
+      QImage image{1000,700,QImage::Format_RGB32};image.fill(Qt::white);
+      QPainter painter{&image};editor.paint(painter);painter.end();
+      return image.pixelColor(point.toPoint())==QColor(220,35,35);
+    };
+    for(int i=0;i<3;++i){click(corners[i]);click(corners[i+1]);}
+    CHECK(redEndpoint(corners[0])&&redEndpoint(corners[3]));
+    CHECK(!redEndpoint(corners[1])&&!redEndpoint(corners[2]));
+    top->click();CHECK(redEndpoint(corners[0])&&redEndpoint(corners[3]));
+    const auto endpointsCapture=qEnvironmentVariable("FOAM_ENDPOINTS_CAPTURE");
+    if(!endpointsCapture.isEmpty()){view->fitAll();app.processEvents();CHECK(window.grab().save(endpointsCapture));}
+    top->click();button("Line")->click();click(corners[3]);click(corners[0]);
+    for(auto point:corners)CHECK(!redEndpoint(point));
     CHECK(closedSketchBoundary(editor.layers()[0]) && !panel->outlinesDefined());CHECK(window.projectModified());
     CHECK(view->sketchEditor().layers()[0].points==p.wing.layers[0].points);
     top->click();CHECK(!top->isChecked()&&side->isEnabled());side->click();CHECK(!top->isEnabled());
@@ -127,10 +167,12 @@ int main(int argc,char** argv) {
     CHECK(!editor.state().editing && closedSketchBoundary(editor.layers()[0]));
     workspaces->actions()[2]->trigger();side->click();side->click(); // Release and reselect.
     button("Spline")->click();click({200,350});click({400,300});
+    CHECK(redEndpoint({200,350})&&redEndpoint({400,300}));
     CHECK(editor.state().pending.size()==2);CHECK(window.saveProjectFile(filename,error));
     CHECK(window.openProjectFile(filename,error));CHECK(editor.state().pending.size()==2 && side->isChecked() && editor.state().editing);CHECK(!window.projectModified());
     key(Qt::Key_Escape);CHECK(editor.state().pending.empty()&&editor.layers()[1].curves.size()==1);
     expectWarning();workspaces->actions()[0]->trigger();CHECK(warning.contains("Side View"));
+    CHECK(!redEndpoint({200,350})&&!redEndpoint({400,300}));
     CHECK(window.saveProjectFile(filename,error));
     window.findChild<QAction*>("projectNew")->trigger();CHECK(editor.layers().size()==2&&editor.layers()[0].curves.empty()&&editor.layers()[1].curves.empty());
     CHECK(window.openProjectFile(filename,error));CHECK(editor.layers()[0].curves.size()==4);

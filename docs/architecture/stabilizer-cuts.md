@@ -5,7 +5,8 @@ shape selector, Line/Spline toggles, and Delete Cut Shape. Each shape is an
 independent SketchEditor layer. Add selects a new empty layer (reusing the initial
 empty layer). Lines join at shared endpoints; a spline closes by clicking its first
 point. Escape finishes a spline. With drawing off, click a loop or choose it from
-the list, drag its points, or Delete the entire selected shape. Other shapes remain
+the list and drag its points. Click a curve to highlight it and press Delete to
+remove that individual curve. Delete Cut Shape removes the entire selected loop. Other shapes remain
 visible. Empty shapes do not cut. Only the active component in Cut/2D accepts input.
 
 Leaving Cut, including entering 3D, warns if any nonempty loop is not closed.

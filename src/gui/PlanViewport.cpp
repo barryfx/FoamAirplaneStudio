@@ -83,6 +83,7 @@ void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   fuselageHoleEditor_->paint(*painter);
   servoTrayEditor_->paint(*painter);
   formerEditor_->paint(*painter);
+  if(balanceOverlay)balanceOverlay(*painter);
 }
 
 void PlanViewport::setDocument(const TechnicalDrawingDocument& document) {

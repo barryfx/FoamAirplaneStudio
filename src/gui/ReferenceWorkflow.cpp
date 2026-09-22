@@ -7,8 +7,7 @@ namespace designrc::gui {
 bool referenceReady(const ProjectReference& reference) {
   const auto positive = [](double value) { return std::isfinite(value) && value > 0; };
   if (!reference.toScale)
-    return reference.wingspanMm && reference.fuselageLengthMm &&
-        positive(*reference.wingspanMm) && positive(*reference.fuselageLengthMm);
+    return reference.wingspanMm && positive(*reference.wingspanMm);
   const auto validSize = [&](const std::optional<QSizeF>& size) {
     return size && positive(size->width()) && positive(size->height());
   };

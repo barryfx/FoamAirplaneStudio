@@ -2,17 +2,17 @@ FoamAirplaneStudio GUI Design
 
 Legend (text) = comments
 -------------------------- Start GUI -----------------------
-Menu Bar Taken from DesignRC (delete defaults from Edit menu)
+Menu Bar: File, Edit (Undo Ctrl+Z, Redo Ctrl+Y, Copy, Paste), View, Help
 (File menu: New, Open, Close Project, Save, Save As, Exit. Unsaved changes offer Save/Discard/Cancel.)
-(ToolBar Buttons)  Reference  |  Wing  |  Fuselage  |  Horiz Stab  |  Vert Stab  |  Assembly  |  Export
+(ToolBar Buttons)  Reference  |  Wing  |  Fuselage  |  Horiz Stab  |  Vert Stab  |  Assembly  |  Export  |  Weight and Balance  |  Inspect
 (The Assembly button is active when all components are completed.  The Export button is active only after current Assembly generation succeeds)
 (When the above buttons are selected as noted below, another toolbar is displayed here)
 (When Reference selected, no secondary toolbar, Dialog displayed to choose a image file or PDF to be displayed in background of 2D view)
 (ToolBar Buttons when Wing Selected)  Outline  |  Airfoil Stations  |  Airfoils  |  Dihedral  |  Ailerons/Flaps  |  Spars  |  Lightening
-(ToolBar Buttons when Fuselage Selected)  Outline  |  Profile Stations  |  Edit Profiles  |  Thicken  |  Cut  |  Servo Tray  |  Formers
+(ToolBar Buttons when Fuselage Selected)  Outline  |  Profile Stations  |  Edit Profiles  |  Thicken  |  Cut  |  Servo Tray  |  Formers  |  Holes
 (ToolBar Buttons when Horiz or Vert Stab Selected)  Outline  |  Airfoil  |  Hinge Line  |  Cut  |
 (Assembly: no secondary toolbar. Data panel has instructions, Wing, Horiz Stab, Vert Stab and bottom Cut Intersections / Undo Cuts.)
-(When Export Selected, no secondary toolbar. Instructions; Formers STEP/DXF/STL radios; Components STEP/STL radios; All checkbox; former then component checkboxes; bottom Export Components button. The button opens the remembered directory dialog. STEP writes one Components.step file; DXF/STL write individual parts.)
+(When Export Selected, no secondary toolbar. Instructions; Formers STEP/DXF/STL radios; Components STEP/STL radios; All checkbox; former then component checkboxes; bottom Export Components button. The button opens the remembered directory dialog. STEP writes one file named after the project; DXF/STL write individual parts.)
 
 -------------------------- Rest of Window --------------------------------------|
                      |  | 2D View | 3D View |  (tabs for viewport selection)    |
@@ -71,8 +71,8 @@ Fuselage / Profile Stations: instructions at the top. Hover on the Side View upp
 or lower edge for a floating point and vertical preview. Left-click once to place
 the section. Select/Delete or click an endpoint to move it, with vertical alignment.
 
-Implemented Fuselage Edit Profiles: one station enables the mode. Instructions
-appear above Line/Spline controls for the selected highlighted station. Each
+Implemented Fuselage Edit Profiles: a station or an existing profile enables the mode. Instructions
+appear above Line/Spline/Circle controls for the selected highlighted station. Each
 station owns a stable sketch assignment. All closed assignments enable remaining
 secondary actions. Thicken, Cut, Servo Tray and Formers are implemented. Selecting 3D generates a solid
 from both nose-aligned outlines and independently fitted profiles. See
@@ -136,3 +136,23 @@ fuselage seats and the horizontal fin slot, locks positioning and becomes Undo
 Cuts. Retain original caches and export the cut snapshot. See architecture/assembly.md.
 
 Fuselage Holes: Top/Bottom/Left/Right; Add Hole; hole selector; Line/Spline; Delete Hole. Closed loops remain inside the selected outline and cut one wall only. Fuselage Cut uses the same control layout with Top/Side, Add Cut and Delete Cut for independent paths.
+
+Weight and Balance: 2D Side View; instructions, Add Part, named parts list, Edit/Delete, XPS and Aero Plywood densities. Part dialog: Name, Width/Height/Length in Reference units, weight in grams/ounces. Drag labeled rectangles; show only in this mode. Bottom total and center of mass relative to placed wing root LE, positive aft. See architecture/weight-and-balance.md.
+
+Inspect: final primary toolbar action; 3D only. Show a vertical checkbox/name
+list for all current generated components. All begin checked. Names are editable
+and persist for Export and individual filenames. STEP uses the project name.
+
+Edit Profiles also provides Copy Profile, Paste Profile and Move Profile. Single-
+click unattached profiles to highlight/delete them, even with no stations. To
+recover an orphan, select an unassigned station and double-click its profile.
+Undo/Redo covers these operations and other project editors.
+
+Reference uses User Reference Image Scale or Specify Dimensions. Specify
+Dimensions exposes Project Units and Wingspan; no Fuselage Length input remains.
+
+The 3D viewport has bottom-centered Fit View, Reset, Top, Bottom, Front, Back,
+Left and Right buttons using the same actions as View. Fuselage generation
+registers nearly vertical straight end edges within 2 degrees/0.5 mm and treats
+outermost profiles within 0.5 mm of those end planes as open ends. Drawing data
+is unchanged; see ADR-0044.

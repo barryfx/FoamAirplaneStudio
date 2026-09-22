@@ -7,6 +7,39 @@
 #include <QMessageBox>
 #include <QSignalBlocker>
 namespace designrc::gui {
+namespace {
+QString outlineProblem(const SketchLayer& layer) {
+  if(layer.curves.empty())return "no outline has been drawn";
+  std::vector<int> degree(layer.points.size());
+  std::vector<std::vector<std::size_t>> neighbors(layer.points.size());
+  for(const auto& curve:layer.curves) {
+    if(curve.points.size()<2)return "contains an incomplete curve";
+    for(std::size_t j=1;j<curve.points.size();++j) {
+      const auto a=curve.points[j-1],b=curve.points[j];
+      if(a>=degree.size()||b>=degree.size())return "contains an invalid point reference";
+      ++degree[a];++degree[b];neighbors[a].push_back(b);neighbors[b].push_back(a);
+    }
+  }
+  int ends=0,branches=0,unused=0,chains=0;std::vector<bool> visited(degree.size());
+  for(std::size_t i=0;i<degree.size();++i) {
+    ends+=degree[i]==1;branches+=degree[i]>2;unused+=degree[i]==0;
+    if(!degree[i]||visited[i])continue;
+    ++chains;std::vector<std::size_t> pending{i};visited[i]=true;
+    while(!pending.empty()) {
+      const auto point=pending.back();pending.pop_back();
+      for(auto next:neighbors[point])if(!visited[next]){visited[next]=true;pending.push_back(next);}
+    }
+  }
+  QStringList problems;
+  if(ends)problems.append(QString{"%1 unconnected endpoints (shown in red)"}.arg(ends));
+  if(branches)problems.append(QString{"%1 branching junctions; each outline point must have two connections"}.arg(branches));
+  if(chains>1)problems.append(ends==0&&branches==0
+      ?QString{"%1 separate closed loops; this view requires exactly one"}.arg(chains)
+      :QString{"%1 disconnected chains"}.arg(chains));
+  if(unused)problems.append(QString{"%1 unused points"}.arg(unused));
+  return problems.isEmpty()?QString{"the curve cannot form a boundary with nonzero area"}:problems.join("; ");
+}
+}
 FuselageOutlinePanel::FuselageOutlinePanel(SketchEditor& editor, QWidget* parent)
     : QWidget{parent}, editor_{editor} {
   setObjectName("fuselageOutlinePanel");
@@ -20,7 +53,8 @@ FuselageOutlinePanel::FuselageOutlinePanel(SketchEditor& editor, QWidget* parent
       "Choose Line for two-point segments or Spline for fitted curves. Escape finishes a spline; "
       "click its first point to close it. Tools stay on until clicked again. With both tools off, "
       "drag points to move them, or select a curve and press Delete. Nearby points snap together. "
-      "Both outlines are checked when leaving Outline. Two valid loops enable Profile Stations.", this};
+      "Red endpoints still need a connection. Both outlines are checked when leaving Outline. "
+      "Two valid loops enable Profile Stations.", this};
   description->setWordWrap(true); layout->addWidget(description);
   for (int i=0;i<2;++i) {
     views_[i]=new QPushButton{i==0?"Top View":"Side View",this};
@@ -57,11 +91,13 @@ QStringList FuselageOutlinePanel::invalidViews() const {
   QStringList invalid;
   for(int i=0;i<2;++i)
     if(i>=static_cast<int>(editor_.layers().size()) || !closedSketchBoundary(editor_.layers()[i]))
-      invalid.append(i==0?"Top View":"Side View");
+      invalid.append(QString{i==0?"Top View: ":"Side View: "}+
+          (i>=static_cast<int>(editor_.layers().size())?QString{"no outline has been drawn"}:outlineProblem(editor_.layers()[i])));
   return invalid;
 }
 bool FuselageOutlinePanel::outlinesDefined() const {return invalidViews().empty();}
 void FuselageOutlinePanel::setActive(bool active,bool warn) {
+  editor_.setShowOpenEndpoints(active);
   if(active_==active && editor_.state().editing==(active&&view_>=0))return;
   const bool leaving=active_&&!active;
   active_=active; // Set before finish emits callbacks.
@@ -70,12 +106,13 @@ void FuselageOutlinePanel::setActive(bool active,bool warn) {
   if(leaving&&warn) {
     const auto invalid=invalidViews();
     if(!invalid.empty())QMessageBox::warning(this,"Fuselage outlines",
-        "These outlines do not form a single closed loop with nonzero area: " + invalid.join(", ") +
-        ". Return to Outline to complete them. Your sketches have been retained.");
+        invalid.join("\n\n") +
+        "\n\nEach view needs one closed loop. Return to Outline to correct these issues. Your sketches have been retained.");
   }
 }
 void FuselageOutlinePanel::restoreControls(int view) {view_=view;syncControls();}
 void FuselageOutlinePanel::reset() {
+  editor_.setShowOpenEndpoints(false);
   active_=false;view_=-1;editor_.reset();editor_.setLayerCount(2);syncControls();
 }
 }

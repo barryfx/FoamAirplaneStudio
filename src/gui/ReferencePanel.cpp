@@ -30,7 +30,7 @@ ReferencePanel::ReferencePanel(QWidget* parent) : QWidget{parent} {
   path_->setTextInteractionFlags(Qt::TextSelectableByMouse);
   layout->addWidget(path_);
   auto* group = new QButtonGroup{this};
-  toScale_ = new QRadioButton{"Reference is to scale", this};
+  toScale_ = new QRadioButton{"User Reference Image Scale", this};
   toScale_->setObjectName("referenceToScale");
   specify_ = new QRadioButton{"Specify Dimensions", this};
   specify_->setObjectName("specifyDimensions");
@@ -59,7 +59,6 @@ ReferencePanel::ReferencePanel(QWidget* parent) : QWidget{parent} {
     return edit;
   };
   wingspan_ = addLength("Wingspan", "referenceWingspan");
-  fuselage_ = addLength("Fuselage Length", "referenceFuselageLength");
   layout->addWidget(dimensions_);
   layout->addStretch();
   connect(load, &QPushButton::clicked, this, [this] { loadImage(); });
@@ -109,17 +108,16 @@ void ReferencePanel::loadImage() {
   processing.update(QString{"Loaded reference: %1 page(s)"}.arg(reference_.image.pages.size()));
 }
 void ReferencePanel::refreshDimensionFields() {
-  const QSignalBlocker spanBlock{wingspan_}, lengthBlock{fuselage_};
+  const QSignalBlocker spanBlock{wingspan_};
   const double factor = reference_.units == ProjectUnits::Inches ? 25.4 : 1.0;
   auto text = [factor](std::optional<double> mm) {
     return mm ? QLocale::c().toString(*mm / factor, 'g', 12) : QString{};
   };
   wingspan_->setText(text(reference_.wingspanMm));
-  fuselage_->setText(text(reference_.fuselageLengthMm));
 }
 void ReferencePanel::changeUnits() {
   // Make implicit old units explicit before changing the project default.
-  for(auto* edit:{wingspan_,fuselage_}) {
+  for(auto* edit:{wingspan_}) {
     const QSignalBlocker block{edit};edit->setText(explicitLength(edit->text(),reference_.units));
   }
   reference_.units = units_->currentIndex() == 1 ? ProjectUnits::Inches : ProjectUnits::Millimeters;
@@ -127,14 +125,13 @@ void ReferencePanel::changeUnits() {
 }
 void ReferencePanel::updateDimensions() {
   reference_.wingspanMm = lengthInMm(wingspan_->text(),reference_.units);
-  reference_.fuselageLengthMm = lengthInMm(fuselage_->text(),reference_.units);
   emit referenceChanged();
 }
 void ReferencePanel::updateMode() {
   reference_.toScale = toScale_->isChecked() && reference_.image.physicalSizeMm.has_value();
   dimensions_->setVisible(!reference_.toScale);
   if (reference_.toScale) {
-    for(auto* edit:{wingspan_,fuselage_}) {
+    for(auto* edit:{wingspan_}) {
       const QSignalBlocker block{edit};edit->setText(explicitLength(edit->text(),reference_.units));
     }
     reference_.units = reference_.image.nativeUnits;
@@ -147,8 +144,8 @@ void ReferencePanel::updateMode() {
         .arg(reference_.units == ProjectUnits::Inches ? "inches" : "mm"));
   } else {
     size_->setText(reference_.image.empty() ? QString{} :
-        reference_.image.physicalSizeMm ? "Enter the aircraft dimensions in the selected project units." :
-        "This image has no physical-size metadata. Specify the aircraft dimensions.");
+        reference_.image.physicalSizeMm ? "Enter Wingspan in the selected project units to scale all project lengths." :
+        "This image has no physical-size metadata. Specify Wingspan to scale all project lengths.");
   }
   emit referenceChanged();
 }

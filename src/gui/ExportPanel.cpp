@@ -14,7 +14,7 @@ ExportPanel::ExportPanel(QWidget* parent):QWidget{parent} {
   auto* text=new QLabel{"Choose a format for formers and for the other Assembly components. "
       "Check the parts to export, or use All to select or clear every part. "
       "Export Components asks for a folder and remembers it for next time. "
-      "STEP writes selected formers and components together in Components.step; STL and DXF write one file per checked part. "
+      "STEP writes selected formers and components together in a STEP file named after the project; STL and DXF write one file per checked part. "
       "Exports use the current Assembly, including its cuts. Former DXF uses a full-size mid-plane section, flattened in millimeters.",this};
   text->setWordWrap(true);text->setObjectName("exportInstructions");layout->addWidget(text);
   const auto radios=[&](const char* first,const char* second,const char* id1,const char* id2) {

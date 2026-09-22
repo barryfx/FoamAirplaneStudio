@@ -15,6 +15,7 @@ struct AssemblyPart {
   TopoDS_Shape shape;
   // Present only for formers: manufacturing section in its local mid-plane.
   std::optional<gp_Pln> formerPlane;
+  std::string id; // Source component identity, independent of its display name.
 };
 struct AssemblyParts {
   TopoDS_Shape fuselage,wing,horizontal,vertical,elevator,rudder;

@@ -17,7 +17,7 @@ StabilizerCutPanel::StabilizerCutPanel(SketchEditor& editor,bool horizontal,QWid
     "Join each segment to the previous endpoint and close the loop at its first point. Escape finishes a spline. "
     "Material inside the loop is removed through the full thickness of all intersecting stabilizer and control-surface bodies; a body may separate into several pieces. "
     "Horizontal cuts are mirrored to the other half. With drawing off, click a shape or select it from the list; drag its points to edit. "
-    "Delete Cut Shape or the Delete key removes the entire selected loop. Unclosed loops are retained for editing and warn when leaving Cut.",this};
+    "Delete Cut Shape removes the entire loop. With drawing tools off, click a curve to highlight it and press Delete to remove only that curve. Unclosed loops are retained for editing and warn when leaving Cut.",this};
   text->setWordWrap(true);layout->addWidget(text);
   auto* add=new QPushButton{"Add Cut Shape",this};layout->addWidget(add);
   shapes_=new QComboBox{this};shapes_->setObjectName("stabilizerCutShapes");layout->addWidget(shapes_);

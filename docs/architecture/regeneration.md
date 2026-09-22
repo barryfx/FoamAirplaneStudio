@@ -125,3 +125,13 @@ fusion stages or panel scheduling. `FOAM_BENCH_KERNEL_SERIAL=1` exposes that
 comparison in `regeneration_benchmark`; `FOAM_BENCH_PARALLEL=1` separately enables
 the normal bounded panel scheduler. Kernel workers share CPU resources with
 panel and Assembly workers, so gains depend on the model and available cores.
+
+Inspect also uses Assembly preparation to refresh missing or changed complete
+components. Weight and Balance caches volume/centroid statistics against current
+source geometry and Assembly state; changing only parts or densities reuses those
+statistics. See inspect.md and weight-and-balance.md.
+
+Before Fuselage lofting, model-only end registration accommodates slightly tilted
+flat nose/tail edges and nearby end stations without modifying saved sketches.
+See fuselage-thickness.md and ADR-0044. The fuselage is still generated as a full
+body before splitting; building one half and mirroring it is not implemented.

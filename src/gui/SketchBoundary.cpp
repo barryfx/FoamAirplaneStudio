@@ -3,6 +3,15 @@
 #include <cmath>
 namespace designrc::gui {
 std::optional<std::vector<QPointF>> closedSketchBoundary(const SketchLayer& layer) {
+  if(layer.curves.size()==1&&layer.curves[0].type==SketchTool::Circle) {
+    const auto& ids=layer.curves[0].points;
+    if(ids.size()!=2||layer.points.size()!=2||ids[0]>=2||ids[1]>=2||ids[0]==ids[1])return {};
+    const auto path=SketchEditor::fittedPath({layer.points[ids[0]],layer.points[ids[1]]},SketchTool::Circle);
+    if(path.isEmpty())return {};
+    std::vector<QPointF> boundary;
+    for(int i=0;i<path.elementCount();++i){const auto e=path.elementAt(i);boundary.push_back({e.x,e.y});}
+    boundary.back()=boundary.front();return boundary;
+  }
   if (layer.points.size() < 3 || layer.curves.empty()) return {};
   std::vector<int> degree(layer.points.size());
   for (const auto& curve : layer.curves) {

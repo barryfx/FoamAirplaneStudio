@@ -1,12 +1,25 @@
-# FoamAirplaneStudio project format, version 25
+# FoamAirplaneStudio project format, version 28
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 25`.
+Version 28 adds Circle (`type: 3`) only to `fuselageProfiles` curves and tools.
+Each circle references exactly two distinct points: center and radius handle,
+with a finite positive radius. Pending Circle input contains at most the center.
+Other sketch collections continue to accept only Line/Spline. Versions 1–27 remain
+readable and cannot contain Circle. The two handles are independent of other curves.
+
+Version 27 adds `componentNames`, an object mapping source component identifiers
+to user-visible export names, and workspace 8 (Inspect). Names are 1–120 characters
+and valid as cross-platform filename stems. Identifiers are at most 240 characters;
+at most 10,000 overrides are accepted. Versions 1–26 load an empty name map.
+Inspect checkbox visibility remains session-only. See ADR-0041.
+
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 28`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
 | Field | Meaning |
 | --- | --- |
-| reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan/fuselage length and their text fields |
+| weightBalance | Foam and Aero Plywood densities and named parts with physical dimensions, masses and X/Z centers |
+| reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan and its text; legacy fuselage length/text fields retained for compatibility |
 | assembly | Positioned flag, three physical X/Z translations and cut/uncut intent |
 | stabilizerAirfoils | Two entries in horizontal/vertical order: null for bundled NACA009, or embedded DAT name and normalized coordinates |
 | horizontalStabilizerOutline / verticalStabilizerOutline | Independent single-layer open sketches, tools, selections and pending points |
@@ -73,7 +86,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 25.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 28.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -102,7 +115,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 25; older
+into Panel 1, with others disabled. Current Save/Save As writes version 28; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -167,7 +180,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 25; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 28; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -207,7 +220,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints remain transient. Save writes version 25; earlier versions remain readable.
+fingerprints remain transient. Save writes version 28; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -233,7 +246,7 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 25. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 28. Generated cut
 bodies remain transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -341,12 +354,12 @@ Translations and cut intent affect document dirty state, but not individual
 component generation fingerprints. Selected component is transient. Source edits
 clear derived cut intent/caches while retaining translations. Solids and meshes are not serialized. Entering Assembly after Open
 rebuilds components and reapplies requested cuts. Failed/cancelled cuts remain uncut.
-Applications supporting only earlier formats reject current version 25. Original files change only on Save.
+Applications supporting only earlier formats reject current version 28. Original files change only on Save.
 
 ## Retired model caches (version 22) and input-only saving (version 23)
 
 Version 22 embedded generated OCCT geometry and meshes in a `models` object.
-Version 23 no longer writes that field. The current reader accepts versions 1–25
+Version 23 no longer writes that field. The current reader accepts versions 1–28
 and ignores `models` entirely, including malformed or corrupt cache payloads.
 It performs no base64 decoding, decompression, checksum validation or BREP reads
 for obsolete caches. Normal design input validation and the 512 MiB file limit
@@ -356,8 +369,8 @@ All generated component, accessory, and original/cut Assembly geometry stays in
 memory for the current session. Saving does not clear those caches. Opening starts
 with empty caches and 2D selected; entering 3D or Assembly regenerates geometry
 from saved inputs and reapplies requested Assembly cuts. Saving an older file
-writes version 25 without its embedded models. Existing files remain unchanged
-until Save. Applications supporting only earlier formats reject current version 25.
+writes version 28 without its embedded models. Existing files remain unchanged
+until Save. Applications supporting only earlier formats reject current version 28.
 
 ## Former rotation (version 24)
 
@@ -368,7 +381,7 @@ Side View, negative counter-clockwise and positive clockwise. Width remains
 normal thickness. Positive-area overlap validation uses the rotated masks for
 former/former and former/tray pairs. Touching is allowed.
 
-Versions 1–23 initialize former angles to zero. New saves write version 25;
+Versions 1–23 initialize former angles to zero. New saves write version 28;
 older applications reject it rather than silently generating unrotated inserts.
 Version-22 model caches remain ignored, and generated models are never written.
 
@@ -380,3 +393,29 @@ unfinished drafts. Active layer, selected curve, tool, editing and pending point
 use the existing sketch representation. Versions 1-24 load four empty layers.
 Existing two-layer `fuselageCuts` remains unchanged; its connected paths are now
 managed individually by the shared Add/Delete controls.
+
+## Version 26: Weight and Balance
+
+`weightBalance` stores `densityKgM3` (XPS, default 32.5),
+`plywoodDensityKgM3` (Aero Plywood, default 680), and `parts` (up to 1000).
+Densities are finite, positive, from 0.001 through 10000 kg/m³. Each part stores
+`name` (trimmed, unique ignoring case, 1–200 characters, single line), `widthMm`,
+`heightMm`, `lengthMm`, `grams`, `centerMm` ([X,Z] in fuselage model millimeters),
+and `ounces` (boolean entry-unit preference). Dimensions range from 0.001 through
+10000 mm; weight ranges from 0.001 through 1000000 g. Position coordinates are finite within ±10000000 mm.
+Y is implicitly zero; uniform mass acts at the rectangle center. All parts and
+both densities affect dirty state, but not component-generation fingerprints.
+
+Workspace 7 is Weight and Balance. Part selection/drag gestures, measured model
+volumes and calculated totals are transient. Versions 1–25 initialize default
+densities and no parts; original files change only on Save. New files use version
+26, and older applications reject them rather than silently dropping these data.
+
+The Reference UI now uses Wingspan for all manual project scaling. Legacy
+`fuselageLengthMm` and `fuselageText` remain readable but do not control geometry.
+Existing files therefore open without a format migration; their regenerated
+fuselage/stabilizer sizes follow the shared wing scale (ADR-0040).
+
+Undo/Redo history, highlighted orphan profiles, and model-only end registration
+are transient. Recovery changes the existing station profile index; deleting an
+orphan empties its stable sketch slot. Neither requires a format revision.

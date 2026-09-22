@@ -23,7 +23,7 @@ have unambiguous chord sections. Folded, pinched or disconnected sections fail
 with an explanation instead of publishing an invalid result.
 
 Actual-scale references use scene millimeters. Manual references use entered
-Fuselage Length divided by the traced Side View longitudinal extent. This assumes
+Wingspan divided by the traced full wing span (the same scale used by the wing). This assumes
 the stabilizer and Side View drawing share scale; it does not infer dimensions from
 the entire image or from the stabilizer's bounding box. Independent per-component
 scale overrides remain outside the current UI.

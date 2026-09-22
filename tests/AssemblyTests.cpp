@@ -91,7 +91,7 @@ public:
     CHECK(w.saveProjectFile(file,error));
     QFile input{file};CHECK(input.open(QIODevice::ReadOnly));
     const auto json=QJsonDocument::fromJson(input.readAll()).object();input.close();
-    CHECK(json["version"]==25&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
+    CHECK(json["version"]==28&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
     CHECK(!w.wingShape_.IsNull()&&w.assemblyCutParts_); // Save retains session caches.
     for(const QJsonValue obsolete:{QJsonValue{QJsonObject{{"wing",QJsonObject{{"fingerprint","bad"},{"shapes",QJsonArray{QJsonObject{{"brep","not compressed geometry"},{"sha256","bad"}}}}}}}},QJsonValue{"invalid legacy cache"},QJsonValue{}}) {
       auto legacy=json;legacy["version"]=22;legacy["models"]=obsolete;
@@ -106,7 +106,7 @@ public:
       CHECK(w.assemblyState_.cuts&&w.assemblyState_.offsets[0]==QPointF(12,34));
       CHECK(!w.projectModified());if(!w.saveProjectFile(file,error))throw std::runtime_error(error.toStdString());
       CHECK(input.open(QIODevice::ReadOnly));const auto resaved=QJsonDocument::fromJson(input.readAll()).object();input.close();
-      CHECK(resaved["version"]==25&&!resaved.contains("models"));
+      CHECK(resaved["version"]==28&&!resaved.contains("models"));
     }
     auto older=json;older["version"]=21;CHECK(decodeProject(older).assembly.cuts);
     auto invalid=json;invalid["assembly"]=false;bool rejected=false;
@@ -221,7 +221,7 @@ int main(int argc,char** argv) {
     CHECK(mapping.left==200&&mapping.verticalOrigin==225&&mapping.scale==.25);
     const auto physical=geometry::fuselageSideTransform(side,std::nullopt);CHECK(physical.scale==1.);
     auto doc=fixture();doc.assembly=geometry::initialAssemblyPlacement(p);doc.assembly.cuts=true;
-    auto json=encodeProject(doc);CHECK(json["version"]==25);CHECK(decodeProject(json).assembly.cuts);
+    auto json=encodeProject(doc);CHECK(json["version"]==28);CHECK(decodeProject(json).assembly.cuts);
     auto legacy=json;legacy["version"]=20;legacy.remove("assembly");CHECK(!decodeProject(legacy).assembly.positioned);
     auto invalid=json;auto state=invalid["assembly"].toObject();state["offsets"]=QJsonArray{};invalid["assembly"]=state;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

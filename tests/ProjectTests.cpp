@@ -313,7 +313,7 @@ int main(int argc,char** argv) {
     auto* workspace = window.findChild<QToolBar*>("workspaceToolBar");
     CHECK(workspace->actions().front()->isEnabled());
     CHECK(workspace->actions().front()->isChecked());
-    for(int i=1;i<workspace->actions().size();++i) CHECK(!workspace->actions()[i]->isEnabled());
+    for(int i=1;i<workspace->actions().size();++i) CHECK(workspace->actions()[i]->isEnabled()==(i==8));
     CHECK(!QApplication::overrideCursor());
     CHECK(!window.statusBar()->currentMessage().contains("under development"));
     CHECK(window.projectDocument().plan.zoom!=p.plan.zoom);CHECK(!window.projectModified());

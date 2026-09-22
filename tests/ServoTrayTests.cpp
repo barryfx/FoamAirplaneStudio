@@ -73,7 +73,8 @@ int main(int argc,char** argv) {
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
     if(app.arguments().contains("--geometry-only")){geometryTests();return 0;}
-    ProjectDocument p;p.reference.wingspanMm=1000;p.reference.fuselageLengthMm=400;p.wingspanText="1000 mm";p.fuselageText="400 mm";
+    // A mirrored 90-unit half-span establishes 1 mm per scene unit.
+    ProjectDocument p;p.reference.wingspanMm=180;p.reference.fuselageLengthMm=400;p.wingspanText="180 mm";p.fuselageText="400 mm";
     p.wing.layers[0]=rectangle(10,10,90,70);p.wing.layers[0].curves.pop_back();
     p.stations.lines={{{0,0,0,{10,10}},{0,2,1,{10,80}},LineAlignment::Vertical,0},{{0,0,1,{100,10}},{0,2,0,{100,80}},LineAlignment::Vertical,0}};
     p.airfoils.entries.push_back({"NACA",domain::AirfoilProfile::nacaSymmetric(.12),{},{}});
@@ -107,7 +108,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangle->center());key(Qt::Key_Delete);CHECK(!editor.state().rectangle);
     place->click();CHECK(editor.state().rectangle);CHECK(std::abs(editor.state().rectangle->width()-130)<1e-8);
     CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangle);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==25);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==28);
     auto old=encoded;old["version"]=13;old.remove("servoTray");CHECK(!decodeProject(old).servoTray.rectangle);
     auto bad=encoded;auto tray=bad["servoTray"].toObject();tray["rectangle"]=QJsonArray{1,2,0,5};bad["servoTray"]=tray;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[4]->trigger();CHECK(!window.projectModified());

@@ -12,7 +12,7 @@ class QGraphicsView;
 class QPainter;
 
 namespace designrc::gui {
-enum class SketchTool { None, Line, Spline };
+enum class SketchTool { None, Line, Spline, Circle };
 struct SketchCurve {
   SketchTool type;
   std::vector<std::size_t> points;
@@ -49,6 +49,8 @@ public:
   void setSnapAcrossLayers(bool enabled) { snapAcrossLayers_ = enabled; }
   void setContinuousLineMode(bool enabled) { continuousLineMode_=enabled; }
   void setClosedLoopMode(bool enabled) { closedLoopMode_ = enabled; }
+  void setShowOpenEndpoints(bool enabled);
+  void setHighlightedLayer(int index);
   void setEscapeEndsSession(bool enabled) { escapeEndsSession_ = enabled; }
   void reset();
   void finish();
@@ -78,13 +80,16 @@ private:
   QGraphicsView* view_;
   std::vector<SketchLayer> layers_{1};
   std::vector<QPointF> pending_;
+  std::optional<QPointF> circlePreview_;
   SketchTool tool_{SketchTool::None};
   int active_{0};
   int dragging_{-1};
   int selected_{-1};
+  int highlightedLayer_{-1};
   bool editing_{false};
   bool selectingLeadingEdge_{false};
   bool closedLoopMode_{false};
+  bool showOpenEndpoints_{false};
   bool continuousLineMode_=false;
   bool layerSelectionMode_=false;
   bool snapAcrossLayers_{true};

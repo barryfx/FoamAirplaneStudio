@@ -31,6 +31,5 @@ private:
   QWidget* dimensions_{};
   QComboBox* units_{};
   QLineEdit* wingspan_{};
-  QLineEdit* fuselage_{};
 };
 }

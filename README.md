@@ -17,8 +17,8 @@ As of September 20, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-25 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text, view state. Versions 1-24 remain readable.
+- Portable version-28 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text, view state. Versions 1-27 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -43,8 +43,19 @@ thickness and can create additional bodies. Unchanged navigation reuses each
 component's successful model cache. Assembly provides side-view positioning,
 control-surface collision checks, reversible intersection cuts and separate export
 geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers former STEP/DXF/STL and component STEP/STL from the current Assembly
-(see [Export](docs/architecture/export.md)). General editor undo, SVG and tray DXF
-remain future work; Assembly includes Undo Cuts.
+(see [Export](docs/architecture/export.md)). Project-wide Undo/Redo uses Ctrl+Z/Ctrl+Y; Assembly also includes Undo Cuts.
+SVG and tray DXF remain future work.
+
+Weight and Balance adds named RC parts to Side View and calculates mass/center from current Assembly foam and Aero Plywood plus entered parts. See docs/architecture/weight-and-balance.md.
+
+Inspect shows and hides individual generated components and saves editable names
+for Export. Combined STEP files use the project basename.
+
+Edit Profiles supports Circle, Copy/Paste, whole-profile movement and orphan
+selection/deletion. Double-click an orphan to reassign it to an unassigned station.
+Nearly vertical fuselage ends use model-only 0.5 mm/2 degree registration; the
+original traces remain unchanged. See [fuselage profiles](docs/architecture/fuselage-profiles.md)
+and [end registration](docs/adr/0044-tolerant-fuselage-ends.md).
 
 The former DesignRC field-driven wing/rib pipeline and persistence were removed.
 Legacy `.designrc` projects are not supported. Original DesignRC documentation is

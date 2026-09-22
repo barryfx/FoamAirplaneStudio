@@ -38,3 +38,24 @@ were not tested. No fuselage solid generation or Profile Stations editor is clai
 
 Documentation: ADR-0019, architecture/fuselage-outlines.md and format version 9.
 Older project files are readable and are only upgraded on explicit Save.
+# Open-endpoint markers, 2026-09-21
+
+Follow-up: validation warnings now distinguish empty views, separate closed
+loops, open endpoints, branching junctions and other invalid boundaries. The
+Baby Buzzard project reproduced two closed loops in Top View and an empty Side
+View, explaining the absence of red endpoints. With user approval, the lower
+loop was moved to Side View after making a byte-for-byte backup; point positions
+were preserved. The focused outline test checked the original file's specific
+diagnosis and both repaired boundaries, and opened the repaired project in the
+real MainWindow without generating models. It passed in 5.12 seconds total.
+Debug application and test builds succeeded. Logs are in
+`build/outline-diagnostics-build.log` and `build/outline-diagnostics-tests.log`.
+
+Built the Debug application, `fuselage_outline_tests`, and `sketch_editor_tests`.
+Both focused tests passed (4.30 seconds total). Added rendered-color checks for
+unconnected ends, ordinary connected corners, closure, pending spline endpoints,
+markers with neither view selected, and marker removal outside Outline mode.
+Visually inspected `build/debug/fuselage-open-endpoints.png`: the open chain has
+two red endpoints with white borders, and its connected corners remain blue.
+No component generation suites were run. Build/test logs are local artifacts at
+`build/outline-endpoints-build.log` and `build/outline-endpoints-tests.log`.

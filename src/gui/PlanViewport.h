@@ -22,6 +22,7 @@ struct PlanViewState { double zoom{1}; QPointF center; };
 class PlanViewport final : public QGraphicsView {
 public:
   explicit PlanViewport(QWidget* parent = nullptr);
+  std::function<void(QPainter&)> balanceOverlay;
 
   void setDocument(const TechnicalDrawingDocument& document);
   void clearPlan();

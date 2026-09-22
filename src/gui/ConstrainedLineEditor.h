@@ -39,6 +39,7 @@ public:
   void setActivePanel(int panel);
   int activePanel() const { return panel_; }
   bool allPanelsDefined() const;
+  bool moving() const { return moving_>=0; }
   bool enabled() const { return enabled_; }
   void setSelectionEnabled(bool enabled);
   bool selectionEnabled() const { return selectionOnly_; }

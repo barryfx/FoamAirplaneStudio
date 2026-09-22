@@ -11,8 +11,8 @@ for the common file/directory chooser policy.
 ## Workspace prerequisites
 
 A new project enables only Reference in the workspace toolbar. Wing becomes
-available when Specify Dimensions has both positive, finite Wingspan and Fuselage
-Length values (with or without an image), or Reference is to scale is selected
+available when Specify Dimensions has a positive, finite Wingspan
+value (with or without an image), or User Reference Image Scale is selected
 with a loaded image and valid physical dimensions for every page. Loading an
 image alone does not unlock Wing. Hidden manual values do not override an invalid
 actual-scale selection. Fuselage additionally requires completed Wing airfoil assignments; Top/Side outline, station and profile editing plus solid generation are implemented (fuselage-profiles.md). Assembly unlocks after complete Fuselage profiles and valid stabilizer outlines; Export enables after successful current Assembly generation.
@@ -23,21 +23,20 @@ If prerequisites are invalidated while another workspace is active, the app
 returns to Reference without removing existing sketches. The Wing secondary
 toolbar still follows its own outline/station/airfoil prerequisites.
 
-Validation (Windows Debug, 2026-09-13): reference_tests and wing_workflow_tests
+Historical validation before Wingspan-only scaling (Windows Debug, 2026-09-13): reference_tests and wing_workflow_tests
 passed (2/2, 0.41 seconds). Coverage includes the initial toolbar, one versus both
 manual dimensions, unit changes, invalid/cleared values, New, image-only input,
 scaled PNG/PDF, missing per-page scale metadata and unchanged downstream gating.
 Debug was rebuilt and launched. Linux/macOS remain untested.
 
-Reference is to scale uses embedded physical resolution or PDF page size, sets the
+User Reference Image Scale uses embedded physical resolution or PDF page size, sets the
 project display units from the source metadata convention, and hides manual fields.
 Raster files without explicit physical-size metadata require Specify Dimensions.
 PNG physical size uses pHYs meters (displayed in mm); JPEG supports EXIF resolution
 and JFIF inch/cm density. PDF point units display as inches. These units describe
 file geometry, not text or dimension labels printed on the drawing.
 
-Specify Dimensions shows Project Units (millimeters/inches), Wingspan, and Fuselage
-Length. Values accept positive decimals with optional mm/in suffixes (also inch,
+Specify Dimensions shows Project Units (millimeters/inches) and Wingspan. Values accept positive decimals with optional mm/in suffixes (also inch,
 inches, millimeters, millimetres, or double quote). Bare numbers use Project Units; empty or invalid entries have no committed
 dimension. Unit changes preserve entered values and physical lengths, appending
 the previous unit suffix to valid bare values before changing the project default.
@@ -47,9 +46,11 @@ changes. New clears the reference and dimensions and resets units to millimeters
 
 Manual Wingspan now calibrates the traced mirrored wing, not the entire image
 rectangle (wing-solids.md). A plan can contain margins and multiple views.
-Manual Fuselage Length calibrates the Top/Side fuselage outlines; stabilizers
-use that length divided by the Side View extent and assume the same drawing
-scale (fuselage-profiles.md and stabilizer-solids.md). `.foam` files embed reference
+The same Wingspan-derived scale calibrates fuselage, stabilizers, formers, servo
+tray and Weight and Balance placement. The Side View extent times this scale
+supplies the fuselage builder length; the Top View remains registered to that
+length. All traced views must share a drawing scale. Legacy Fuselage Length data
+is read for file compatibility but no longer affects scaling. See ADR-0040. `.foam` files embed reference
 pages and their scale metadata (projects.md). Actual-scale backgrounds use millimeter
 scene coordinates; uncalibrated previews use pixels.
 

@@ -1,12 +1,12 @@
 # Documentation guide
 
-Current state: September 20, 2026.
+Current state: September 22, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
-- `formats/foam-project.md` specifies version 25 and migration from versions 1-24.
+- `formats/foam-project.md` specifies version 28 and migration from versions 1-27.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.
@@ -30,7 +30,7 @@ See `architecture/stabilizer-hinges.md`, `architecture/stabilizer-cuts.md` and
 `baseline/stabilizer-cache-validation.md`.
 Assembly positioning, collision checks and reversible interface cuts are implemented
 ([Assembly](architecture/assembly.md), ADR-0033). [Export](architecture/export.md) provides former STEP/DXF/STL and component STEP/STL.
-General editor undo remains future work. Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
+Project-wide editor Undo/Redo is implemented (architecture/editor-history.md). Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
 Profile Stations places vertical Side View sections (architecture/fuselage-stations.md,
 ADR-0020). Edit Profiles, solid generation, Thicken, Cut, Servo Tray and Formers are implemented.
 
@@ -63,7 +63,7 @@ Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.
 
 The latest documentation audit is recorded in
-[documentation audit](baseline/documentation-audit-2026-09-20.md).
+[documentation audit](baseline/documentation-audit-2026-09-22.md).
 Historical test commands are evidence, not authorization to rerun generation:
 follow the current restrictions in `../AGENTS.md`.
 
@@ -85,3 +85,14 @@ Former rotation: [design](adr/0036-former-rotation.md) and
 
 [Fuselage Holes](architecture/fuselage-holes.md) removes closed loops through a
 selected wall and shares path controls with Cut (ADR-0038, project version 25).
+
+[Weight and Balance](architecture/weight-and-balance.md) places RC parts in Side View and combines their masses with foam and Aero Plywood from current Assembly geometry (ADR-0039, format 26).
+
+- `architecture/inspect.md` describes component visibility and persistent export names.
+
+Project-wide Undo/Redo and individual curve selection/deletion are described in
+`architecture/editor-history.md` and ADR-0043.
+
+Circle/profile copy and movement, orphan recovery/deletion, and tolerant fuselage
+end registration are described in `architecture/fuselage-profiles.md`,
+`architecture/fuselage-thickness.md`, ADR-0042 and ADR-0044.

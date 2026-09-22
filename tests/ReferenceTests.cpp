@@ -1,3 +1,5 @@
+#include "gui/WingCalibration.h"
+#include <QRadioButton>
 #include "gui/ReferenceImage.h"
 #include "gui/ReferencePanel.h"
 #include "gui/ReferenceWorkflow.h"
@@ -93,42 +95,63 @@ int main(int argc, char** argv) {
   scaled.image = unscaled; checkToolbar(scaled, false);
   scaled.image = {}; checkToolbar(scaled, false);
   scaled.toScale = false;
-  scaled.wingspanMm = 100; scaled.fuselageLengthMm = 50;
+  scaled.wingspanMm = 100;
   checkToolbar(scaled, true); // Manual dimensions need no reference image.
   scaled.image = unscaled; checkToolbar(scaled, true);
   scaled.wingspanMm = 0; checkToolbar(scaled, false);
   scaled.wingspanMm = std::numeric_limits<double>::quiet_NaN(); checkToolbar(scaled, false);
-  scaled.wingspanMm = 100; scaled.fuselageLengthMm = -1; checkToolbar(scaled, false);
-  scaled.fuselageLengthMm = std::numeric_limits<double>::infinity(); checkToolbar(scaled, false);
+  scaled.wingspanMm = 100; scaled.fuselageLengthMm = -1; checkToolbar(scaled, true);
+  scaled.fuselageLengthMm = std::numeric_limits<double>::infinity(); checkToolbar(scaled, true);
   auto* span = panel.findChild<QLineEdit*>("referenceWingspan");
   auto* length = panel.findChild<QLineEdit*>("referenceFuselageLength");
   auto* units = panel.findChild<QComboBox*>("projectUnits");
-  assert(span && length && units);
+  assert(span && !length && units);
+  assert(panel.findChild<QRadioButton*>("referenceToScale")->text()=="User Reference Image Scale");
   span->setText("254.0");
-  assert(!toolbar.actions()[1]->isEnabled());
-  length->setText("127.0");
+
   assert(toolbar.actions()[1]->isEnabled());
   units->setCurrentIndex(1);
   assert(span->text()=="254.0 mm");
-  assert(length->text()=="127.0 mm");
   assert(panel.projectReference().wingspanMm == 254.0);
-  span->setText("500 mm");length->setText("10 in");
+  span->setText("500 mm");
   assert(panel.projectReference().wingspanMm==500);
-  assert(panel.projectReference().fuselageLengthMm==254);
   units->setCurrentIndex(0);
-  assert(span->text()=="500 mm" && length->text()=="10 in");
+  assert(span->text()=="500 mm");
   span->setText("2.5 inches");assert(panel.projectReference().wingspanMm==63.5);
   span->setText("3 cm");assert(!panel.projectReference().wingspanMm);
   span->setText("");
   assert(!panel.projectReference().wingspanMm);
   assert(!toolbar.actions()[1]->isEnabled());
   span->setText("10"); assert(toolbar.actions()[1]->isEnabled());
-  length->setText("invalid"); assert(!toolbar.actions()[1]->isEnabled());
-  length->setText("5"); assert(toolbar.actions()[1]->isEnabled());
+  span->setText("invalid"); assert(!toolbar.actions()[1]->isEnabled());
+  span->setText("5"); assert(toolbar.actions()[1]->isEnabled());
   panel.reset();
   checkToolbar(panel.projectReference(), false);
   assert(!panel.projectReference().fuselageLengthMm);
   assert(panel.projectReference().units == ProjectUnits::Millimeters);
+  // Pure drawing calibration: 100 units of half-span represents 1000 mm full span.
+  SketchLayer wing{{{10,10},{110,10},{110,80},{10,80}},
+      {{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}}}};
+  std::vector<ConstrainedLine> stations{{{0,0,0,{10,10}},{0,2,1,{10,80}},LineAlignment::Vertical,0}};
+  auto calibration=wingCalibration({wing},stations,1000);
+  assert(std::abs(calibration.scale-5)<1e-9);
+  assert(std::abs(calibration.leadingEdgeX-50)<1e-9);
+  assert(std::abs(wingCalibration({wing},stations,2000).scale-10)<1e-9);
+  assert(wingCalibration({wing},stations,std::nullopt).scale==1);
+  // Translation and a 90-degree drawing rotation do not change physical scale.
+  for(auto& point:wing.points)point={-point.y()+500,point.x()+300};
+  for(auto& station:stations) {
+    auto rotate=[](QPointF point){return QPointF{-point.y()+500,point.x()+300};};
+    station.first.position=rotate(station.first.position);station.second.position=rotate(station.second.position);
+  }
+  assert(std::abs(wingCalibration({wing},stations,1000).scale-5)<1e-9);
+
+  const auto capture=qEnvironmentVariable("FOAM_REFERENCE_CAPTURE");
+  if(!capture.isEmpty()) {
+    panel.resize(350,400);panel.show();app.processEvents();
+    assert(panel.grab().save(capture));
+  }
+
 }
 
 

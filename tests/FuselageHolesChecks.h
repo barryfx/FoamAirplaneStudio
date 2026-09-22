@@ -35,7 +35,7 @@ inline void holeChecks(QApplication& app,const QString& directory) {
   std::cout<<"Hole geometry complete"<<std::endl;
   // Round-trip all wall layers and verify old projects receive empty holes.
   ProjectDocument p;p.fuselageHoles.layers=holes;
-  auto encoded=encodeProject(p);CHECK(encoded["version"]==25);
+  auto encoded=encodeProject(p);CHECK(encoded["version"]==28);
   CHECK(decodeProject(encoded).fuselageHoles.layers[0].curves.size()==1);
   auto legacy=encoded;legacy["version"]=24;legacy.remove("fuselageHoles");CHECK(decodeProject(legacy).fuselageHoles.layers.size()==4&&decodeProject(legacy).fuselageHoles.layers[0].curves.empty());
   std::cout<<"Hole persistence complete"<<std::endl;

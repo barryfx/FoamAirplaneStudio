@@ -89,6 +89,7 @@ target_include_directories(designrc_domain
 target_compile_features(designrc_domain PUBLIC cxx_std_23)
 
 add_library(foam_sketch
+  src/gui/WeightBalancePanel.cpp src/gui/WeightBalancePanel.h
   src/gui/SketchBoundary.cpp src/gui/SketchBoundary.h
   src/gui/FormerEditor.cpp src/gui/FormerEditor.h src/gui/FormerPanel.h
   src/gui/ServoTrayEditor.cpp src/gui/ServoTrayEditor.h src/gui/ServoTrayPanel.h
@@ -117,7 +118,7 @@ add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerA
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/FuselageEndRegistration.cpp src/geometry/WeightBalance.cpp src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
@@ -125,6 +126,7 @@ target_include_directories(foam_project PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_project PUBLIC foam_airfoils TKernel TKMath)
 
 add_library(foam_export
+  src/gui/InspectPanel.cpp src/gui/InspectPanel.h
   src/geometry/ComponentExporter.cpp src/geometry/ComponentExporter.h
   src/geometry/StepExporter.cpp src/geometry/StepExporter.h
   src/gui/ExportPanel.cpp src/gui/ExportPanel.h)
@@ -305,6 +307,41 @@ if(DESIGNRC_BUILD_TESTS)
   get_target_property(_foam_project_app_libraries designrc LINK_LIBRARIES)
   target_link_libraries(project_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME project_tests COMMAND project_tests)
+  add_executable(view_controls_tests tests/ViewControlsTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(view_controls_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(view_controls_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(view_controls_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME view_controls_tests COMMAND view_controls_tests "${CMAKE_CURRENT_BINARY_DIR}/view-controls.png")
+  add_executable(editor_history_tests tests/EditorHistoryTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(editor_history_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(editor_history_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(editor_history_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME editor_history_tests COMMAND editor_history_tests "${CMAKE_CURRENT_BINARY_DIR}/editor-history.png")
+  add_executable(inspect_tests tests/InspectTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(inspect_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(inspect_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(inspect_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME inspect_tests COMMAND inspect_tests "${CMAKE_CURRENT_BINARY_DIR}/inspect.png")
+  add_executable(weight_balance_tests tests/WeightBalanceTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(weight_balance_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(weight_balance_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(weight_balance_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME weight_balance_tests COMMAND weight_balance_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  if(NOT WIN32)
+    set_tests_properties(weight_balance_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
   add_executable(assembly_tests tests/AssemblyTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
@@ -350,8 +387,11 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(fuselage_profile_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(fuselage_profile_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME fuselage_profile_tests COMMAND fuselage_profile_tests)
+  add_test(NAME circle_profile_tests COMMAND fuselage_profile_tests --circle-only)
+  add_test(NAME profile_operations_tests COMMAND fuselage_profile_tests --operations-only)
+  add_test(NAME profile_recovery_tests COMMAND fuselage_profile_tests --recovery-only)
   if(NOT WIN32)
-    set_tests_properties(fuselage_profile_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(fuselage_profile_tests circle_profile_tests profile_operations_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
 
   add_executable(former_tests tests/FormerTests.cpp resources/designrc.qrc
@@ -397,6 +437,10 @@ if(DESIGNRC_BUILD_TESTS)
     set_tests_properties(fuselage_cut_tests fuselage_alignment_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
 
+
+  add_executable(fuselage_end_tests tests/FuselageEndTests.cpp)
+  target_link_libraries(fuselage_end_tests PRIVATE foam_wing foam_project TKV3d TKService)
+  add_test(NAME fuselage_end_tests COMMAND fuselage_end_tests)
 
   add_executable(fuselage_thicken_tests tests/FuselageThickenTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
@@ -504,7 +548,7 @@ if(DESIGNRC_BUILD_TESTS)
     src/gui/ReferencePanel.h)
   set_target_properties(reference_tests PROPERTIES AUTOMOC ON)
   target_include_directories(reference_tests PRIVATE src)
-  target_link_libraries(reference_tests PRIVATE Qt6::Widgets Qt6::Pdf foam_dialogs)
+  target_link_libraries(reference_tests PRIVATE Qt6::Widgets Qt6::Pdf foam_dialogs foam_sketch)
   add_test(NAME reference_tests COMMAND reference_tests)
   if(NOT WIN32)
     set_tests_properties(reference_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

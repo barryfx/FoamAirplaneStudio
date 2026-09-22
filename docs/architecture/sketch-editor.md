@@ -61,3 +61,9 @@ all panel results, including panels whose tabs are not selected. Inner-panel
 LE and TE are deliberately independent; no connection between them is required.
 
 Idle sketch finalization and panel selection do not resynchronize station anchors. This avoids numerical drift from changing saved data during view-only navigation; actual outline edits still synchronize attachments.
+
+The shared selection/deletion behavior also applies to the other sketch editors.
+Fuselage Edit Profiles additionally exposes Circle (center/radius), and whole
+profile selection for orphan deletion; see fuselage-profiles.md. Stabilizer Cut's
+Delete key removes the selected curve; Delete Cut Shape removes the whole loop.
+All project editors participate in the history described in editor-history.md.

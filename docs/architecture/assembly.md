@@ -41,7 +41,7 @@ distinct. `StabilizerBuildResult` preserves those roles through user Cut Shapes.
 no snapshot when stale/unavailable; Export uses this snapshot (export.md). Body manufacturing parts and standalone inserts use separate records. Formers
 and the servo tray retain their original solids through placement and seat cuts;
 Assembly never fuses them to the body. Each insert has a separate 3D presentation. Source-model edits invalidate derived cuts while
-retaining physical translations. New/Close resets placements and derived caches. Current format 25 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
+retaining physical translations. New/Close resets placements and derived caches. Current format 28 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
 caches are session-only. Former rotation is included in Fuselage snapshots and
 cache invalidation. Version-22 embedded models are ignored on Open.
 

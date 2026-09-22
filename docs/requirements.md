@@ -44,11 +44,11 @@ The software shall support designing an aircraft from imported reference drawing
 
 - Reference mode shall show Load Image and the loaded file path.
 - Load Image shall support PNG, JPG/JPEG, and PDF backgrounds in the 2D view.
-- The user shall choose between Reference is to scale and Specify Dimensions.
+- The user shall choose between User Reference Image Scale and Specify Dimensions.
 - Actual-scale mode shall derive physical image/page dimensions and project units
   from the source metadata. Missing physical metadata requires manual dimensions.
 - Specify Dimensions shall show a Project Units selector for inches/millimeters
-  and decimal Wingspan and Fuselage Length fields, arranged vertically.
+  and a decimal Wingspan field.
 - These units and dimensions shall apply to the entire project.
 
 ### 2.2 Geometry and Modeling
@@ -143,8 +143,8 @@ The software shall support designing an aircraft from imported reference drawing
 ### 4.1 Fuselage Reference Geometry
 
 - Fuselage definition shall begin by tracing the fuselage outline from the 2D view/Referrence Image.
-- If the reference drawing is not to scale, the user shall enter the actual fuselage length.
-- The software shall scale the traced geometry based on the entered fuselage length.
+- If the reference drawing is not to scale, the user shall enter the actual Wingspan.
+- The software shall scale the traced geometry based on Wingspan divided by the traced full wing span, shared across components.
 
 ### 4.1.1 Fuselage Outline Controls
 
@@ -175,7 +175,7 @@ The software shall support designing an aircraft from imported reference drawing
 ### 4.4 Profile Editing
 
 - The user shall be able to sketch the profile over the corresponding portion of the reference drawing.
-- The profile outline shall contain editable lines and fit point splines.
+- The profile outline shall contain editable lines, fit point splines and circles.
 - The user shall be able to move control points to refine the fuselage cross-section.
 - Changes to profiles shall update the estimated 3D fuselage geometry.
 
@@ -189,7 +189,10 @@ The software shall support designing an aircraft from imported reference drawing
   forward of it and 5 mm aft, as refined by ADR-0022 and ADR-0026.
 - The user shall be able to modify these thickness values.
 - Each end is open when the Top/Side outlines terminate at its outermost profile;
-  it is closed when the outlines extend beyond that profile.
+  it is closed when the outlines extend beyond that profile. Model-only registration
+  makes straight end edges vertical within 2 degrees and 0.5 mm axial drift; the
+  outermost station within 0.5 mm of a qualifying end opens it. Preserve input
+  drawings and retain strict endpoint handling for pointed/curved/sloping ends.
 - Entering Thicken or generating a complete fuselage shall initialize missing
   station wall values and enable hollow generation while preserving explicit values.
   Generation shall not require visiting Thicken first.
@@ -366,7 +369,8 @@ SVG and servo-tray DXF below remain planned.
 - Default filenames shall identify the corresponding airplane part/body where practical.
 - The user shall be able to change the proposed filenames before export.
 
-The current Export panel uses fixed descriptive filenames; filename editing remains planned.
+Inspect edits persistent component names used by the Export checklist, STEP labels
+and individual filenames. Combined STEP uses the saved project basename.
 
 ## 9. Principal Generated Bodies
 
@@ -419,8 +423,8 @@ restore controls on completion, failure or cooperative cancellation. Keep the
 last display on cancellation and retain the camera on successful replacement.
 Fuselage has its own worker and cached solid; Wing rebuilds only for changed Wing inputs. Stabilizers also own independent cancellable workers and cached solids.
 
-Implemented Fuselage Edit Profiles: one station enables the mode. Instructions
-appear above Line/Spline controls for the selected highlighted station. Each
+Implemented Fuselage Edit Profiles: a station or an existing profile enables the mode. Instructions
+appear above Line/Spline/Circle controls for the selected highlighted station. Each
 station owns a stable sketch assignment. All closed assignments enable remaining
 secondary actions; Thicken, Cut, Servo Tray and Formers are implemented. Selecting 3D generates a solid
 from both nose-aligned outlines and independently fitted profiles. See
@@ -467,3 +471,38 @@ the overlay, overlap checks, fitted solid and retaining rails; save it per forme
 - Generation removes only the selected wall, bounded by the inner cavity; unsafe
   footprints that could cut both walls are rejected.
 - Cut retains multiple independent open/closed paths and all split bodies.
+
+### Weight and Balance
+
+- Add Weight and Balance after Export and before Inspect for 2D Side View part placement.
+- Provide instructions, Add Part, part-name selector, Edit/Delete and material densities.
+- Record decimal width, height, length and weight in grams/ounces. Draw length
+  horizontally, height vertically, with width into the screen; label each part.
+- Start parts centrally and allow selection/dragging, with visibility only in this mode.
+- Combine generated foam and Aero Plywood former/tray volumes and centroids with
+  entered part masses and centers. Default XPS to 32.5 kg/m³ and plywood to 680 kg/m³;
+  permit density edits to match actual stock.
+- Update total weight and longitudinal center of mass after every part or density edit.
+  Display center relative to the placed wing root LE in Reference units, positive aft.
+- Persist parts/densities and report unavailable complete results without current Assembly.
+
+### Inspect
+
+- Inspect shall follow Weight and Balance on the primary toolbar.
+- It shall show current component solids in 3D with 2D disabled and standard camera/navigation commands.
+- Each component shall have a checked-by-default visibility checkbox and an editable persistent name.
+- Names shall be shared with Export labels and per-part filenames. Combined STEP shall use the project basename.
+- Inspect visibility shall not alter geometry, mass calculations or export selection.
+- Inspect shall regenerate changed/missing components with complete definitions using existing jobs and caches, with progress and cancellation.
+
+### Editor operations and history
+
+- All sketch editors shall highlight and delete individual selected curves with drawing tools off.
+- Edit Profiles shall provide Copy Profile, Paste Profile and Move Profile. Copies
+  are independent and placed in free drawing space; dragging moves a whole profile.
+- Unattached profiles shall remain selectable/deletable without stations. Select
+  an unassigned station and double-click an orphan to recover its existing sketch.
+- Edit shall provide Undo/Redo with Ctrl+Z/Ctrl+Y across project editors, restoring
+  dependent data together. A drag is one edit. Selection/navigation do not add
+  history; New/Open/Close clear it, Save retains it, and new edits discard redo.
+- The 3D viewport shall expose the View menu commands in a bottom-centered toolbar.

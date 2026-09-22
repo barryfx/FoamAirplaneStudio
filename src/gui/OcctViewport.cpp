@@ -1,4 +1,5 @@
 #include "gui/OcctViewport.h"
+#include <QToolBar>
 
 #include <AIS_TexturedShape.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -62,6 +63,27 @@ OcctViewport::OcctViewport(QWidget* parent) : QWidget{parent} {
 
 QPaintEngine* OcctViewport::paintEngine() const { return nullptr; }
 
+void OcctViewport::setViewActions(const QList<QAction*>& actions) {
+  if(!viewControls_) {
+    viewControls_=new QToolBar{this};
+    viewControls_->setObjectName("viewportViewControls");
+    // OCCT paints directly into this native viewport. A native child keeps Qt
+    // controls above the OpenGL surface during redraws and camera movement.
+    viewControls_->setAttribute(Qt::WA_NativeWindow);
+    viewControls_->setMovable(false);viewControls_->setFloatable(false);
+    viewControls_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    viewControls_->setStyleSheet("QToolBar { background: #f3f3f3; border: 1px solid #bcbcbc; padding: 3px; }");
+  }
+  viewControls_->clear();viewControls_->addActions(actions);
+  positionViewControls();viewControls_->show();viewControls_->raise();
+}
+void OcctViewport::positionViewControls() {
+  if(!viewControls_)return;
+  const auto size=viewControls_->sizeHint();
+  const int controlWidth=std::min(size.width(),std::max(1,width()-24));
+  viewControls_->setGeometry((width()-controlWidth)/2,std::max(0,height()-size.height()-12),controlWidth,size.height());
+}
+
 void OcctViewport::showEvent(QShowEvent* event) {
   QWidget::showEvent(event);
   initializeViewer();
@@ -80,6 +102,7 @@ void OcctViewport::paintEvent(QPaintEvent*) {
 
 void OcctViewport::resizeEvent(QResizeEvent* event) {
   QWidget::resizeEvent(event);
+  positionViewControls();
   if (!view_.IsNull()) view_->MustBeResized();
 }
 
@@ -174,6 +197,9 @@ void OcctViewport::displayAssembly(const std::vector<TopoDS_Shape>& parts,int se
   if(context_.IsNull())initializeViewer();
   if(context_.IsNull())return;
   displayPendingShapes();view_->ZFitAll();redraw();
+}
+void OcctViewport::displayInspection(const std::vector<TopoDS_Shape>& parts) {
+  clearAssemblyReference();displayAssembly(parts,-1);
 }
 
 void OcctViewport::clearAssemblyReference() {

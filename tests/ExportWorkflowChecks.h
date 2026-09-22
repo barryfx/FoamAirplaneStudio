@@ -23,6 +23,9 @@ public:
     MainWindow w;w.resize(1400,900);w.show();QApplication::processEvents();
     CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled());
     auto document=fixture();
+    // The shared scale now comes from the mirrored 90-unit wing half-span.
+    // Keep the injected former solids aligned at .25 mm per scene unit.
+    document.reference.wingspanMm=45;document.wingspanText="45 mm";
     // Deliberately add the aft former first. At .25 mm/scene unit their
     // centers are model X=35 and X=10. The first has a rotated local plane.
     document.formers.rectangles={{336,193,8,64},{236,193,8,64}};
@@ -94,17 +97,17 @@ public:
       }
     });accept.start(10);w.exportComponents();accept.stop();
     if(!exportError.isEmpty())throw std::runtime_error(exportError.toStdString());CHECK(accepted);
-    CHECK(QFile::exists(outputs.path()+"/Components.step"));
+    CHECK(QFile::exists(outputs.path()+"/Untitled.step"));
     CHECK(QFile::exists(outputs.path()+"/Former 1.dxf")&&QFile::exists(outputs.path()+"/Former 2.dxf"));
     CHECK(QDir{outputs.path()}.entryList(QDir::Files).size()==3);
     FileSelectionDialog remembered{&w,"componentExportDirectory","Export Components",QFileDialog::Directory};
     CHECK(remembered.directory().absolutePath()==QDir{outputs.path()}.absolutePath());
-    QFile stepFile{outputs.path()+"/Components.step"};CHECK(stepFile.open(QIODevice::ReadOnly));
-    const auto stepText=stepFile.readAll();CHECK(stepText.contains("FoamAirplaneStudio Assembly"));
+    QFile stepFile{outputs.path()+"/Untitled.step"};CHECK(stepFile.open(QIODevice::ReadOnly));
+    const auto stepText=stepFile.readAll();CHECK(stepText.contains("Untitled"));
     CHECK(stepText.contains("Fuselage 1")&&stepText.contains("Horizontal Stabilizer"));
     CHECK(stepText.contains("Servo Tray"));
     CHECK(!stepText.contains("Former 1"));
-    STEPControl_Reader reader;CHECK(reader.ReadFile((outputs.path()+"/Components.step").toStdString().c_str())==IFSelect_RetDone);
+    STEPControl_Reader reader;CHECK(reader.ReadFile((outputs.path()+"/Untitled.step").toStdString().c_str())==IFSelect_RetDone);
     CHECK(reader.TransferRoots()>0);CHECK(BRepCheck_Analyzer{reader.OneShape()}.IsValid());
     double expected=0;int expectedSolids=0;
     for(const auto& part:catalog)if(!part.formerPlane){expected+=volume(part.shape);for(TopExp_Explorer e{part.shape,TopAbs_SOLID};e.More();e.Next())++expectedSolids;}

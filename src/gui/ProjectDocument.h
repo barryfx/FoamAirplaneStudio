@@ -7,8 +7,12 @@
 #include "gui/OcctViewport.h"
 #include <QJsonObject>
 #include "gui/AssemblyState.h"
+#include "gui/WeightBalanceState.h"
+#include "gui/ComponentNames.h"
 namespace designrc::gui {
 struct ProjectDocument {
+  ComponentNames componentNames;
+  WeightBalanceState weightBalance;
   AssemblyState assembly;
   ProjectReference reference;
   QString wingspanText, fuselageText;

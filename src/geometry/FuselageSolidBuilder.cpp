@@ -1,4 +1,5 @@
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/FuselageEndRegistration.h"
 #include "geometry/FuselageHoles.h"
 #include "geometry/FuselageTopology.h"
 #include "geometry/FuselageWall.h"
@@ -139,7 +140,8 @@ std::vector<QPointF> sampleFuselageProfile(const gui::SketchLayer& profile) {
   return normalizedProfile(boundary(profile));
 }
 FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& layer,std::optional<double> lengthMm) {
-  const auto loop=boundary(layer);const auto box=bounds(loop);
+  const auto registered=registerFuselageEnds(layer,lengthMm);
+  const auto& loop=registered.boundary;const auto box=bounds(loop);
   if(box.width()<1e-8)throw std::runtime_error("Fuselage outline needs a nose-to-tail length.");
   const auto nose=span(loop,box.left());
   return {box.left(),(nose.first+nose.second)/2,lengthMm.value_or(box.width())/box.width()};
@@ -151,7 +153,10 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(input.outlines.size()!=2 || input.stations.empty() || (input.lengthMm && (!std::isfinite(*input.lengthMm) || *input.lengthMm<=0)))
     throw std::runtime_error("Define both outlines, a profile at every station, and a positive Fuselage Length.");
   if(progress)progress("Fuselage: aligning Top and Side outlines at the nose...");
-  const auto top=boundary(input.outlines[0]),side=boundary(input.outlines[1]);
+  const auto sideRegistration=registerFuselageEnds(input.outlines[1],input.lengthMm);
+  const double registeredLength=(sideRegistration.tailX-sideRegistration.noseX)*sideRegistration.scale;
+  const auto topRegistration=registerFuselageEnds(input.outlines[0],registeredLength);
+  const auto& top=topRegistration.boundary;const auto& side=sideRegistration.boundary;
   const auto tb=bounds(top),sb=bounds(side);
   if(tb.width()<1e-8||sb.width()<1e-8)throw std::runtime_error("Fuselage outlines need a nose-to-tail length.");
   const double length=input.lengthMm.value_or(sb.width());
@@ -170,8 +175,12 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     sections.push_back({t,sampleFuselageProfile(input.profiles[*station.profile]),station.thicknessMm.value_or(0)});
   }
   std::sort(sections.begin(),sections.end(),[](const auto& a,const auto& b){return a.t<b.t;});
-  const bool openNose=sections.front().t*length<=1e-6;
-  const bool openTail=(1-sections.back().t)*length<=1e-6;
+  const bool openNose=sideRegistration.noseStation(sb.left()+sections.front().t*sb.width());
+  const bool openTail=sideRegistration.tailStation(sb.left()+sections.back().t*sb.width());
+  // Register only the outermost profiles, keeping intentionally interior
+  // stations and their interpolation positions intact.
+  if(openNose)sections.front().t=0;
+  if(openTail)sections.back().t=1;
   std::vector<double> positions;for(int i=0;i<=32;++i)positions.push_back(i/32.);
   for(const auto& s:sections)positions.push_back(s.t);
   if(input.thicken) {

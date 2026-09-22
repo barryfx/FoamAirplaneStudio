@@ -9,6 +9,7 @@
 #include "geometry/FuselageSolidBuilder.h"
 #include "geometry/StabilizerSolidBuilder.h"
 #include "geometry/Assembly.h"
+#include "geometry/ComponentExporter.h"
 
 class QVBoxLayout;
 class QTabWidget;
@@ -18,6 +19,7 @@ class QWidget;
 class QCloseEvent;
 class QAction;
 class QPushButton;
+class QLabel;
 
 namespace designrc::gui {
 
@@ -41,6 +43,8 @@ class SparPanel;
 class DihedralPanel;
 class LighteningPanel;
 class ExportPanel;
+class WeightBalancePanel;
+class InspectPanel;
 struct ProjectReference;
 enum class CameraView;
 
@@ -60,15 +64,44 @@ public:
 
 protected:
   void closeEvent(QCloseEvent* event) override;
+  bool eventFilter(QObject* object,QEvent* event) override;
 
 private:
   friend class AssemblyWorkflowTest;
   friend class ExportWorkflowTest;
+  friend class WeightBalanceTest;
+  friend class ViewControlsTest;
+  friend class InspectTest;
+  friend class EditorHistoryTest;
+  struct EditRevision { ProjectDocument before,after; };
+  std::vector<EditRevision> editHistory_;
+  std::size_t editPosition_{};
+  std::optional<ProjectDocument> editBaseline_;
+  QByteArray editFingerprint_;
+  bool applyingHistory_=false,editMouseDown_=false;
+  QAction *undoAction_{},*redoAction_{};
+  void resetEditHistory();
+  void captureEdit();
+  void applyEdit(bool redo);
+  void updateEditActions();
+  InspectPanel* inspectPanel_{};
+  geometry::AssemblyParts cachedModelParts() const;
+  std::vector<geometry::ExportPart> namedExportParts(const geometry::AssemblyParts& parts) const;
+  void updateInspect(bool fit=false,bool regenerate=true);
+  bool inspectPreparing_=false,inspectFitAfterBuild_=false;
+  void displayInspect();
+  std::string exportProjectName() const;
+  void updateWeightBalance(bool frameSide=false);
+  WeightBalancePanel* weightBalancePanel_{};
+  QLabel* balanceStatus_{};
+  QByteArray balanceMassFingerprint_;
+  std::vector<TopoDS_Shape> balanceMassSources_;
+  std::optional<FoamMassProperties> balanceMassCache_;
   void updateExportAvailability();
   void exportComponents();
   ExportPanel* exportPanel_{};
   void buildAssemblyPanel(QVBoxLayout* layout);
-  void updateAssembly();
+  void updateAssembly(bool inspect=false);
   void displayAssembly(bool entry=false);
   void moveAssembly(int key,Qt::KeyboardModifiers modifiers);
   void toggleAssemblyCuts();
@@ -141,7 +174,8 @@ private:
   void updateStabilizerProgress();
   void updateStabilizerModel(int index);
   void pollStabilizerJob(int index);
-  double stabilizerScale() const;
+  double projectLengthScale() const;
+  std::optional<double> scaledFuselageLength() const;
   QByteArray stabilizerFingerprint(int index) const;
   bool stabilizerProcessing() const { return stabilizerJobs_[0] || stabilizerJobs_[1]; }
   std::array<StabilizerAirfoilPanel*,2> stabilizerAirfoilPanels_{};

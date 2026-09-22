@@ -226,5 +226,13 @@ int main(int argc, char** argv) {
   line({100, 100}, {300, 100}); assert(panel.outlinesDefined());
   count->setValue(4); assert(!panel.outlinesDefined()); // New empty tip panel.
   count->setValue(3); assert(panel.outlinesDefined());
+  // Stabilizer Cut uses layer selection, but Delete must target one curve.
+  panel.reset();editor.setLayerSelectionMode(true);editor.setEditing(true);
+  line({100,100},{300,100});line({300,100},{300,250});line({300,250},{100,100});
+  editor.setTool(SketchTool::None);click({200,100});assert(editor.selectedCurve()==0);remove();
+  assert(editor.layers().size()==1&&editor.layers()[0].curves.size()==2);
+  editor.setTool(SketchTool::Circle);click({500,300});click({540,300});
+  editor.setTool(SketchTool::None);click({540,300});assert(editor.selectedCurve()==2);remove();
+  assert(editor.layers()[0].curves.size()==2);
   return 0;
 }

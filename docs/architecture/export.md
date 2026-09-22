@@ -30,7 +30,7 @@ with QSaveFile. A write failure reports how many files were already committed;
 the entire multi-file batch is not a single filesystem transaction.
 
 STEP is the default for both format groups. Selected formers and other components
-whose group uses STEP share one `Components.step`. With Components STL selected,
+whose group uses STEP share one `<Project Name>.step` (`Untitled.step` before the first project save). With Components STL selected,
 Formers STEP still writes the selected formers to that file while other components
 produce individual STL files. Formers remain separate named solids in STEP.
 The inherited DesignRC STEPCAF exporter writes AP242 with named, separate BREP
@@ -50,3 +50,9 @@ finished solid. Servo Tray is a component exported as STEP/STL; SVG and tray DXF
 remain future work. Formats and checklists are transient UI choices.
 
 See ADR-0037 and `../baseline/export-validation.md`.
+
+Inspect supplies editable component names shared by the Export checklist, STEP
+part labels, and individual DXF/STL filenames. Hidden Inspect components remain
+available for export; selection is independent. Names must be unique and valid
+as cross-platform filenames. The saved project basename supplies the STEP file
+and assembly label; Save As therefore changes the next STEP output name.

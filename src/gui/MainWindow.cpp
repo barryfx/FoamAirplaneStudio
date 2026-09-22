@@ -1,3 +1,7 @@
+#include "gui/InspectPanel.h"
+#include "gui/WingCalibration.h"
+#include "gui/WeightBalancePanel.h"
+#include "geometry/WeightBalance.h"
 #include "gui/MainWindow.h"
 #include "gui/SparPanel.h"
 #include "gui/DihedralPanel.h"
@@ -25,6 +29,7 @@
 #include <TopExp_Explorer.hxx>
 #include <QLineF>
 #include <limits>
+#include <algorithm>
 #include "geometry/FuselageSolidBuilder.h"
 #include "gui/AirfoilPanel.h"
 #include "gui/ControlSurfacePanel.h"
@@ -46,6 +51,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QKeySequence>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QLabel>
 #include <QMenuBar>
@@ -183,7 +189,24 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   });
   buildAssemblyPanel(dataLayout);
   exportPanel_=new ExportPanel{dataContents_};dataLayout->addWidget(exportPanel_,1);exportPanel_->hide();
+  inspectPanel_=new InspectPanel{dataContents_};dataLayout->addWidget(inspectPanel_,1);inspectPanel_->hide();
+  inspectPanel_->namesChanged=[this]{if(!restoringProject_)updateProjectTitle();};
+  inspectPanel_->visibilityChanged=[this]{displayInspect();};
   exportPanel_->exportRequested=[this]{exportComponents();};
+  weightBalancePanel_=new WeightBalancePanel{*planViewport_,dataContents_};
+  dataLayout->addWidget(weightBalancePanel_,1);weightBalancePanel_->hide();
+  weightBalancePanel_->changed=[this]{if(!restoringProject_)updateProjectTitle();};
+  balanceStatus_=new QLabel{this};balanceStatus_->setObjectName("weightBalanceStatus");
+  balanceStatus_->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Fixed);
+  balanceStatus_->setFixedHeight(balanceStatus_->fontMetrics().height()+6);
+  statusBar()->addWidget(balanceStatus_,1);balanceStatus_->hide();
+  weightBalancePanel_->resultsChanged=[this](QString text){
+    balanceStatus_->setToolTip(text);
+    QStringList summary;
+    for(const auto& line:text.split('\n'))if(line.startsWith("Total weight:")||line.startsWith("Center of mass:"))summary<<line;
+    balanceStatus_->setText(summary.join("  |  "));
+  };
+  planViewport_->balanceOverlay=[this](QPainter& painter){weightBalancePanel_->paint(painter);};
   splitter->addWidget(dataPanel_);
   splitter->addWidget(graphicsTabs_);
   splitter->setChildrenCollapsible(false);
@@ -257,8 +280,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   selectWorkspace(0);
   savedFingerprint_=projectFingerprint();
   auto* modifiedTimer=new QTimer{this}; modifiedTimer->setInterval(400);
-  connect(modifiedTimer,&QTimer::timeout,this,[this]{if(!restoringProject_)updateProjectTitle();});
+  connect(modifiedTimer,&QTimer::timeout,this,[this]{if(!restoringProject_){captureEdit();updateProjectTitle();}});
   modifiedTimer->start();
+  resetEditHistory();
+  qApp->installEventFilter(this);
 }
 
 void MainWindow::buildToolBars() {
@@ -266,8 +291,8 @@ void MainWindow::buildToolBars() {
   workspaceToolBar_->setObjectName("workspaceToolBar");
   workspaceToolBar_->setMovable(false);
   auto* group = new QActionGroup{this};
-  const std::array<const char*, 7> names{
-      "Reference", "Wing", "Fuselage", "Horiz Stab", "Vert Stab", "Assembly", "Export"};
+  const std::array<const char*, 9> names{
+      "Reference", "Wing", "Fuselage", "Horiz Stab", "Vert Stab", "Assembly", "Export", "Weight and Balance", "Inspect"};
   for (int index = 0; index < static_cast<int>(names.size()); ++index) {
     auto* action = workspaceToolBar_->addAction(names[index]);
     action->setCheckable(true);
@@ -284,21 +309,25 @@ void MainWindow::buildToolBars() {
 
 void MainWindow::selectWorkspace(int index) {
   if(index==6&&!exportAssemblyParts())return;
+  if(dataPanel_->property("workspaceIndex").toInt()==8&&index!=8){viewport_->clearShape();displayedComponent_=-1;}
   const int outgoing = dataPanel_->property("workspaceIndex").toInt()-3;
   if(outgoing>=0 && outgoing<2 && displayedComponent_==outgoing+3 && graphicsTabs_->currentWidget()==viewport_)
     stabilizerCameras_[outgoing]=viewport_->cameraState();
-  {QSignalBlocker block{graphicsTabs_};graphicsTabs_->setTabEnabled(0,index!=5&&index!=6); }
+  {QSignalBlocker block{graphicsTabs_};graphicsTabs_->setTabEnabled(0,index!=5&&index!=6&&index!=8);graphicsTabs_->setTabEnabled(1,index!=7); }
   assemblyPanel_->setVisible(index==5);
-  exportPanel_->setVisible(index==6);
-  if(index==6)exportPanel_->setParts(geometry::assemblyExportParts(*exportAssemblyParts()));
+  exportPanel_->setVisible(index==6);inspectPanel_->setVisible(index==8);
+  weightBalancePanel_->setActive(index==7);balanceStatus_->setVisible(index==7);
+  if(index==6)exportPanel_->setParts(namedExportParts(*exportAssemblyParts()));
   if(index==5){assemblyEntry_=true;assemblyAttemptFingerprint_.clear();}
   componentToolBar_->clear();
-  const std::array<QStringList, 7> tools{{
+  const std::array<QStringList, 9> tools{{
       {},
       {"Outline", "Airfoil Stations", "Airfoils", "Dihedral", "Ailerons/Flaps", "Spars", "Lightening"},
       {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
       {"Outline", "Airfoil", "Hinge Line", "Cut"},
+      {},
+      {},
       {},
       {}
   }};
@@ -327,7 +356,7 @@ void MainWindow::selectWorkspace(int index) {
           : wingWorkspace && name=="Spars" ? "Choose spar locations, percentages and sizes; open 3D to generate grooves and the mid-plane split"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Outline" ? "Choose Top View or Side View and trace a closed fuselage outline"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Profile Stations" ? "Hover on Side View top/bottom; left-click once to place a vertical profile station"
-          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Edit Profiles" ? "Select a station; draw a closed section using Line or Spline; open 3D to generate the fuselage"
+          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Edit Profiles" ? "Select a station; draw a closed section using Line, Spline or Circle; open 3D to generate the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken" ? "Set station wall thickness in Reference units, or enter mm/in; 3D generation now hollows the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Holes" ? "Choose a wall, Add Hole, then draw a closed loop inside its outline"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Cut" ? "Choose Top or Side View; draw a connected cut path, then open 3D to split the fuselage"
@@ -350,8 +379,9 @@ void MainWindow::selectWorkspace(int index) {
     dataPanel_->setProperty("activeTool","Outline");
     if(!restoringProject_)graphicsTabs_->setCurrentWidget(planViewport_);
   }
-  if(index==5||index==6)graphicsTabs_->setCurrentWidget(viewport_);
+  if(index==5||index==6||index==8)graphicsTabs_->setCurrentWidget(viewport_);
   if(index==6)displayAssembly();
+  if(index==7)graphicsTabs_->setCurrentWidget(planViewport_);
   if(index==2)updateFuselageProgress();
   if(index==3 || index==4)updateStabilizerProgress();
   componentToolBar_->setVisible(!tools.at(index).empty());
@@ -363,6 +393,60 @@ void MainWindow::selectWorkspace(int index) {
   statusBar()->showMessage(index == 0 ? "Set the project reference and dimensions" : index == 1 ? "Wing workspace ready" : index==2 ? "Fuselage workspace ready" : "Stabilizer Outline: trace one open line/spline chain including the control surface");
   updateEditorVisibility();
   if(index==6)statusBar()->showMessage("Select Assembly parts and formats, then Export Components.");
+  if(index==7){updateWeightBalance(!restoringProject_);statusBar()->clearMessage();}
+  if(index==8){statusBar()->showMessage("Inspect: check components to show them; edit names for Export.");updateInspect(true);}
+}
+
+void MainWindow::updateWeightBalance(bool frameSide) {
+  try {
+    if(projectLengthScale()<=0)throw std::runtime_error("Complete the wing outline and stations to establish the project scale.");
+    const auto& reference=projectReference();
+    const auto& side=planViewport_->fuselageSketchEditor().layers()[1];
+    const auto transform=geometry::fuselageSideTransform(side,scaledFuselageLength());
+    const auto boundary=closedSketchBoundary(side);
+    if(!boundary)throw std::runtime_error("Define a closed fuselage Side View first.");
+    double x0=boundary->front().x(),x1=x0,y0=boundary->front().y(),y1=y0;
+    for(auto point:*boundary){x0=std::min(x0,point.x());x1=std::max(x1,point.x());y0=std::min(y0,point.y());y1=std::max(y1,point.y());}
+    weightBalancePanel_->configure(reference.units,transform,
+        {((x0+x1)/2-transform.left)*transform.scale,(transform.verticalOrigin-(y0+y1)/2)*transform.scale});
+    if(frameSide) {
+      QRectF bounds{QPointF{x0,y0},QPointF{x1,y1}};
+      for(int i=0;i<static_cast<int>(weightBalancePanel_->state().parts.size());++i)
+        bounds=bounds.united(weightBalancePanel_->partRectangle(i));
+      const double zoom=std::clamp(std::min(planViewport_->viewport()->width()/(bounds.width()*1.2),
+          planViewport_->viewport()->height()/(bounds.height()*1.2)),.00001,1000.);
+      planViewport_->restoreView({zoom,bounds.center()});
+    }
+    const auto fingerprint=assemblyFingerprint();
+    if(assemblyOriginals_.fuselage.IsNull() || assemblySourceFingerprint_!=fingerprint ||
+        (assemblyState_.cuts&&!assemblyCutParts_)) {
+      balanceMassCache_.reset();balanceMassSources_.clear();
+      weightBalancePanel_->setFoam({}, {}, "Generate the current Assembly to calculate the complete model.");return;
+    }
+    // Reuse the generation fingerprint, but also track placement and the actual
+    // immutable solids: rebuilding/cutting identical inputs can replace shapes.
+    QJsonArray placement;
+    for(const auto offset:assemblyState_.offsets){placement.append(offset.x());placement.append(offset.y());}
+    placement.append(assemblyState_.cuts);placement.append(QString::number(projectEpoch_));
+    const auto key=fingerprint+QJsonDocument{placement}.toJson(QJsonDocument::Compact);
+    const auto& source=assemblyState_.cuts?*assemblyCutParts_:assemblyOriginals_;
+    std::vector<TopoDS_Shape> shapes{source.fuselage,source.wing,source.horizontal,source.vertical,source.elevator,source.rudder};
+    for(const auto& insert:source.inserts)shapes.push_back(insert.shape);
+    const bool sameShapes=shapes.size()==balanceMassSources_.size() &&
+        std::equal(shapes.begin(),shapes.end(),balanceMassSources_.begin(),
+            [](const auto& a,const auto& b){return a.IsEqual(b);});
+    if(!balanceMassCache_ || balanceMassFingerprint_!=key || !sameShapes) {
+      balanceMassCache_.reset();
+      ProcessingScope processing{this,"Calculating Weight and Balance foam and plywood statistics..."};
+      balanceMassCache_=geometry::foamMassProperties(*exportAssemblyParts());
+      balanceMassFingerprint_=key;balanceMassSources_=std::move(shapes);
+      statusBar()->clearMessage();
+    }
+    const double leadingEdge=geometry::wingRootLeadingEdgeX(planViewport_->sketchEditor().layers(),
+        planViewport_->sketchEditor().stationEditor().lines(),reference.toScale?std::nullopt:reference.wingspanMm)+assemblyState_.offsets[0].x();
+    weightBalancePanel_->setFoam(*balanceMassCache_,leadingEdge,{});
+  } catch(const Standard_Failure& error){statusBar()->clearMessage();weightBalancePanel_->setFoam({}, {}, QString::fromUtf8(error.what()));}
+    catch(const std::exception& error){statusBar()->clearMessage();weightBalancePanel_->setFoam({}, {}, QString::fromUtf8(error.what()));}
 }
 
 void MainWindow::updatePanelCounts() {
@@ -410,9 +494,11 @@ void MainWindow::updateFuselageProgress() {
   if(dataPanel_->property("workspaceIndex").toInt()!=2)return;
   const bool ready=fuselageOutlinePanel_->outlinesDefined();
   const bool hasStations=ready&&!planViewport_->fuselageSketchEditor().stationEditor().lines().empty();
+  const auto& profiles=planViewport_->fuselageProfileEditor().layers();
+  const bool hasProfiles=std::any_of(profiles.begin(),profiles.end(),[](const auto& layer){return !layer.curves.empty();});
   const bool complete=hasStations&&fuselageProfilePanel_->allProfilesClosed();
   for(auto* action:componentToolBar_->actions()) {
-    const bool enabled=action->text()=="Outline" || (action->text()=="Profile Stations"?ready:action->text()=="Edit Profiles"?hasStations:complete);
+    const bool enabled=action->text()=="Outline" || (action->text()=="Profile Stations"?ready:action->text()=="Edit Profiles"?(hasStations||hasProfiles):complete);
     action->setEnabled(enabled);
     if(!enabled&&action->isChecked()) {
       componentToolBar_->actions().front()->setChecked(true);
@@ -428,7 +514,7 @@ void MainWindow::updateFuselageStationMode() {
   if(layers.size()>1)if(const auto boundary=closedSketchBoundary(layers[1])) {
     double left=boundary->front().x(),right=left,top=boundary->front().y(),bottom=top;
     for(auto point:*boundary){left=std::min(left,point.x());right=std::max(right,point.x());top=std::min(top,point.y());bottom=std::max(bottom,point.y());}
-    const double scale=!reference.toScale&&reference.fuselageLengthMm&&right>left?*reference.fuselageLengthMm/(right-left):1.;
+    const double scale=projectLengthScale();
     servoTrayPanel_->configure(reference.units,scale,{(left+right)/2,(top+bottom)/2});
     formerPanel_->configure(reference.units,scale,QRectF{QPointF{left,top},QPointF{right,bottom}});
   }
@@ -544,6 +630,7 @@ void MainWindow::invalidateWing() {
 }
 
 MainWindow::~MainWindow() {
+  qApp->removeEventFilter(this);
   // No worker refers to this window. Destruction still joins before GUI-owned
   // snapshots/OCCT runtime resources are released.
   if(assemblyPrepareJob_){assemblyPrepareJob_->cancel();assemblyPrepareJob_.reset();QApplication::restoreOverrideCursor();}
@@ -647,15 +734,23 @@ void MainWindow::pollModelJob() {
   }
 }
 
-double MainWindow::stabilizerScale() const {
+double MainWindow::projectLengthScale() const {
   if(projectReference().toScale)return 1.;
+  if(!projectReference().wingspanMm)return 0.;
+  try {
+    return wingCalibration(planViewport_->sketchEditor().layers(),
+        planViewport_->sketchEditor().stationEditor().lines(),projectReference().wingspanMm).scale;
+  } catch(const std::exception&) {return 0.;} // Wing definition is still incomplete.
+}
+std::optional<double> MainWindow::scaledFuselageLength() const {
+  if(projectReference().toScale)return std::nullopt;
   const auto& layers=planViewport_->fuselageSketchEditor().layers();
-  if(layers.size()<2 || !projectReference().fuselageLengthMm)return 0.;
+  if(layers.size()<2)return 0.;
   const auto boundary=closedSketchBoundary(layers[1]);
   if(!boundary)return 0.;
   double left=boundary->front().x(),right=left;
   for(auto point:*boundary){left=std::min(left,point.x());right=std::max(right,point.x());}
-  return right>left?*projectReference().fuselageLengthMm/(right-left):0.;
+  return (right-left)*projectLengthScale();
 }
 QByteArray MainWindow::stabilizerFingerprint(int index) const {
   const auto p=encodeProject(projectDocument(),false);
@@ -664,7 +759,7 @@ QByteArray MainWindow::stabilizerFingerprint(int index) const {
       {"hinge",p[index==0?"horizontalStabilizerHinge":"verticalStabilizerHinge"].toObject()["layers"]},
       {"hingeCut",p["stabilizerHingeCuts"].toArray()[index]},
       {"cuts",p[index==0?"horizontalStabilizerCuts":"verticalStabilizerCuts"].toObject()["layers"]},
-      {"airfoil",p["stabilizerAirfoils"].toArray()[index]}, {"scale",stabilizerScale()}}}.toJson(QJsonDocument::Compact);
+      {"airfoil",p["stabilizerAirfoils"].toArray()[index]}, {"scale",projectLengthScale()}}}.toJson(QJsonDocument::Compact);
 }
 void MainWindow::updateStabilizerModel(int index) {
   if(restoringProject_ || modelJob_ || fuselageJob_ || stabilizerProcessing() || assemblyProcessing() || graphicsTabs_->currentWidget()!=viewport_)return;
@@ -692,7 +787,7 @@ void MainWindow::updateStabilizerModel(int index) {
     viewport_->clearShape();
     statusBar()->showMessage("Stabilizer: complete a valid open outline before entering 3D.");return;
   }
-  geometry::StabilizerSolidInput input{outline,stabilizerAirfoilPanels_[index]->airfoil(),stabilizerScale(),index==0,planViewport_->stabilizerHingeEditor(index).layers()[0],stabilizerHingePanels_[index]->cut(),planViewport_->stabilizerCutEditor(index).layers()};
+  geometry::StabilizerSolidInput input{outline,stabilizerAirfoilPanels_[index]->airfoil(),projectLengthScale(),index==0,planViewport_->stabilizerHingeEditor(index).layers()[0],stabilizerHingePanels_[index]->cut(),planViewport_->stabilizerCutEditor(index).layers()};
   try {
     stabilizerJobs_[index]=std::make_unique<processing::BackgroundJob<geometry::StabilizerBuildResult>>(
         [input=std::move(input)](std::stop_token stop,const auto& progress) {
@@ -749,7 +844,7 @@ QByteArray MainWindow::fuselageFingerprint() const {
       {"stations",p["fuselageStations"].toObject()["lines"]},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
       {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},{"holes",p["fuselageHoles"].toObject()["layers"]},
-      {"length",projectReference().toScale?QJsonValue{}:p["reference"].toObject()["fuselageLengthMm"]}}}.toJson(QJsonDocument::Compact);
+      {"length",projectReference().toScale?QJsonValue{}:QJsonValue{scaledFuselageLength().value_or(0.)}}}}.toJson(QJsonDocument::Compact);
 }
 void MainWindow::updateFuselageModel() {
   if(restoringProject_||modelJob_||fuselageJob_||stabilizerProcessing()||assemblyProcessing()||graphicsTabs_->currentWidget()!=viewport_||dataPanel_->property("workspaceIndex").toInt()!=2)return;
@@ -774,7 +869,7 @@ void MainWindow::updateFuselageModel() {
   }
   geometry::FuselageSolidInput input{planViewport_->fuselageSketchEditor().layers(),
       planViewport_->fuselageSketchEditor().stationEditor().lines(),planViewport_->fuselageProfileEditor().layers(),
-      projectReference().toScale?std::nullopt:projectReference().fuselageLengthMm,fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees,planViewport_->fuselageHoleEditor().layers()};
+      scaledFuselageLength(),fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees,planViewport_->fuselageHoleEditor().layers()};
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
@@ -831,6 +926,9 @@ void MainWindow::updateWorkspaceAvailability() {
       stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(0).layers().front()) &&
       stabilizerOutlineDefined(planViewport_->stabilizerSketchEditor(1).layers().front()));
   updateExportAvailability();
+  workspaceToolBar_->actions().at(8)->setEnabled(projectOpen_);
+  workspaceToolBar_->actions().at(7)->setEnabled(projectOpen_&&referenceReady(projectReference())&&projectLengthScale()>0&&
+      closedSketchBoundary(planViewport_->fuselageSketchEditor().layers()[1]).has_value());
   const int current = dataPanel_->property("workspaceIndex").toInt();
   if (!workspaceToolBar_->actions().at(current)->isEnabled()) {
     const int fallback = referenceReady(projectReference()) ? 1 : 0;
@@ -869,6 +967,13 @@ void MainWindow::buildMenus() {
   exitAction->setShortcut(QKeySequence::Quit);
   connect(exitAction, &QAction::triggered, this, &QWidget::close);
   auto* edit = menuBar()->addMenu("&Edit");
+  undoAction_=edit->addAction("&Undo");undoAction_->setObjectName("editUndo");
+  undoAction_->setShortcut(QKeySequence{Qt::CTRL|Qt::Key_Z});
+  connect(undoAction_,&QAction::triggered,this,[this]{applyEdit(false);});
+  redoAction_=edit->addAction("&Redo");redoAction_->setObjectName("editRedo");
+  redoAction_->setShortcut(QKeySequence{Qt::CTRL|Qt::Key_Y});
+  connect(redoAction_,&QAction::triggered,this,[this]{applyEdit(true);});
+  edit->addSeparator();
   auto* copyAction = edit->addAction("&Copy");
   copyAction->setShortcut(QKeySequence::Copy);
   connect(copyAction, &QAction::triggered, this, [this] { copyFocusedText(); });
@@ -877,6 +982,7 @@ void MainWindow::buildMenus() {
   connect(pasteAction, &QAction::triggered, this, [this] { pasteFocusedText(); });
 
   auto* view = menuBar()->addMenu("&View");
+  view->setObjectName("viewMenu");
   auto* fit = view->addAction("Fit View");
   connect(fit, &QAction::triggered, this, [this] {
     if (graphicsTabs_->currentIndex() == 0) planViewport_->fitAll();
@@ -889,6 +995,7 @@ void MainWindow::buildMenus() {
     auto* action = view->addAction(names[index]);
     connect(action, &QAction::triggered, this, [this, camera = cameras[index]] { setCameraView(camera); });
   }
+  viewport_->setViewActions(view->actions());
   auto* help = menuBar()->addMenu("&Help");
   auto* helpAction = help->addAction("&Help");
   helpAction->setShortcut(QKeySequence::HelpContents);
@@ -898,15 +1005,19 @@ void MainWindow::buildMenus() {
 }
 
 void MainWindow::setCameraView(CameraView cameraView) {
+  if(dataPanel_->property("workspaceIndex").toInt()==7)return;
   graphicsTabs_->setCurrentWidget(viewport_);
   viewport_->setCameraView(cameraView);
 }
 
 void MainWindow::resetProject() {
   if(assemblyPrepareJob_)assemblyPrepareJob_->cancel();if(assemblyCutJob_)assemblyCutJob_->cancel();
+  inspectPreparing_=false;inspectFitAfterBuild_=false;inspectPanel_->restore({});
+  weightBalancePanel_->restore({});weightBalancePanel_->setFoam({}, {}, "Generate Assembly to calculate the complete model.");
   assemblyState_={};assemblyOriginals_={};assemblyCutParts_.reset();fuselageModel_={};stabilizerModels_={};
   assemblySourceFingerprint_.clear();assemblyAttemptFingerprint_.clear();assemblySelected_=-1;
   for(auto* button:assemblySelect_)button->setChecked(false);
+  balanceMassCache_.reset();balanceMassSources_.clear();balanceMassFingerprint_.clear();
   ++projectEpoch_;for(auto& job:stabilizerJobs_)if(job)job->cancel();if(modelJob_)modelJob_->cancel();if(fuselageJob_)fuselageJob_->cancel();
   ProcessingScope processing{this, "Creating empty project..."};
   restoringProject_=true;projectOpen_=true;centralWidget()->setEnabled(true);
@@ -951,14 +1062,17 @@ void MainWindow::resetProject() {
   statusBar()->showMessage("New project ready; specify the Reference dimensions");
   restoringProject_=false;
   savedFingerprint_=projectFingerprint();updateProjectTitle();
+  if(!applyingHistory_)resetEditHistory();
 }
 
 ProjectDocument MainWindow::projectDocument() const {
   ProjectDocument p;
+  p.componentNames=inspectPanel_->names();
+  p.weightBalance=weightBalancePanel_->state();
   p.assembly=assemblyState_;
   p.reference=projectReference();
   p.wingspanText=findChild<QLineEdit*>("referenceWingspan")->text();
-  p.fuselageText=findChild<QLineEdit*>("referenceFuselageLength")->text();
+  p.fuselageText={}; // Legacy field retained in the file schema only.
   p.wing=planViewport_->sketchEditor().state();p.airfoilSketch=planViewport_->airfoilSketchEditor().state();
   for (int i = 0; i < 2; ++i) {p.stabilizerCuts[i]=planViewport_->stabilizerCutEditor(i).state();p.stabilizerHinges[i]=planViewport_->stabilizerHingeEditor(i).state();p.stabilizerHingeCuts[i]=stabilizerHingePanels_[i]->cut();p.stabilizerOutlines[i] = planViewport_->stabilizerSketchEditor(i).state();p.stabilizerAirfoils[i]=stabilizerAirfoilPanels_[i]->selection();}
   p.fuselageThickening=fuselageThickenPanel_->enabled();
@@ -1023,7 +1137,12 @@ QByteArray MainWindow::wingFingerprint() const {
 }
 bool MainWindow::projectModified() const {return projectOpen_ && projectFingerprint()!=savedFingerprint_;}
 void MainWindow::updateProjectTitle() {
-  if(!restoringProject_)invalidateAssembly();
+  if(!restoringProject_) {
+    invalidateAssembly();
+    if(dataPanel_->property("workspaceIndex").toInt()==7&&assemblyOriginals_.fuselage.IsNull())
+      weightBalancePanel_->setFoam({}, {}, "Generate the current Assembly to calculate the complete model.");
+  }
+  updateEditActions();
   setWindowModified(projectModified());
   setWindowTitle(projectOpen_?(projectPath_.isEmpty()?"Untitled":QFileInfo{projectPath_}.fileName())+"[*] - FoamAirplaneStudio":"FoamAirplaneStudio");
   if(!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing()){saveAction_->setEnabled(projectOpen_);saveAsAction_->setEnabled(projectOpen_);closeAction_->setEnabled(projectOpen_);}
@@ -1090,8 +1209,8 @@ bool MainWindow::openProjectFile(const QString& path,QString& error) {
 void MainWindow::restoreProject(const ProjectDocument& saved) {
   // Opening is an editing operation: never regenerate from a saved 3D view.
   // Assembly is 3D-only, so restore its data in the Fuselage 2D workspace.
-  auto p=saved;p.viewport=0;
-  if(p.workspace==5||p.workspace==6) {
+  auto p=saved;if(!applyingHistory_)p.viewport=0;
+  if(!applyingHistory_&&(p.workspace==5||p.workspace==6||p.workspace==8)) {
     p.workspace=2;p.tool="Outline";
     // Keep a pending sketch attached to its original layer. Otherwise open Side
     // View and keep the saved panel and active sketch layer consistent.
@@ -1099,14 +1218,17 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
     p.fuselageView=p.fuselage.active;
   }
 
-  resetProject();restoringProject_=true;assemblyState_=p.assembly;
+  if(!applyingHistory_)resetProject();
+  restoringProject_=true;
+  if(applyingHistory_&&assemblyState_.offsets!=p.assembly.offsets)assemblyCutParts_.reset();
+  assemblyState_=p.assembly;weightBalancePanel_->restore(p.weightBalance);inspectPanel_->restore(p.componentNames,applyingHistory_);
   statusBar()->showMessage("Restoring reference, sketches and project settings...");
   statusBar()->repaint();
   referencePanel_->restoreReference(p.reference);
   planViewport_->setReferenceBackground(p.reference.image.pages,p.reference.toScale);
   {
-    auto* span=findChild<QLineEdit*>("referenceWingspan");auto* length=findChild<QLineEdit*>("referenceFuselageLength");
-    QSignalBlocker a{span},b{length};span->setText(p.wingspanText);length->setText(p.fuselageText);
+    auto* span=findChild<QLineEdit*>("referenceWingspan");
+    QSignalBlocker a{span};span->setText(p.wingspanText);
   }
   planViewport_->sketchEditor().restoreState(p.wing);
   planViewport_->airfoilSketchEditor().restoreState(p.airfoilSketch);
@@ -1180,8 +1302,82 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   }
   if(workspace==3 || workspace==4)stabilizerCameras_[workspace-3]=p.camera;
   else if(workspace==2)restoredFuselageCamera_=p.camera;else restoredWingCamera_=p.camera;
-  restoringProject_=false;assemblySourceFingerprint_=assemblyFingerprint();updateStabilizerProgress();wingDirty_=true;updateWingModel();viewport_->restoreCamera(p.camera);
-  savedFingerprint_=projectFingerprint();updateProjectTitle();
+  restoringProject_=false;
+  if(!applyingHistory_)assemblySourceFingerprint_=assemblyFingerprint();
+  updateStabilizerProgress();wingDirty_=true;
+  if(!applyingHistory_)updateWingModel();
+  viewport_->restoreCamera(p.camera);
+  if(!applyingHistory_){savedFingerprint_=projectFingerprint();resetEditHistory();}
+  updateProjectTitle();
+}
+
+void MainWindow::updateEditActions() {
+  if(!undoAction_||!redoAction_)return;
+  const bool enabled=projectOpen_&&!restoringProject_&&!applyingHistory_&&!modelJob_&&!fuselageJob_&&!stabilizerProcessing()&&!assemblyProcessing();
+  undoAction_->setEnabled(enabled&&editPosition_>0);
+  redoAction_->setEnabled(enabled&&editPosition_<editHistory_.size());
+}
+void MainWindow::resetEditHistory() {
+  editHistory_.clear();editPosition_=0;editMouseDown_=false;
+  editBaseline_=projectDocument();editFingerprint_=projectFingerprint();updateEditActions();
+}
+void MainWindow::captureEdit() {
+  if(!editBaseline_||applyingHistory_||restoringProject_||!projectOpen_||editMouseDown_||
+      modelJob_||fuselageJob_||stabilizerProcessing()||assemblyProcessing()||
+      planViewport_->sketchEditor().stationEditor().moving()||
+      planViewport_->fuselageSketchEditor().stationEditor().moving())return;
+  invalidateAssembly();
+  auto fingerprint=projectFingerprint();auto current=projectDocument();
+  if(fingerprint!=editFingerprint_) {
+    editHistory_.erase(editHistory_.begin()+editPosition_,editHistory_.end());
+    editHistory_.push_back({*editBaseline_,current});
+    if(editHistory_.size()>100)editHistory_.erase(editHistory_.begin());
+    editPosition_=editHistory_.size();
+  }
+  // Refresh navigation/selection even when it does not create a revision, so
+  // undo returns to the editor in which the next change actually happened.
+  editBaseline_=std::move(current);editFingerprint_=std::move(fingerprint);updateEditActions();
+}
+void MainWindow::applyEdit(bool redo) {
+  captureEdit();
+  if(!projectOpen_||modelJob_||fuselageJob_||stabilizerProcessing()||assemblyProcessing())return;
+  if(redo?editPosition_==editHistory_.size():editPosition_==0)return;
+  const auto target=redo?editHistory_[editPosition_++].after:editHistory_[--editPosition_].before;
+  applyingHistory_=true;editMouseDown_=false;
+  restoreProject(target);
+  applyingHistory_=false;
+  editBaseline_=projectDocument();editFingerprint_=projectFingerprint();
+  updateProjectTitle();
+  const int workspace=dataPanel_->property("workspaceIndex").toInt();
+  if(workspace==8)updateInspect(false,false);
+  else if(workspace==5)displayAssembly();
+  else if(workspace==7)updateWeightBalance();
+  planViewport_->viewport()->update();
+  statusBar()->showMessage(redo?"Redid edit":"Undid edit",3000);
+}
+bool MainWindow::eventFilter(QObject* object,QEvent* event) {
+  auto* widget=qobject_cast<QWidget*>(object);
+  if(!widget||(widget!=this&&!isAncestorOf(widget))||applyingHistory_||restoringProject_)
+    return QMainWindow::eventFilter(object,event);
+  const auto type=event->type();
+  if(type==QEvent::ShortcutOverride) {
+    auto* key=static_cast<QKeyEvent*>(event);
+    if(key->modifiers()==Qt::ControlModifier&&(key->key()==Qt::Key_Z||key->key()==Qt::Key_Y)) {
+      captureEdit();key->accept();return true;
+    }
+  }
+  if(type==QEvent::KeyPress) {
+    auto* key=static_cast<QKeyEvent*>(event);
+    if(key->modifiers()==Qt::ControlModifier&&(key->key()==Qt::Key_Z||key->key()==Qt::Key_Y)) {
+      applyEdit(key->key()==Qt::Key_Y);return true;
+    }
+  }
+  if(type==QEvent::MouseButtonPress||type==QEvent::KeyPress)captureEdit();
+  if(type==QEvent::MouseButtonPress)editMouseDown_=true;
+  if(type==QEvent::MouseButtonRelease)editMouseDown_=false;
+  if(type==QEvent::MouseButtonRelease||type==QEvent::KeyPress||type==QEvent::FocusOut)
+    QTimer::singleShot(0,this,[this]{captureEdit();});
+  return QMainWindow::eventFilter(object,event);
 }
 
 const ProjectReference& MainWindow::projectReference() const {

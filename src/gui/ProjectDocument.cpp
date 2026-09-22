@@ -51,12 +51,14 @@ QJsonObject layer(const SketchLayer& value) {
   if(value.leadingEdge)out["leadingEdge"]=static_cast<qint64>(*value.leadingEdge);
   return out;
 }
-SketchLayer layer(const QJsonValue& value) {
+SketchLayer layer(const QJsonValue& value,bool circles=false) {
   auto o=object(value,"layer");SketchLayer out;out.points=points(o["points"]);
   for(auto v:array(o["curves"],"curves",100000)) {
-    auto c=object(v,"curve");SketchCurve curve{static_cast<SketchTool>(integer(c["type"],"curve type",1,2)),{}};
+    auto c=object(v,"curve");SketchCurve curve{static_cast<SketchTool>(integer(c["type"],"curve type",1,circles?3:2)),{}};
     for(auto id:array(c["points"],"curve points"))curve.points.push_back(integer(id,"point index",0,static_cast<int>(out.points.size())-1));
     if(curve.points.size()<2||(curve.type==SketchTool::Line&&curve.points.size()!=2))bad("curve point count");
+    if(curve.type==SketchTool::Circle&&(curve.points.size()!=2||curve.points[0]==curve.points[1]||
+        SketchEditor::fittedPath({out.points[curve.points[0]],out.points[curve.points[1]]},SketchTool::Circle).isEmpty()))bad("circle radius");
     out.curves.push_back(std::move(curve));
   }
   if(o.contains("leadingEdge")) {
@@ -70,11 +72,12 @@ QJsonObject sketch(const SketchState& value) {
   return {{"layers",layers},{"pending",points(value.pending)},{"tool",static_cast<int>(value.tool)},
     {"active",value.active},{"selected",value.selected},{"editing",value.editing}};
 }
-SketchState sketch(const QJsonValue& value,int maximumLayers) {
+SketchState sketch(const QJsonValue& value,int maximumLayers,bool circles=false) {
   auto o=object(value,"sketch");SketchState out;out.layers.clear();
-  for(auto l:array(o["layers"],"layers",maximumLayers))out.layers.push_back(layer(l));
+  for(auto l:array(o["layers"],"layers",maximumLayers))out.layers.push_back(layer(l,circles));
   if(out.layers.empty())bad("empty sketch layers");out.pending=points(o["pending"]);
-  out.tool=static_cast<SketchTool>(integer(o["tool"],"sketch tool",0,2));
+  out.tool=static_cast<SketchTool>(integer(o["tool"],"sketch tool",0,circles?3:2));
+  if(out.tool==SketchTool::Circle&&out.pending.size()>1)bad("pending circle");
   out.active=integer(o["active"],"active layer",0,static_cast<int>(out.layers.size())-1);
   out.selected=integer(o["selected"],"selected curve",-1,static_cast<int>(out.layers[out.active].curves.size())-1);
   out.editing=boolean(o["editing"],"sketch editing");return out;
@@ -172,7 +175,13 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
   QJsonArray offsets;for(auto offset:p.assembly.offsets)offsets.append(point(offset));
   QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts}};
-  return {{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",25},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  QJsonArray balanceParts;
+  for(const auto& part:p.weightBalance.parts)balanceParts.append(QJsonObject{
+      {"name",part.name},{"widthMm",part.widthMm},{"heightMm",part.heightMm},{"lengthMm",part.lengthMm},
+      {"grams",part.grams},{"centerMm",point(part.centerMm)},{"ounces",part.ounces}});
+  QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"parts",balanceParts}};
+  QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
+  return {{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",28},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
@@ -185,8 +194,36 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>25)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>28)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;
+  if(version>=27) {
+    const auto names=object(json["componentNames"],"component names");
+    if(names.size()>10000)bad("component names");
+    for(auto it=names.begin();it!=names.end();++it) {
+      if(it.key().isEmpty()||it.key().size()>240)bad("component identity");
+      const auto name=string(it.value(),"component name",120);
+      if(!validComponentName(name))bad("component name");
+      p.componentNames[it.key()]=name;
+    }
+  }
+  if(version>=26) {
+    const auto balance=object(json["weightBalance"],"weight and balance");
+    p.weightBalance.densityKgM3=number(balance["densityKgM3"],"foam density",.001,10000);
+    p.weightBalance.plywoodDensityKgM3=number(balance["plywoodDensityKgM3"],"plywood density",.001,10000);
+    for(auto value:array(balance["parts"],"balance parts",1000)) {
+      const auto o=object(value,"balance part");BalancePart part;
+      part.name=string(o["name"],"part name",200).trimmed();
+      if(part.name.isEmpty()||part.name.contains('\n')||part.name.contains('\r'))bad("part name");
+      for(const auto& other:p.weightBalance.parts)if(other.name.compare(part.name,Qt::CaseInsensitive)==0)bad("duplicate part name");
+      part.widthMm=number(o["widthMm"],"part width",.001,10000);
+      part.heightMm=number(o["heightMm"],"part height",.001,10000);
+      part.lengthMm=number(o["lengthMm"],"part length",.001,10000);
+      part.grams=number(o["grams"],"part weight",.001,1000000);
+      part.centerMm=point(o["centerMm"]);
+      if(std::abs(part.centerMm.x())>1e7||std::abs(part.centerMm.y())>1e7)bad("part position");
+      part.ounces=boolean(o["ounces"],"part weight units");p.weightBalance.parts.push_back(part);
+    }
+  }
   // Version 22 embedded generated models. Ignore that field completely: do not
   // decode, decompress, validate or restore obsolete geometry caches.
   if(version>=21) {
@@ -346,7 +383,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     if(angles.size()!=static_cast<int>(p.dihedralDegrees.size()))bad("dihedral panel count");
     for(int i=0;i<angles.size();++i)p.dihedralDegrees[i]=number(angles[i],"root dihedral",-80,80);
   } else if(json.contains("wingTip")) (void)integer(json["wingTip"],"legacy wing tip",0,2);
-  auto ui=object(json["ui"],"UI");p.workspace=integer(ui["workspace"],"workspace",0,6);
+  auto ui=object(json["ui"],"UI");p.workspace=integer(ui["workspace"],"workspace",0,version>=27?8:version>=26?7:6);
   p.tool=string(ui["tool"],"active tool");p.viewport=integer(ui["viewport"],"viewport",0,1);
   if(version>=7)p.selectedDihedralPanel=integer(ui["dihedralPanel"],"selected dihedral panel",0,p.dihedralDegrees.size()-1);
   else if(p.workspace==1 && p.tool=="Wing Tip")p.tool="Dihedral";
@@ -476,7 +513,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     if(!cuts.pending.empty()&&(!cuts.editing||cuts.tool==SketchTool::None))bad("fuselage cut draft tool");
   }
   if(version>=12)p.fuselageThickening=boolean(json["fuselageThickening"],"fuselage thickening");
-  if(version>=11)p.fuselageProfiles=sketch(json["fuselageProfiles"],100001);
+  if(version>=11)p.fuselageProfiles=sketch(json["fuselageProfiles"],100001,version>=28);
   if(version>=10) {
     auto stations=object(json["fuselageStations"],"fuselage stations");
     for(auto value:array(stations["lines"],"fuselage station lines",100000)) {

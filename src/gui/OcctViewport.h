@@ -23,6 +23,8 @@ class QPaintEvent;
 class QResizeEvent;
 class QShowEvent;
 class QWheelEvent;
+class QToolBar;
+class QAction;
 
 namespace designrc::gui {
 
@@ -44,6 +46,7 @@ public:
                              const TopoDS_Shape& steel,
                              const TopoDS_Shape& fiberglass);
   void displayAssembly(const std::vector<TopoDS_Shape>& parts,int selected);
+  void displayInspection(const std::vector<TopoDS_Shape>& parts);
   void setAssemblyReference(const ProjectReference& reference, const geometry::FuselageSideTransform& transform);
   void clearShape();
   void fitAll();
@@ -51,6 +54,7 @@ public:
   std::optional<CameraState> cameraState() const;
   void restoreCamera(const std::optional<CameraState>& state);
   void resetCamera();
+  void setViewActions(const QList<QAction*>& actions);
 
 protected:
   QPaintEngine* paintEngine() const override;
@@ -63,11 +67,14 @@ protected:
   void wheelEvent(QWheelEvent* event) override;
 
 private:
+  friend class InspectTest;
   void initializeViewer();
   void displayPendingShapes();
   void displayViewGizmo();
   void clearAssemblyReference();
   void redraw();
+  void positionViewControls();
+  QToolBar* viewControls_{};
 
   Handle(V3d_Viewer) viewer_;
   Handle(V3d_View) view_;

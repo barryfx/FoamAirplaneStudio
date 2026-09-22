@@ -1,8 +1,33 @@
 # Fuselage profiles and solid generation
 
-One Side View station enables Edit Profiles. Instructions appear at the top of
+A Side View station or an existing profile enables Edit Profiles. Instructions appear at the top of
 the data panel. Station numbers run nose to tail, matching Thicken rather than
-file creation order. The selected station is orange and reveals Line/Spline controls.
+file creation order. The selected station is orange and reveals Line/Spline/Circle controls,
+with Circle below them. These three tools are mutually exclusive. Circle takes a
+center click followed by a radius click and previews while the mouse moves.
+Escape or switching tools discards a center-only circle. With tools off, dragging
+the center moves the circle and dragging its radius point resizes it. Circles
+persist as center/radius handles in format 28 and use the existing sampled-profile
+pipeline. Formers has no new drawing controls.
+
+The selected station's entire profile is orange with a white border, matching
+the GUI selection palette. Copy picking and whole-profile dragging highlight the
+chosen profile too. Other profiles remain blue; leaving Edit Profiles clears
+the highlight. This display state is transient and does not modify the project.
+
+Copy Profile arms a source picker: click any profile's boundary or closed interior
+to store an independent session clipboard snapshot. Select a destination station
+and Paste Profile to replace its profile with a copy. Shared source slots are
+never overwritten. The copy is placed to the right of existing drawing bounds,
+the canvas expands, and the viewport centers on it. Reopening includes profile
+bounds in the canvas so Fit View and scrolling can reach pasted profiles. The clipboard survives mode
+and project switches for the current application session and is not persisted.
+
+Move Profile arms whole-profile dragging: press and hold the left mouse button
+on any profile, drag, and release to drop it. All points translate together,
+preserving circles, curves, dimensions and station assignments. Copy/Move and
+drawing tools are mutually exclusive; Escape or leaving the mode ends the action.
+Copy and action selection do not dirty the project; Paste and actual moves do.
 Draw a closed cross-section anywhere on the 2D reference; all profile sketches stay visible in every 2D mode, while only the selected
 station is editable. Turn tools off to select another station, drag points,
 or Delete a curve. Delete Profile clears its entire sketch and assignment. Tool
@@ -13,6 +38,15 @@ Each ConstrainedLine has an optional profile slot independent of the Wing airfoi
 index. A separate SketchEditor holds stable slots. Station moves and source
 resynchronization preserve the slot; deleting another station cannot retarget it.
 Deleting a station leaves its now-unreferenced slot in the saved collection.
+In Edit Profiles, select an unassigned station, turn drawing tools off, and double-click
+an orphaned profile boundary or closed interior to reattach that existing slot.
+Single-click an unattached profile to highlight it, then press Delete or Delete
+Profile to remove the entire sketch. Selection alone does not modify the project.
+This also works after all stations are deleted; Undo/Redo restores/deletes the
+sketch without creating a station.
+The sketch does not move or duplicate. Occupied profiles and stations with an
+existing assignment are unaffected. Recovery participates in project Undo/Redo
+and persists through save/open.
 Version 11 persists assignments, sketches and unfinished drawing. Earlier files
 start unassigned. Both reference outlines and section sketches remap with the
 reference image. New/Close clears the collection.
@@ -27,9 +61,11 @@ result and reports geometry failures in the status bar.
 
 FuselageSolidBuilder takes immutable outlines, stations, profiles and optional
 manual length. X runs from the leftmost nose to the rightmost tail. Each view's
-longitudinal extent maps independently onto the manual Fuselage Length; in
+longitudinal extent maps independently onto the Side View length derived from
+the shared Wingspan calibration; in
 actual-scale mode the Side View extent supplies the length in millimetres. Their
-nose centers share Y=Z=0. A Side View station's normalized X identifies the
+nose centers share Y=Z=0. Nearly vertical straight end edges receive the
+model-only registration described in fuselage-thickness.md. A Side View station's normalized X identifies the
 corresponding Top View section. Profile width and height fit independently to
 those spans; the width is centered between the Top boundaries and height lies
 between the Side boundaries. Offsets of each outline's centerline are retained.

@@ -40,7 +40,6 @@ int main(int argc, char** argv) {
     }
   });
   window.findChild<QLineEdit*>("referenceWingspan")->setText("1000");
-  window.findChild<QLineEdit*>("referenceFuselageLength")->setText("700");
   auto* workspace = window.findChild<QToolBar*>("workspaceToolBar");
   workspace->actions()[1]->trigger();
   auto* tools = window.findChild<QToolBar*>("componentToolBar");
