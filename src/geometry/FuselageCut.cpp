@@ -1,5 +1,8 @@
 #include "geometry/FuselageCut.h"
+#include "geometry/FuselageProcessing.h"
 #include <BRepAlgoAPI_Splitter.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
+#include <BRepAlgoAPI_Common.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -54,6 +57,80 @@ std::vector<Path> paths(const gui::SketchLayer& layer) {
   return result;
 }
 }
+TopoDS_Shape finishFuselageHalves(const TopoDS_Shape& body,
+    const std::function<void(const char*)>& progress,const ProcessingControl& processing,
+    const FuselageAlignmentSpec& alignment) {
+  processing.checkpoint();
+  std::vector<TopoDS_Shape> pieces;std::vector<std::size_t> side;std::vector<double> volumes;
+  for(TopExp_Explorer e{body,TopAbs_SOLID};e.More();e.Next()) {
+    GProp_GProps mass;fuselageVolumeProperties(e.Current(),mass,processing);
+    if(mass.Mass()<=1e-9)throw std::runtime_error("Invalid fuselage half after cutting.");
+    pieces.push_back(e.Current());side.push_back(mass.CentreOfMass().Y()<0?0:1);volumes.push_back(mass.Mass());
+  }
+  if(pieces.size()<2)throw std::runtime_error("Cuts removed a fuselage half.");
+  BRep_Builder builder;TopoDS_Compound main,cutouts;builder.MakeCompound(main);builder.MakeCompound(cutouts);
+  // Solid Common discards zero-volume contact. Compare the actual mating
+  // faces instead, so a whole hatch is recognized by shared seam area.
+  std::vector<TopoDS_Shape> seamFaces;
+  if(pieces.size()>2)for(const auto& piece:pieces) {
+    TopoDS_Compound seam;builder.MakeCompound(seam);
+    for(TopExp_Explorer face{piece,TopAbs_FACE};face.More();face.Next()) {
+      Bnd_Box box;fuselageBounds(face.Current(),box,processing);
+      double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
+      if(std::abs(y0)<1e-6&&std::abs(y1)<1e-6)builder.Add(seam,face.Current());
+    }
+    seamFaces.push_back(seam);
+  }
+  std::vector<std::size_t> groups(pieces.size());
+  for(std::size_t i=0;i<groups.size();++i)groups[i]=i;
+  auto root=[&](std::size_t i){while(groups[i]!=i)i=groups[i];return i;};
+  if(pieces.size()==2&&side[0]!=side[1])groups[1]=0;
+  if(pieces.size()>2)for(std::size_t i=0;i<pieces.size();++i)for(std::size_t j=i+1;j<pieces.size();++j) {
+    if(side[i]==side[j]||root(i)==root(j))continue;
+    processing.checkpoint();
+    BRepAlgoAPI_Common contact;NCollection_List<TopoDS_Shape> args,tools;
+    args.Append(seamFaces[i]);tools.Append(seamFaces[j]);contact.SetArguments(args);contact.SetTools(tools);
+    contact.SetNonDestructive(true);contact.SetRunParallel(processing.parallel);contact.SetFuzzyValue(1e-7);
+    {auto range=processing.range();contact.Build(range);}processing.checkpoint();
+    if(!contact.IsDone()||contact.HasErrors())throw std::runtime_error("Could not identify matching cut-out halves.");
+    GProp_GProps area;BRepGProp::SurfaceProperties(contact.Shape(),area);
+    if(area.Mass()>1e-7)groups[root(j)]=root(i);
+  }
+  // Select the largest connected original body by combined volume. Choosing
+  // each side's largest piece independently fails for oblique Top View cuts.
+  std::vector<double> groupVolume(pieces.size());
+  for(std::size_t i=0;i<pieces.size();++i)groupVolume[root(i)]+=volumes[i];
+  const auto mainGroup=static_cast<std::size_t>(std::max_element(groupVolume.begin(),groupVolume.end())-groupVolume.begin());
+  for(std::size_t i=0;i<groupVolume.size();++i)if(i!=mainGroup&&groupVolume[i]>0&&
+      std::abs(groupVolume[i]-groupVolume[mainGroup])<=std::max(1e-8,groupVolume[mainGroup]*1e-8))
+    throw std::runtime_error("Cuts leave equally sized bodies; the main fuselage body cannot be identified.");
+  std::array<TopoDS_Shape,2> halves;
+  for(std::size_t i=0;i<pieces.size();++i)if(root(i)==mainGroup) {
+    if(!halves[side[i]].IsNull())throw std::runtime_error("The main fuselage must form two connected halves after cuts.");
+    halves[side[i]]=pieces[i];builder.Add(main,pieces[i]);
+  }
+  if(halves[0].IsNull()||halves[1].IsNull())throw std::runtime_error("The main fuselage must cross the centre plane.");
+  // Only the detached groups are joined. Main halves never undergo a union.
+  for(std::size_t i=0;i<pieces.size();++i)if(root(i)==i&&i!=mainGroup) {
+    NCollection_List<TopoDS_Shape> args,tools;args.Append(pieces[i]);
+    for(std::size_t j=0;j<pieces.size();++j)if(j!=i&&root(j)==i)tools.Append(pieces[j]);
+    auto piece=pieces[i];
+    if(!tools.IsEmpty()) {
+      BRepAlgoAPI_Fuse fuse;fuse.SetArguments(args);fuse.SetTools(tools);fuse.SetNonDestructive(true);fuse.SetRunParallel(processing.parallel);fuse.SetFuzzyValue(1e-7);
+      {auto range=processing.range();fuse.Build(range);}processing.checkpoint();
+      if(!fuse.IsDone()||fuse.HasErrors())throw std::runtime_error("Could not restore detached fuselage cut-out parts.");
+      piece=fuse.Shape();
+    }
+    if(!fuselageValid(piece,processing))throw std::runtime_error("Invalid detached fuselage cut-out part.");
+    for(TopExp_Explorer e{piece,TopAbs_SOLID};e.More();e.Next())builder.Add(cutouts,e.Current());
+  }
+  auto specification=alignment;specification.separateHalves=true;
+  halves=addFuselageAlignmentPins(main,halves,specification,progress,processing);
+  TopoDS_Compound result;builder.MakeCompound(result);
+  for(const auto& half:halves)builder.Add(result,half);
+  if(!cutouts.IsNull())for(TopExp_Explorer e{cutouts,TopAbs_SOLID};e.More();e.Next())builder.Add(result,e.Current());
+  return result;
+}
 TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
     const std::function<void(const char*)>& progress,const ProcessingControl& processing,
     const FuselageAlignmentSpec* alignment) {
@@ -61,7 +138,7 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
   if(progress)progress("Fuselage: splitting main body into left/right halves; preserving cut-out parts...");
   std::vector<TopoDS_Shape> parts;std::vector<double> volumes;
   for(TopExp_Explorer e{body,TopAbs_SOLID};e.More();e.Next()) {
-    parts.push_back(e.Current());GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);volumes.push_back(mass.Mass());
+    parts.push_back(e.Current());GProp_GProps mass;fuselageVolumeProperties(e.Current(),mass,processing);volumes.push_back(mass.Mass());
   }
   if(parts.empty())throw std::runtime_error("No main fuselage body to split.");
   const auto index=static_cast<std::size_t>(std::max_element(volumes.begin(),volumes.end())-volumes.begin());
@@ -78,8 +155,8 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
   BRep_Builder builder;TopoDS_Compound result;builder.MakeCompound(result);double volume=0;
   std::array<TopoDS_Shape,2> halves;std::size_t halfIndex=0;
   for(TopExp_Explorer e{splitter.Shape(),TopAbs_SOLID};e.More();e.Next()) {
-    processing.checkpoint();GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);
-    if(mass.Mass()<=1e-9||!BRepCheck_Analyzer{e.Current(),true,processing.parallel}.IsValid())throw std::runtime_error("Invalid fuselage half after centre split.");
+    processing.checkpoint();GProp_GProps mass;fuselageVolumeProperties(e.Current(),mass,processing);
+    if(mass.Mass()<=1e-9||!fuselageValid(e.Current(),processing))throw std::runtime_error("Invalid fuselage half after centre split.");
     volume+=mass.Mass();halves[halfIndex++]=e.Current();
   }
   if(std::abs(volume-volumes[index])>std::max(1e-3,volumes[index]*1e-6))throw std::runtime_error("Centre split did not conserve fuselage material.");
@@ -93,7 +170,7 @@ TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchL
     const ProcessingControl& processing) {
   processing.checkpoint();if(cuts.empty())return body;
   if(cuts.size()!=2)throw std::runtime_error("Cut sketches require Top and Side views.");
-  Bnd_Box box;BRepBndLib::AddOptimal(body,box,false,false);double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
+  Bnd_Box box;fuselageBounds(body,box,processing);double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
   const double margin=std::max({x1-x0,y1-y0,z1-z0,1.});auto result=body;
   for(int view=0;view<2;++view) {
     const auto& layer=cuts[view];const auto& projection=projections[view];
@@ -138,12 +215,12 @@ TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchL
       BRep_Builder builder;TopoDS_Compound solids;builder.MakeCompound(solids);double volume=0;
       for(TopExp_Explorer e{split,TopAbs_SOLID};e.More();e.Next()) {
         processing.checkpoint();const auto solid=e.Current();
-        if(!BRepCheck_Analyzer{solid,true,processing.parallel}.IsValid())throw std::runtime_error(label+" produced an invalid body.");
-        GProp_GProps mass;BRepGProp::VolumeProperties(solid,mass);
+        if(!fuselageValid(solid,processing))throw std::runtime_error(label+" produced an invalid body.");
+        GProp_GProps mass;fuselageVolumeProperties(solid,mass,processing);
         if(mass.Mass()<=1e-9)throw std::runtime_error(label+" produced an empty or reversed body.");
         volume+=mass.Mass();builder.Add(solids,solid);
       }
-      GProp_GProps before;BRepGProp::VolumeProperties(result,before);
+      GProp_GProps before;fuselageVolumeProperties(result,before,processing);
       if(std::abs(volume-before.Mass())>std::max(1e-3,std::abs(before.Mass())*1e-6))
         throw std::runtime_error(label+" did not conserve the fuselage material volume.");
       result=solids;

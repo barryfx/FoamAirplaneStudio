@@ -1,4 +1,5 @@
 #pragma once
+#include "geometry/WingSolidBuilder.h"
 
 #include <QMainWindow>
 #include <QPointer>
@@ -70,6 +71,7 @@ private:
   friend class AssemblyWorkflowTest;
   friend class ExportWorkflowTest;
   friend class WeightBalanceTest;
+  friend class AirplaneStatisticsTest;
   friend class ViewControlsTest;
   friend class InspectTest;
   friend class EditorHistoryTest;
@@ -104,6 +106,7 @@ private:
   void updateAssembly(bool inspect=false);
   void displayAssembly(bool entry=false);
   void moveAssembly(int key,Qt::KeyboardModifiers modifiers);
+  void rotateAssembly(double degrees);
   void toggleAssemblyCuts();
   void pollAssemblyJob();
   void invalidateAssembly();
@@ -111,6 +114,7 @@ private:
   bool assemblyProcessing() const { return assemblyPrepareJob_ || assemblyCutJob_; }
   struct AssemblyPrepared {
     TopoDS_Shape wing;
+    std::vector<geometry::SparMaterial> spars;
     geometry::FuselageBuildResult fuselage;
     std::array<geometry::StabilizerBuildResult,2> stabilizers;
   };
@@ -119,6 +123,8 @@ private:
   std::optional<geometry::AssemblyParts> assemblyCutParts_;
   QWidget* assemblyPanel_{};
   std::array<QPushButton*,3> assemblySelect_{};
+  std::array<QPushButton*,2> assemblyRotate_{};
+  QLabel* assemblyRotationLabel_{};
   QPushButton* assemblyCutButton_{};
   int assemblySelected_=-1;
   QByteArray assemblySourceFingerprint_,assemblyAttemptFingerprint_,assemblyJobFingerprint_;
@@ -152,7 +158,6 @@ private:
   QByteArray projectFingerprint() const;
   QByteArray wingFingerprint() const;
   void updateProjectTitle();
-  void openHelp();
   void showAbout();
   void copyFocusedText();
   void pasteFocusedText();
@@ -160,8 +165,13 @@ private:
   WingDefinitionState wingDefinitions_;
   QWidget* dataPanel_{};
   QWidget* dataContents_{};
+  AirplaneStatistics statistics_;
+  std::vector<QLabel*> statisticsLabels_;
+  void updateStatistics();
+  QByteArray statisticsMassKey() const;
   QPushButton* cancelProcessing_{};
-  std::unique_ptr<processing::BackgroundJob<TopoDS_Shape>> modelJob_;
+  std::unique_ptr<processing::BackgroundJob<geometry::WingBuildResult>> modelJob_;
+  std::vector<geometry::SparMaterial> wingSparMaterials_;
   std::size_t projectEpoch_=0,jobEpoch_=0;
   bool closingAfterProcessing_=false;
   std::vector<std::pair<QPointer<QAction>,bool>> processingActions_;
@@ -196,6 +206,7 @@ private:
   double fuselageWingLeadingEdge() const;
   std::unique_ptr<processing::BackgroundJob<geometry::FuselageBuildResult>> fuselageJob_;
   QByteArray builtFuselageFingerprint_, fuselageJobFingerprint_;
+  bool fuselageRetryPending_=false;
   std::size_t fuselageJobEpoch_{};
   TopoDS_Shape wingShape_, fuselageShape_, servoTrayTopFaces_;
   int displayedComponent_=-1;
@@ -218,6 +229,8 @@ private:
   std::optional<CameraState> restoredWingCamera_, restoredFuselageCamera_;
   QTabWidget* graphicsTabs_{};
   QToolBar* workspaceToolBar_{};
+  // Stable saved workspace IDs, independent of the toolbar's visual order.
+  std::array<QAction*,9> workspaceActions_{};
   QToolBar* componentToolBar_{};
   OcctViewport* viewport_{};
   PlanViewport* planViewport_{};

@@ -313,7 +313,7 @@ int main(int argc,char** argv) {
     auto* workspace = window.findChild<QToolBar*>("workspaceToolBar");
     CHECK(workspace->actions().front()->isEnabled());
     CHECK(workspace->actions().front()->isChecked());
-    for(int i=1;i<workspace->actions().size();++i) CHECK(workspace->actions()[i]->isEnabled()==(i==8));
+    for(int i=1;i<workspace->actions().size();++i) CHECK(workspace->actions()[i]->isEnabled()==(i==6));
     CHECK(!QApplication::overrideCursor());
     CHECK(!window.statusBar()->currentMessage().contains("under development"));
     CHECK(window.projectDocument().plan.zoom!=p.plan.zoom);CHECK(!window.projectModified());
@@ -366,4 +366,3 @@ int main(int argc,char** argv) {
     std::cout<<"Project data, embedded images, drafts, UI/camera restoration, file actions, cancellation and failures passed.\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }
-

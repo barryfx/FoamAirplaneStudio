@@ -11,7 +11,9 @@ visible. Empty shapes do not cut. Only the active component in Cut/2D accepts in
 
 Leaving Cut, including entering 3D, warns if any nonempty loop is not closed.
 Incomplete curves remain editable; generation refuses them rather than publishing
-an uncut model. A Cut Shape must be one connected, unbranched, nonzero-area loop.
+an uncut model. All loops are validated before a component, Assembly or Inspect
+worker starts, and again at the builder entry point before lofting or hinge work.
+A Cut Shape must be one connected, unbranched, nonzero-area loop.
 New/Close resets shapes. Reference scaling remaps every layer. Version 20 saves
 layers, selected shape, drawing tools and drafts; older files initialize empty cuts.
 

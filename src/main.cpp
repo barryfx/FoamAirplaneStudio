@@ -1,4 +1,5 @@
 #include "gui/MainWindow.h"
+#include "gui/StartupSplash.h"
 
 #include <QApplication>
 #include <QDir>
@@ -31,14 +32,11 @@ int main(int argc, char* argv[]) {
   application.setApplicationName("FoamAirplaneStudio");
   application.setApplicationVersion(DESIGNRC_VERSION);
   application.setOrganizationName("FoamAirplaneStudio");
-#if defined(Q_OS_WIN)
-  application.setWindowIcon(QIcon(":/graphics/designrc_smaller.ico"));
-#else
-  application.setWindowIcon(QIcon(":/graphics/designrc_icon.png"));
-#endif
+  application.setWindowIcon(QIcon(":/graphics/FoamAirplaneStudio.png"));
 
+  designrc::gui::StartupSplash splash;
   designrc::gui::MainWindow window;
-  window.showMaximized();
+  splash.finishWhenReady(window);
   return application.exec();
 }
 

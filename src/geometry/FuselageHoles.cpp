@@ -1,4 +1,5 @@
 #include "geometry/FuselageHoles.h"
+#include "geometry/FuselageProcessing.h"
 #include "gui/SketchPaths.h"
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepBuilderAPI_MakeEdge.hxx>
@@ -14,13 +15,40 @@
 #include <Geom_BSplineCurve.hxx>
 #include <NCollection_HArray1.hxx>
 #include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <IntCurvesFace_ShapeIntersector.hxx>
+#include <gp_Lin.hxx>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 namespace designrc::geometry {
 namespace {
-std::array<double,6> bounds(const TopoDS_Shape& shape){Bnd_Box b;BRepBndLib::AddOptimal(shape,b,false,false);std::array<double,6> r;b.Get(r[0],r[1],r[2],r[3],r[4],r[5]);return r;}
-double volume(const TopoDS_Shape& shape){GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass);return mass.Mass();}
+std::array<double,6> bounds(const TopoDS_Shape& shape,const ProcessingControl& control){Bnd_Box b;fuselageBounds(shape,b,control);std::array<double,6> r;b.Get(r[0],r[1],r[2],r[3],r[4],r[5]);return r;}
+double volume(const TopoDS_Shape& shape,const ProcessingControl& control){GProp_GProps mass;fuselageVolumeProperties(shape,mass,control);return mass.Mass();}
+bool parallelWallInterference(const TopoDS_Shape& rim,const TopoDS_Shape& body,const TopoDS_Shape& cavity,
+    int axis,bool positive,double extent,const ProcessingControl& control) {
+  control.checkpoint();IntCurvesFace_ShapeIntersector ray,material;ray.Load(cavity,1e-7);bool materialLoaded=false;
+  const gp_Dir direction=axis==2?gp_Dir{0,0,positive?-1.:1.}:gp_Dir{0,positive?-1.:1.,0};
+  // Diagnose a failed isolation independently of its Boolean result. A path
+  // from the hole rim that never reaches the cavity crosses side/end-wall
+  // material along the cutting direction. Sampling may miss a narrow region,
+  // so it only supplies a positive diagnosis; it never approves a failed cut.
+  for(TopExp_Explorer e{rim,TopAbs_EDGE};e.More();e.Next()) {
+    BRepAdaptor_Curve curve{TopoDS::Edge(e.Current())};
+    for(int i=0;i<=32;++i) {
+      control.checkpoint();const double t=curve.FirstParameter()+(curve.LastParameter()-curve.FirstParameter())*i/32.;
+      const gp_Lin path{curve.Value(t),direction};
+      ray.PerformNearest(path,0,extent);control.checkpoint();
+      if(ray.IsDone()&&ray.NbPnt()==0) {
+        if(!materialLoaded){material.Load(body,1e-7);materialLoaded=true;}
+        material.Perform(path,0,extent);control.checkpoint();
+        if(material.IsDone()&&material.NbPnt()>=2)return true;
+      }
+    }
+  }
+  return false;
+}
 TopoDS_Shape cut(const TopoDS_Shape& a,const TopoDS_Shape& b,const ProcessingControl& control) {
   control.checkpoint();BRepAlgoAPI_Cut op;NCollection_List<TopoDS_Shape> args,tools;args.Append(a);tools.Append(b);
   op.SetArguments(args);op.SetTools(tools);op.SetNonDestructive(true);op.SetRunParallel(control.parallel);op.SetFuzzyValue(1e-7);
@@ -33,9 +61,12 @@ TopoDS_Shape cutFuselageHoles(const TopoDS_Shape& body,const TopoDS_Shape& cavit
     const std::array<FuselageCutProjection,2>& projections,const ProcessingControl& control) {
   if(holes.empty())return body;
   if(holes.size()!=4||outlines.size()!=2)throw std::runtime_error("Invalid fuselage hole views.");
-  auto result=body;const auto b=bounds(body);const double margin=std::max({b[3]-b[0],b[4]-b[1],b[5]-b[2],1.});
-  for(int wall=0;wall<4;++wall)for(const auto& path:gui::sketchPaths(holes[wall])) {
-    control.checkpoint();const auto& layer=path.layer;
+  auto result=body;const auto b=bounds(body,control);const double margin=std::max({b[3]-b[0],b[4]-b[1],b[5]-b[2],1.});
+  for(int wall=0;wall<4;++wall) {
+    const auto paths=gui::sketchPaths(holes[wall]);
+    for(std::size_t index=0;index<paths.size();++index) {
+    control.checkpoint();const auto& layer=paths[index].layer;
+    const std::string location=std::string{"Fuselage > Holes: "}+std::array{"Top","Bottom","Left","Right"}[wall]+" hole "+std::to_string(index+1);
     if(!gui::closedSketchBoundary(layer))throw std::runtime_error("Close or delete every incomplete hole before generating the fuselage.");
     const int view=wall<2?0:1,axis=wall<2?2:1;const bool positive=wall==0||wall==3;
     if(!gui::sketchPathInside(layer,outlines[view]))throw std::runtime_error("Every hole must fit entirely inside its fuselage outline.");
@@ -62,27 +93,32 @@ TopoDS_Shape cutFuselageHoles(const TopoDS_Shape& body,const TopoDS_Shape& cavit
     }
     if(!wire.IsDone())throw std::runtime_error("Hole segments do not form a wire.");
     BRepBuilderAPI_MakeFace face{wire.Wire(),true};
-    if(!face.IsDone()||!BRepCheck_Analyzer{face.Face()}.IsValid())throw std::runtime_error("A hole must be a simple closed loop without self-intersections.");
+    if(!face.IsDone()||!fuselageValid(face.Face(),control))throw std::runtime_error("A hole must be a simple closed loop without self-intersections.");
     const auto prism=BRepPrimAPI_MakePrism{face.Face(),view==0?gp_Vec{0,0,far-near}:gp_Vec{0,far-near,0}}.Shape();
     // The cavity separates the through-prism into near and far components.
     // Only the solid touching the chosen exterior starting plane may remove
     // material. If it reaches the far plane too, this hole can cut both walls.
     const auto separated=cut(prism,cavity,control);TopoDS_Shape tool;
     for(TopExp_Explorer e{separated,TopAbs_SOLID};e.More();e.Next()) {
-      const auto box=bounds(e.Current());const double start=positive?box[axis+3]:box[axis];
+      const auto box=bounds(e.Current(),control);const double start=positive?box[axis+3]:box[axis];
       if(std::abs(start-near)>1e-5)continue;
       const double end=positive?box[axis]:box[axis+3];
-      if(std::abs(end-far)<1e-5||!tool.IsNull())throw std::runtime_error("Move or resize the hole: its footprint must reach the inner cavity across the whole loop to cut only one wall.");
+      if(std::abs(end-far)<1e-5||!tool.IsNull()) {
+        if(parallelWallInterference(wire.Wire(),result,cavity,axis,positive,std::abs(far-near),control))
+          throw std::runtime_error(location+" overlaps a wall parallel to the cut direction. Move or shrink it to fit over the inner cavity.");
+        throw std::runtime_error(location+" could not be isolated from the opposite wall. Check its inner-cavity clearance; the CAD cut may also have failed.");
+      }
       tool=e.Current();
     }
-    if(tool.IsNull())throw std::runtime_error("Could not isolate the selected wall for this hole.");
+    if(tool.IsNull())throw std::runtime_error(location+": the CAD cut could not isolate the selected wall.");
     const auto remaining=cut(result,tool,control);int count=0;
     for(TopExp_Explorer e{remaining,TopAbs_SOLID};e.More();e.Next()) {
-      if(!BRepCheck_Analyzer{e.Current()}.IsValid()||volume(e.Current())<=1e-9)throw std::runtime_error("Hole produced an invalid fuselage wall.");++count;
+      if(!fuselageValid(e.Current(),control)||volume(e.Current(),control)<=1e-9)throw std::runtime_error("Hole produced an invalid fuselage wall.");++count;
     }
     if(!count)throw std::runtime_error("Holes remove the entire fuselage.");
-    if(volume(result)-volume(remaining)<=1e-7)throw std::runtime_error("Hole does not remove material from the selected wall; check its position or overlapping holes.");
+    if(volume(result,control)-volume(remaining,control)<=1e-7)throw std::runtime_error("Hole does not remove material from the selected wall; check its position or overlapping holes.");
     result=remaining;
+    }
   }
   return result;
 }

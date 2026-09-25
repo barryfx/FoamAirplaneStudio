@@ -1,4 +1,5 @@
 #include "gui/AirfoilPanel.h"
+#include "gui/AirfoilSmoothingDialog.h"
 #include "gui/ProcessingScope.h"
 #include "gui/FileSelectionDialog.h"
 #include "gui/PlanViewport.h"
@@ -14,6 +15,7 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QRegularExpression>
 #include <QVBoxLayout>
 namespace designrc::gui {
 AirfoilPanel::AirfoilPanel(PlanViewport& view, QWidget* parent) : QWidget{parent}, view_{view} {
@@ -27,7 +29,7 @@ AirfoilPanel::AirfoilPanel(PlanViewport& view, QWidget* parent) : QWidget{parent
     if(chosen_>=0)group_->button(chosen_)->setChecked(true);
     view_.sketchEditor().stationEditor().setActivePanel(panel_);
   });
-  auto* description = new QLabel{"Load airfoil .dat files or Sketch airfoils on the reference image and click on a station to assign one to that station.", this};
+  auto* description = new QLabel{"Load airfoil .dat files or Sketch airfoils on the reference image and click on a station to assign one to that station. Select an airfoil in the list to export its normalized .dat coordinates.", this};
   description->setWordWrap(true); description_ = description; layout->addWidget(description);
   load_ = new QPushButton{"Load Airfoil .dat File", this}; load_->setObjectName("loadAirfoilDat"); layout->addWidget(load_);
   sketchButton_ = new QPushButton{"Sketch Airfoil", this}; sketchButton_->setObjectName("sketchAirfoil");
@@ -50,8 +52,36 @@ AirfoilPanel::AirfoilPanel(PlanViewport& view, QWidget* parent) : QWidget{parent
   auto* entries = new QWidget{scroll}; listLayout_ = new QVBoxLayout{entries}; listLayout_->addStretch();
   scroll->setWidget(entries); listOuter->addWidget(scroll); layout->addWidget(list_, 1);
   group_ = new QButtonGroup{this}; group_->setExclusive(true);
+  smooth_=new QPushButton{"Smooth Airfoil",this};smooth_->setObjectName("smoothAirfoil");layout->addWidget(smooth_);
+  connect(smooth_,&QPushButton::clicked,this,[this] {
+    if(sketching_||chosen_<0||chosen_>=static_cast<int>(library_.entries().size()))return;
+    try {
+      const auto& entry=library_.entries()[chosen_];
+      const auto base=entry.name+QString::fromUtf8(" — Smoothed");auto name=base;int suffix=2;
+      while(std::any_of(library_.entries().begin(),library_.entries().end(),[&](const auto& e){return e.name==name;}))
+        name=base+QString{" %1"}.arg(suffix++);
+      AirfoilSmoothingDialog dialog{normalizedAirfoil(entry),name,this};
+      if(dialog.exec()!=QDialog::Accepted)return;
+      library_.addProfile(dialog.copyName(),dialog.result());addLibraryButton();
+    }catch(const std::exception& e){QMessageBox::warning(this,"Smooth Airfoil",QString::fromUtf8(e.what()));}
+  });
+  export_=new QPushButton{"Export Selected Airfoil .dat",this};
+  export_->setObjectName("exportAirfoilDat");layout->addWidget(export_);
+  connect(export_,&QPushButton::clicked,this,[this] {
+    if(chosen_<0||chosen_>=static_cast<int>(library_.entries().size())||sketching_)return;
+    FileSelectionDialog dialog{this,"airfoilDatExport","Export Airfoil .dat",QFileDialog::AnyFile,QFileDialog::AcceptSave};
+    dialog.setNameFilter("Airfoil files (*.dat)");dialog.setDefaultSuffix("dat");
+    auto name=library_.entries()[chosen_].name;
+    name.replace(QRegularExpression{R"([<>:"/\\|?*\x00-\x1f])"},"_");
+    dialog.selectFile(name+".dat");
+    if(dialog.exec()!=QDialog::Accepted)return;
+    QString error;
+    if(!library_.exportDat(chosen_,dialog.selectedFiles().front(),error))
+      QMessageBox::warning(this,"Export Airfoil",error);
+  });
   connect(group_, &QButtonGroup::idClicked, this, [this](int id) {
     chosen_ = id;
+    updateControls();
     view_.sketchEditor().stationEditor().assignSelectedAirfoil(static_cast<std::size_t>(id));
   });
   connect(load_, &QPushButton::clicked, this, [this] {
@@ -81,6 +111,8 @@ void AirfoilPanel::setPanelCount(int count) {
   if(active_)view_.sketchEditor().stationEditor().setActivePanel(panel_);
 }
 void AirfoilPanel::updateControls() {
+  export_->setEnabled(!sketching_&&chosen_>=0&&chosen_<static_cast<int>(library_.entries().size()));
+  smooth_->setEnabled(export_->isEnabled());
   tabs_->setEnabled(!sketching_);
   description_->setEnabled(!sketching_); load_->setEnabled(!sketching_); list_->setEnabled(!sketching_);
   tools_->setVisible(sketching_); sketchButton_->setChecked(sketching_);
@@ -106,7 +138,7 @@ void AirfoilPanel::addLibraryButton() {
     chosen_ = 0; group_->button(0)->setChecked(true);
     view_.sketchEditor().stationEditor().assignSelectedAirfoil(0);
   }
-  emit libraryChanged();
+  updateControls();emit libraryChanged();
 }
 void AirfoilPanel::selectStation(int index) {
   if (!active_ || sketching_ || index < 0) return;

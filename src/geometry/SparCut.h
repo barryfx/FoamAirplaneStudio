@@ -1,4 +1,5 @@
 #pragma once
+#include "geometry/SparMaterial.h"
 #include "geometry/ProcessingControl.h"
 #include "gui/SparState.h"
 #include <TopoDS_Shape.hxx>
@@ -11,5 +12,5 @@ namespace designrc::geometry {
 TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,
     double halfSpan,const std::function<std::pair<double,double>(double)>& chordAtSpan,
     const std::function<void(const char*)>& progress={}, double rootInset=0,double tipInset=0,bool mitered=false,
-    double lighteningWall=0,const std::vector<std::pair<double,double>>& bays={},const ProcessingControl& control={});
+    double lighteningWall=0,const std::vector<std::pair<double,double>>& bays={},const ProcessingControl& control={},std::vector<SparMaterial>* materials=nullptr);
 }

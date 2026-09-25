@@ -1,4 +1,5 @@
 #include "gui/MainWindow.h"
+#include "gui/WingCalibration.h"
 #include "gui/StabilizerOutlinePanel.h"
 #include "gui/StabilizerAirfoilPanel.h"
 #include "gui/StabilizerHingePanel.h"
@@ -77,6 +78,18 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamStabilizerTests"); QCoreApplication::setApplicationName("FoamStabilizerTests");
   QSettings::setDefaultFormat(QSettings::IniFormat); QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
+    if(app.arguments().contains("--vertical-project")) {
+      CHECK(argc==3);QString error;
+      const auto document=readProject(QString::fromLocal8Bit(argv[2]),error);CHECK(document);
+      const auto& p=*document;
+      const double scale=p.reference.toScale?1.:wingCalibration(p.wing.layers,p.stations.lines,p.reference.wingspanMm).scale;
+      const auto result=designrc::geometry::buildStabilizerModel({p.stabilizerOutlines[1].layers.front(),
+        p.stabilizerAirfoils[1].value_or(defaultStabilizerAirfoil()),scale,false,
+        p.stabilizerHinges[1].layers.front(),p.stabilizerHingeCuts[1],p.stabilizerCuts[1].layers},
+        [](const char* stage){std::cout<<stage<<std::endl;});
+      CHECK(!result.fixed.IsNull()&&!result.control.IsNull()&&BRepCheck_Analyzer{result.shape}.IsValid());
+      std::cout<<"Project vertical stabilizer: valid fixed and control bodies\n";return 0;
+    }
     if(app.arguments().contains("--open-only")) {
       CHECK(argc==3);QString error;QElapsedTimer elapsed;elapsed.start();
       std::cout<<"Reading project"<<std::endl;
@@ -129,6 +142,13 @@ int main(int argc,char** argv) {
     auto interiorLeading=chain;interiorLeading.leadingEdge=1;CHECK(!stabilizerOutlineDefined(interiorLeading));
     CHECK(stabilizerOutlineDefined(chain));
     const auto defaultFoil=defaultStabilizerAirfoil();
+    // Reject incomplete cuts before any loft/hinge work or progress is emitted.
+    designrc::geometry::StabilizerSolidInput incomplete{chain,defaultFoil,1,false};
+    incomplete.cutShapes={SketchLayer{{{0,0},{10,10}},{{SketchTool::Line,{0,1}}}}};
+    int stages=0;bool invalidCut=false;
+    try{designrc::geometry::buildStabilizerModel(incomplete,[&](const char*){++stages;});}
+    catch(const std::runtime_error& e){invalidCut=QString{e.what()}.contains("incomplete Cut Shape");}
+    CHECK(invalidCut&&stages==0);
     bool missingRejected=false;
     try{designrc::geometry::buildStabilizerSolid({noLeading,defaultFoil,1,true});}
     catch(const std::runtime_error&){missingRejected=true;}CHECK(missingRejected);
@@ -178,6 +198,15 @@ int main(int argc,char** argv) {
     CHECK(inside(tape,{145,40,8})&&!inside(tape,{145,40,-8}));
     CHECK(inside(standard,{141,40,0})&&!inside(standard,{145,40,8}));
     CHECK(inside(tape,{180,79,0})&&inside(tape,{180,81,0})); // Return segment is square.
+    // A short vertical rudder hinge and a longer return still bevel the vertical.
+    auto shortVertical=hinge;shortVertical.points[1].setY(40);shortVertical.points[2].setY(40);
+    const auto verticalBevel=designrc::geometry::cutStabilizerHinge(block,shortVertical,HingeCut::Tape,{},true);
+    CHECK(bodies(verticalBevel)==2&&BRepCheck_Analyzer{verticalBevel}.IsValid());
+    CHECK(!inside(verticalBevel,{145,20,0})&&inside(verticalBevel,{151,20,0}));
+    CHECK(inside(verticalBevel,{180,39,0})&&inside(verticalBevel,{180,41,0}));
+    std::reverse(shortVertical.curves.begin(),shortVertical.curves.end());
+    for(auto& segment:shortVertical.curves)std::reverse(segment.points.begin(),segment.points.end());
+    CHECK(std::abs(volume(designrc::geometry::cutStabilizerHinge(block,shortVertical,HingeCut::Tape,{},true))-volume(verticalBevel))<1e-5);
     std::reverse(hinge.curves.begin(),hinge.curves.end());for(auto& c:hinge.curves)std::reverse(c.points.begin(),c.points.end());
     CHECK(std::abs(volume(designrc::geometry::cutStabilizerHinge(block,hinge,HingeCut::Tape))-volume(tape))<1e-5);
     auto shortHinge=hinge;shortHinge.points[0].setY(20);shortHinge.points[2].setX(180);
@@ -197,7 +226,7 @@ int main(int argc,char** argv) {
     std::stop_source stop;stop.request_stop();bool stopped=false;
     try{designrc::geometry::buildStabilizerSolid({chain,defaultFoil,1,true},{},{stop.get_token()});}
     catch(const designrc::geometry::ProcessingCancelled&){stopped=true;}CHECK(stopped);
-    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==28);
+    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==29);
     auto legacy=encoded; legacy["version"]=15; legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
     CHECK(decodeProject(legacy).stabilizerOutlines[0].layers[0].curves.empty());
     for (const auto& oldTool : {"Airfoils","Airfoil Stations","Edit"}) {
@@ -383,6 +412,17 @@ int main(int argc,char** argv) {
       if(!hingeCapture.isEmpty()){app.processEvents();CHECK(window.grab().save(hingeCapture+"hinge"+QString::number(i)+".png"));}
       click({450,420});key(Qt::Key_Delete);CHECK(hingeEditor.layers()[0].curves.size()==1);
       click({455,275});key(Qt::Key_Delete);CHECK(hingeEditor.layers()[0].curves.empty());
+      // A worker-side geometry error must stop, unlock the UI and stay stopped.
+      const auto emptyHinge=hingeEditor.state();auto invalidHinge=emptyHinge;
+      invalidHinge.layers[0]={{{400,420},{400,430}},{{SketchTool::Line,{0,1}}}};
+      hingeEditor.restoreState(invalidHinge);
+      tabs->setCurrentIndex(1);waitForModel(window);
+      CHECK(window.statusBar()->currentMessage().contains("generation failed"));
+      CHECK(!window.property("modelProcessing").toBool()&&!solidView->property("stabilizerModelReady").toBool());
+      CHECK(!cancel->isVisible()&&workspaces->isEnabled()&&tabs->isEnabled()&&QApplication::overrideCursor()==nullptr);
+      const int failedJobs=window.property("stabilizerModelJobCount").toInt();
+      app.processEvents();CHECK(window.property("stabilizerModelJobCount").toInt()==failedJobs);
+      tabs->setCurrentIndex(0);hingeEditor.restoreState(emptyHinge);
       toolbar->actions()[3]->trigger();
       auto* cutPanel=static_cast<StabilizerCutPanel*>(window.findChild<QWidget*>(i==0?"horizontalStabilizerCutPanel":"verticalStabilizerCutPanel"));
       auto& cutEditor=view->stabilizerCutEditor(i);CHECK(cutPanel->isVisible()&&cutEditor.state().editing&&!hingeEditor.state().editing);
@@ -390,6 +430,16 @@ int main(int argc,char** argv) {
       auto* shapes=cutPanel->findChild<QComboBox*>("stabilizerCutShapes");
       cutButton("Add Cut Shape")->click();click({300,420});click({350,420});
       expectWarning();toolbar->actions()[1]->trigger();CHECK(warning.contains("closed loop"));
+      const int jobsBeforeInvalidCut=window.property("stabilizerModelJobCount").toInt();
+      tabs->setCurrentIndex(1);app.processEvents();
+      CHECK(!window.property("modelProcessing").toBool());
+      CHECK(window.property("stabilizerModelJobCount").toInt()==jobsBeforeInvalidCut);
+      CHECK(!tabs->widget(1)->property("stabilizerModelReady").toBool());
+      CHECK(!cancel->isVisible()&&workspaces->isEnabled()&&tabs->isEnabled());
+      CHECK(QApplication::overrideCursor()==nullptr);
+      CHECK(window.statusBar()->currentMessage().contains("incomplete Cut Shape"));
+      app.processEvents();CHECK(window.property("stabilizerModelJobCount").toInt()==jobsBeforeInvalidCut);
+      tabs->setCurrentIndex(0);
       toolbar->actions()[3]->trigger();
       click({350,420});click({350,450});click({350,450});click({300,450});click({300,450});click({300,420});
       CHECK(closedSketchBoundary(cutEditor.layers()[0]));
@@ -412,7 +462,7 @@ int main(int argc,char** argv) {
       CHECK(window.property("stabilizerModelJobCount").toInt()==cachedJobs&&solidView->property("stabilizerModelReady").toBool());
       CHECK(window.statusBar()->currentMessage().contains("cached model"));
       tabs->setCurrentIndex(0);toolbar->actions()[3]->trigger();shapes->setCurrentIndex(1);cutButton("Delete Cut Shape")->click();CHECK(cutEditor.layers().size()==1);
-      key(Qt::Key_Delete);CHECK(cutEditor.layers()[0].curves.empty());
+      cutButton("Delete Cut Shape")->click();CHECK(cutEditor.layers()[0].curves.empty());
       CHECK(window.saveProjectFile(file,error));workspaces->actions()[0]->trigger(); CHECK(!window.projectModified());
     }
     CHECK(!view->stabilizerSketchEditor(0).layers()[0].curves.empty()&&!view->stabilizerSketchEditor(1).layers()[0].curves.empty());

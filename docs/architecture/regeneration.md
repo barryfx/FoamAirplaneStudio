@@ -31,8 +31,16 @@ unchanged. Failed Boolean batching experiments were not retained.
 and supplies OCCT progress indicators for lofts, Booleans and meshing. Each kernel
 call has its own indicator and borrowed progress range; an RAII holder retains
 the indicator until the range dies. Surface sampling checks cancellation between
-samples. Uninterruptible validation, integration, unification and transform calls
-can delay cancellation until that call returns. There is no thread termination.
+samples. Fuselage mass integration and bounds traversal check between faces;
+pin ray intersections check between faces, lazily loading only face intersectors
+whose X/Y bounds meet the ray. Oriented crossings provide material intervals;
+the final cylinder/stock Boolean still certifies clearance. Whole-solid point
+classifiers are avoided because their eager face caches made cancellation cleanup
+very expensive. Wall offsets and their fallback check between sections
+and polygon passes. Validation, unification, transforms, one planar offset, and
+individual face-intersector initialization calls without a progress API can still
+delay cancellation until that kernel call returns. Checks bracket those calls;
+there is no unsafe thread termination or detached geometry work.
 
 During regeneration all editing widgets, menus/actions/shortcuts, toolbars and
 viewport interaction are disabled. Cancel stays at the bottom of the data panel.
@@ -44,7 +52,10 @@ A cancelled job never publishes its result, even if completion races the request
 The previous model remains visible and the source inputs are unchanged. Re-enter
 3D View to retry, or edit a geometry input. Toolbar navigation alone does not
 restart a cancelled job. Successful replacement retains the camera; only the first model
-fits automatically. Failures restore the controls and report the error. A project
+fits automatically. Failures restore the controls and report the error. A failed
+Fuselage attempt remains suppressed during routine UI refreshes, but explicitly
+returning from 2D to 3D clears its attempt marker and retries unchanged inputs.
+This also applies to worker startup and display failures. A project
 epoch and input-fingerprint check prevent stale results from being published after
 programmatic restoration or a late data-entry commit.
 Normal New/Open/Save/Close Project actions are disabled during processing. Window
@@ -66,12 +77,14 @@ are unchanged; safe-input mode preserves stage ownership. Unification has explic
 cancellation checks before/after its non-interruptible call. GentleLady timing and
 geometry parity evidence: ../baseline/fuselage-readiness-performance.md.
 
-Fuselage generation now fuses former retaining rails before user cuts, splits
-only the largest post-cut main body at Y=0, and finally appends whole removable
-tray/former inserts. See ADR-0029 for dimensions and cut-out classification.
+Fuselage generation fuses right-side retaining rails before reflecting the body
+into separate halves and applying user cuts. Shared seam faces group cut pieces;
+the group with greatest combined volume remains the main body. Only detached
+groups are joined into whole cut-outs. Whole removable tray/former inserts are
+appended afterwards. See ADR-0029 for dimensions and ADR-0045 for construction.
 
-After the main fuselage centre split, four alignment pins and matching deeper
-sockets are derived from the retained seam material and local station walls.
+Four alignment pins and matching deeper sockets are derived from the retained
+main halves, their seam material and local station walls.
 Cut-out pieces and inserts are appended unchanged. See ADR-0032.
 
 Assembly preparation and seat cutting use the same processing lock and cancellation
@@ -133,5 +146,25 @@ statistics. See inspect.md and weight-and-balance.md.
 
 Before Fuselage lofting, model-only end registration accommodates slightly tilted
 flat nose/tail edges and nearby end stations without modifying saved sketches.
-See fuselage-thickness.md and ADR-0044. The fuselage is still generated as a full
-body before splitting; building one half and mirroring it is not implemented.
+See fuselage-thickness.md and ADR-0044. The fuselage now generates its right half and reflects it into a separate left
+part. Whole formers/tray use whole-cavity tooling. See ADR-0045 for geometry
+semantics and the nonpersistent full-symmetric benchmark comparison path.
+
+Former fitting and per-former retaining-rail construction also use bounded indexed
+workers. Each owns deep copies of its cavity/body/insert geometry. Four independent
+alignment-pin searches own separate lazy ray caches and CAD copies;
+conflicts retry in deterministic placement order. Final pin fusion and socket cuts
+run on independent halves. Worker Booleans retain per-operation kernel parallelism; OCCT shares its native
+thread pool between concurrent callers. No global pool setting is changed. `ProcessingControl::parallel`
+disables the additional workers for serial parity checks. User holes/cuts finish
+before pin search, preserving its stock/clearance dependency.
+
+Cancellation validation includes a real GUI Cancel click with four active child
+workers, cancellation at each reported fuselage stage, analytic mass/bounds parity,
+a stop requested during a many-face integration, and a delayed request during
+BabyBuzzard pin-search initialization. The benchmark's optional
+`FOAM_BENCH_CANCEL_STAGE` substring and `FOAM_BENCH_CANCEL_DELAY_MS` request a stop
+after entering a selected stage and report acknowledgment latency; normal timing
+runs leave these variables unset. See `../baseline/fuselage-cancellation-validation.md`.
+
+Stabilizer cut loops are validated before starting any component/Assembly/Inspect workers. Editor warning dialogs block queued generation until editor finalization completes. Worker exceptions end the job and restore controls/cursor; failed stabilizer fingerprints suppress automatic retries until inputs change or the user re-enters 3D. Indexed worker failures request stop on sibling tasks and join them before propagating the error; no partial result is published.

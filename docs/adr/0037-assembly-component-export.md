@@ -9,8 +9,9 @@ fuselage accessories into a compound, losing their identity after Boolean cuts.
 
 ## Decision
 Carry body records separately from standalone former/tray inserts through Assembly
-placement and cuts. Never fuse inserts to the body or apply seat cuts to them.
-Retain former planes alongside their unchanged solids. Generate former numbers from nose-to-tail mask centers. Export the current
+placement and cuts. Never fuse inserts to the body. As extended in ADR-0033 on
+2026-09-23, apply wing seats to formers while leaving the tray unchanged.
+Retain former planes alongside their finished solids. Generate former numbers from nose-to-tail mask centers. Export the current
 Assembly snapshot only, using the inherited DesignRC AP242 STEPCAF writer with an
 aircraft hierarchy option, OCCT binary STL, and the existing DXF writer. DXF uses
 the rotated former mid-plane section with 0.02 mm polyline deflection. No generated

@@ -22,14 +22,20 @@
 #include <cmath>
 #include <stdexcept>
 namespace designrc::geometry {
+void validateStabilizerCuts(const std::vector<gui::SketchLayer>& loops) {
+  for(const auto& layer:loops) {
+    if(layer.curves.empty()&&layer.points.empty())continue;
+    if(!gui::closedSketchBoundary(layer))throw std::runtime_error("Close or delete every incomplete Cut Shape before generating the stabilizer.");
+  }
+}
 TopoDS_Shape cutStabilizerShapes(const TopoDS_Shape& body,const std::vector<gui::SketchLayer>& loops,
     bool horizontal,const ProcessingControl& processing,bool allowEmpty) {
+  processing.checkpoint();validateStabilizerCuts(loops);
   auto result=body;
   Bnd_Box bounds;BRepBndLib::Add(body,bounds);double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
   const double margin=std::max({x1-x0,y1-y0,z1-z0,1.});
   for(const auto& layer:loops) {
     processing.checkpoint();if(layer.curves.empty()&&layer.points.empty())continue;
-    if(!gui::closedSketchBoundary(layer))throw std::runtime_error("Close or delete every incomplete Cut Shape before generating the stabilizer.");
     auto point=[&](std::size_t id){const auto p=layer.points[id];return gp_Pnt{p.x(),p.y(),z0-margin};};
     BRepBuilderAPI_MakeWire wire;std::vector<bool> used(layer.curves.size());auto current=layer.curves[0].points.front();
     for(std::size_t n=0;n<layer.curves.size();++n) {

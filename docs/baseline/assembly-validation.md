@@ -1,5 +1,14 @@
 # Assembly validation — 2026-09-19
 
+## Former wing seats — 2026-09-23
+The Debug build, `assembly_tests` (10.55 s) and `export_tests` (7.30 s) passed.
+Synthetic solids cover wing-seat volume, renamed former identity and section
+plane preservation, unchanged source caches/tray, no stabilizer cuts in formers,
+rotated and translated wing placement, disconnected valid remnants, rejection of
+complete consumption, cancellation at the former-cut stage, GUI Undo Cuts, and
+the cut former in exported geometry. These checks do not generate a Wing or
+Fuselage model. Evidence: `build/debug/airfoil-former-tests.log`.
+
 Windows Debug, branch Assembly.
 
 - Configured with `cmake --preset windows-debug`.
@@ -56,3 +65,26 @@ not run because AGENTS.md prohibits those generation tests. No measured model
 speedup is claimed. The four-worker bound covers component tasks; existing OCCT
 internal meshing parallelism is unchanged. Wing panel workers are limited to one
 when other missing components are scheduled.
+
+## Root rotation and angle display (2026-09-23)
+
+Assembly adds Clockwise/Counter-Clockwise buttons and an angle readout directly
+below them. Clicks change the selected component by +/-0.5 degrees about the root
+chord midpoint. Source-outline root pivots are independent of sweep/cuts; the
+attached elevator/rudder shares its fixed component transform. Positive is
+clockwise in the standard negative-Y side view. Placements use immutable source
+shapes, preserve translations, and feed cut/export and Weight and Balance.
+
+Windows Debug validation:
+- assembly_tests passed (11.10 s): transformed vertices match independent sine/
+  cosine expectations at +0.5, -0.5 and +1 degrees; translated pivots stay fixed,
+  paired controls follow, and source solids/volumes remain unchanged. GUI clicks
+  verify half-degree changes and selected angle text, undo/redo, save/read,
+  disabled rotation after cuts and default-zero/malformed-angle decoding.
+- project_persistence_ui_tests passed (1.54 s).
+- weight_balance_tests passed (2.28 s), including rotation cache invalidation.
+- Panel capture build/debug/assembly-rotation.png visually checked: both buttons
+  and Rotation: +0.5 degrees are visible directly beneath the selectors. Qt widget
+  capture does not capture the native OCCT viewport; shape motion is covered by
+  geometric coordinate assertions.
+- Debug rebuilt and launched. No Wing or Fuselage generation tests were run.

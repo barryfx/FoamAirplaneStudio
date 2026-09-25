@@ -1,5 +1,8 @@
 # Documentation audit — September 22, 2026
 
+This audit records the pre-speedup baseline (`1d8faf5`). Later work on the same
+date is documented in [half-fuselage validation](fuselage-speedup-validation.md).
+
 Reviewed current README, documentation guide, requirements, GUI design,
 architecture, project format, ADRs and embedded help against the accumulated
 Weight and Balance branch changes. Dated validation reports, earlier ADR decisions

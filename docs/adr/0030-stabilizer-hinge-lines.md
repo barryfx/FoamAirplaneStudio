@@ -28,3 +28,12 @@ Existing projects remain readable and initialize empty hinge sketches.
 Stabilizer-only tests cover Tape/Standard relief on a constant-thickness solid,
 longest-segment behavior, reversed traversal, invalid cuts, UI exclusivity,
 continuous drawing, draft persistence and horizontal/vertical body counts.
+
+### 2026-09-23 refinement
+Vertical fins now select the segment closest to span direction for beveling, with longer length breaking angular ties. Connected return segments remain square even when longer. Horizontal stabilizers retain longest-segment selection. No persistent format changes.
+
+Curved-airfoil regression: construct the sampled relief tool from explicit planar
+bands rather than a generic ruled loft. Sewing and orienting the same piecewise
+linear envelope gives OCCT analytic faces for reliable subtraction. This applies
+to both stabilizers and both hinge styles; sampled contact and 45-degree profiles
+remain unchanged. The tool is limited by thickness rather than aircraft span.

@@ -40,12 +40,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 28;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 29;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 28. See spars.md and ADR-0011.
+use version 29. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -119,7 +119,7 @@ obsolete field. Saving never clears the current session caches. See ADR-0035.
 
 Version 24 adds per-former Rotation Angle in degrees about the Side View mask
 center; negative angles rotate counter-clockwise. Earlier projects load zero
-angles. See formers.md and ADR-0036. Current saves use version 28.
+angles. See formers.md and ADR-0036. Current saves use version 29.
 
 Export uses session Assembly geometry (export.md). Saving from Export retains
 that workspace choice, but opening returns to Fuselage Side View in 2D, as for
@@ -135,7 +135,8 @@ Project editors share transient Undo/Redo history; see editor-history.md and ADR
 
 Version 26 adds Weight and Balance material densities and RC parts. Version 27
 adds persistent component export names; Inspect visibility remains transient.
-Version 28 adds circular profile curves. Current saves use version 28 and the
-reader accepts versions 1–28. See weight-and-balance.md, inspect.md and the format
+Version 28 adds circular profile curves. Version 29 adds carbon-fiber density
+and spar tube dimensions, plus an optional derived airplane-statistics cache.
+Current saves use version 29 and the reader accepts versions 1–29. See weight-and-balance.md, inspect.md and the format
 specification. Opening from Inspect returns to Fuselage Side View in 2D,
 preserving its design inputs without regenerating models.

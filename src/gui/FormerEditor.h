@@ -20,7 +20,8 @@ public:
   int selected() const{return selected_;}
   void restore(const FormerState&);
   void setEditing(bool);
-  void configure(double scale,QRectF side){scale_=scale;side_=side;}
+  void configure(double scale,QRectF side){if(scale>0)scale_=scale;side_=side;}
+  void preserveThicknessAtScale(double scale);
   void setThickness(double mm);
   void setRotation(double degrees);
   void add();

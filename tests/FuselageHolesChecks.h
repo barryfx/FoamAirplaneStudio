@@ -33,9 +33,45 @@ inline void holeChecks(QApplication& app,const QString& directory) {
   CHECK(!inside(spline,45,0,13.5)&&inside(spline,45,0,-13.5));
   std::stop_source stop;stop.request_stop();bool cancelled=false;try{geometry::cutFuselageHoles(body,cavity,holes,outlines,projections,{stop.get_token()});}catch(const geometry::ProcessingCancelled&){cancelled=true;}CHECK(cancelled);
   std::cout<<"Hole geometry complete"<<std::endl;
+  // Scaling the outline does not scale material thickness. Reject holes whose
+  // footprint enters the end wall, while keeping valid one-wall cuts usable.
+  for(double scale:{.5,1.,2.}) {
+    const auto outside=BRepPrimAPI_MakeBox{gp_Pnt{0,-20*scale,-15*scale},100*scale,40*scale,30*scale}.Shape();
+    const auto insideCavity=BRepPrimAPI_MakeBox{gp_Pnt{2,-20*scale+3,-15*scale+3},100*scale-4,40*scale-6,30*scale-6}.Shape();
+    const auto shell=BRepAlgoAPI_Cut{outside,insideCavity}.Shape();
+    const std::array<geometry::FuselageCutProjection,2> scaledProjections{{{0,scale,0},{0,scale,0}}};
+    for(int wall=0;wall<4;++wall) {
+      std::vector<SketchLayer> loops(4);loops[wall]=rectangle(40,-2,10,4);
+      const auto cut=geometry::cutFuselageHoles(shell,insideCavity,loops,outlines,scaledProjections);
+      CHECK(std::abs(volume(shell)-volume(cut)-120*scale*scale)<1e-5);
+      const auto badLoop=rectangle(.5,-2,3,4);
+      const auto offset=loops[wall].points.size();
+      for(auto curve:badLoop.curves){for(auto& id:curve.points)id+=offset;loops[wall].curves.push_back(curve);}
+      loops[wall].points.insert(loops[wall].points.end(),badLoop.points.begin(),badLoop.points.end());
+      bool rejected=false;
+      try {geometry::cutFuselageHoles(shell,insideCavity,loops,outlines,scaledProjections);}
+      catch(const std::runtime_error& error) {
+        const std::string message=error.what();
+        CHECK(message.find(std::string{std::array{"Top","Bottom","Left","Right"}[wall]}+" hole 2")!=std::string::npos);
+        CHECK(message.find("inner cavity")!=std::string::npos);CHECK(message.size()<260);rejected=true;
+        CHECK(message.find("parallel to the cut direction")!=std::string::npos);
+      }
+      CHECK(rejected);
+      // Also intersect a longitudinal side wall (Top/Bottom) or roof/floor
+      // (Left/Right), rather than only the nose/end wall exercised above.
+      loops[wall]=rectangle(40,wall<2?19.:14.,10,.5);
+      rejected=false;
+      try {geometry::cutFuselageHoles(shell,insideCavity,loops,outlines,scaledProjections);}
+      catch(const std::runtime_error& error) {
+        CHECK(std::string{error.what()}.find("hole 1 overlaps a wall parallel to the cut direction")!=std::string::npos);rejected=true;
+      }
+      CHECK(rejected);
+    }
+  }
+  std::cout<<"Hole scale, fixed wall thickness and wall/path diagnostics passed"<<std::endl;
   // Round-trip all wall layers and verify old projects receive empty holes.
   ProjectDocument p;p.fuselageHoles.layers=holes;
-  auto encoded=encodeProject(p);CHECK(encoded["version"]==28);
+  auto encoded=encodeProject(p);CHECK(encoded["version"]==29);
   CHECK(decodeProject(encoded).fuselageHoles.layers[0].curves.size()==1);
   auto legacy=encoded;legacy["version"]=24;legacy.remove("fuselageHoles");CHECK(decodeProject(legacy).fuselageHoles.layers.size()==4&&decodeProject(legacy).fuselageHoles.layers[0].curves.empty());
   std::cout<<"Hole persistence complete"<<std::endl;

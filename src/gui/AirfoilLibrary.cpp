@@ -2,6 +2,9 @@
 #include "gui/AirfoilLibrary.h"
 #include <QFile>
 #include <QFileInfo>
+#include <QSaveFile>
+#include <QLineF>
+#include <locale>
 #include <cmath>
 #include <algorithm>
 #include <iomanip>
@@ -75,5 +78,61 @@ bool AirfoilLibrary::addSketch(const QString& name, const SketchLayer& sketch, Q
   }
   entries_.push_back({name.trimmed().isEmpty() ? "Sketched airfoil" : name.trimmed(), {}, sketch, std::move(*boundary)});
   return true;
+}
+void AirfoilLibrary::addProfile(const QString& name, const domain::AirfoilProfile& profile) {
+  LibraryAirfoil entry{name,profile,{},{}};
+  for(auto point:profile.outline())entry.boundary.emplace_back(point.x,point.y);
+  entries_.push_back(std::move(entry));
+}
+domain::AirfoilProfile normalizedAirfoil(const LibraryAirfoil& entry) {
+    auto profile=entry.imported;
+    if(!profile) {
+      auto points=entry.boundary;
+      if(points.size()>1&&QLineF{points.front(),points.back()}.length()<1e-8)points.pop_back();
+      if(points.size()<3)throw std::runtime_error("The traced airfoil has too few points.");
+      const auto leading=std::min_element(points.begin(),points.end(),[](auto a,auto b){return a.x()<b.x();});
+      const double trailingX=std::max_element(points.begin(),points.end(),[](auto a,auto b){return a.x()<b.x();})->x();
+      const double chord=trailingX-leading->x();
+      if(chord<=1e-8)throw std::runtime_error("The traced airfoil has no horizontal chord.");
+      const int start=static_cast<int>(leading-points.begin()),count=static_cast<int>(points.size());
+      auto surface=[&](int step) {
+        std::vector<QPointF> result;
+        for(int n=0;n<count;++n) {
+          const auto p=points[(start+step*n+count)%count];result.push_back(p);
+          if(trailingX-p.x()<1e-8)break;
+        }
+        return result;
+      };
+      auto first=surface(1),second=surface(-1);
+      const double trailingY=(first.back().y()+second.back().y())*.5;
+      std::reverse(first.begin(),first.end());
+      first.insert(first.end(),std::next(second.begin()),second.end());
+      std::ostringstream dat;dat.imbue(std::locale::classic());dat<<"Trace\n"<<std::setprecision(17);
+      for(auto p:first) {
+        const double x=(p.x()-leading->x())/chord;
+        dat<<x<<' '<<(leading->y()+x*(trailingY-leading->y())-p.y())/chord<<'\n';
+      }
+      std::istringstream input{dat.str()};input.imbue(std::locale::classic());
+      profile=domain::AirfoilProfile::fromDat(input);
+    }
+    return *profile;
+}
+bool AirfoilLibrary::exportDat(std::size_t index, const QString& path, QString& error) const {
+  error.clear();
+  try {
+    const auto& entry=entries_.at(index);
+    const auto profile=normalizedAirfoil(entry);
+    // Selig ordering: upper TE -> LE -> lower TE, with one shared LE sample.
+    std::ostringstream dat;dat.imbue(std::locale::classic());
+    dat<<entry.name.simplified().toUtf8().toStdString()<<'\n'<<std::fixed<<std::setprecision(10);
+    // 35 samples on each surface share the LE: 35 + 35 - 1 = 69 rows.
+    for(auto point:profile.resampled(35))dat<<point.x<<' '<<point.y<<'\n';
+    const auto bytes=QByteArray::fromStdString(dat.str());
+    QSaveFile file{path};
+    if(!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit()) {
+      error=file.errorString();return false;
+    }
+    return true;
+  }catch(const std::exception& exception){error=QString::fromUtf8(exception.what());return false;}
 }
 }

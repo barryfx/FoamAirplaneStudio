@@ -12,15 +12,25 @@ struct BalancePart {
   bool ounces=false;
 };
 struct WeightBalanceState {
-  double densityKgM3=32.5; // Representative XPS; editable for the actual stock.
+  double densityKgM3=25.63; // User-selected foam default; editable for the actual stock.
   double plywoodDensityKgM3=680; // Birch aircraft plywood, including tray/formers.
   std::vector<BalancePart> parts;
+  double carbonFiberDensityKgM3=1540; // Carbon/epoxy composite material, excluding the tube bore.
+};
+struct ComponentVolume {
+  QString name;
+  double volumeMm3=0;
+  bool plywood=false;
+  bool carbonFiber=false;
 };
 struct FoamMassProperties {
   double volumeMm3=0;
   QPointF centroidMm;
   double plywoodVolumeMm3=0;
   QPointF plywoodCentroidMm;
+  std::vector<ComponentVolume> components;
+  double carbonFiberVolumeMm3=0;
+  QPointF carbonFiberCentroidMm;
 };
 struct BalanceResult { double grams=0; QPointF centerMm; };
 inline BalanceResult calculateBalance(const WeightBalanceState& state,const FoamMassProperties& foam) {
@@ -29,6 +39,8 @@ inline BalanceResult calculateBalance(const WeightBalanceState& state,const Foam
   QPointF moment=foam.centroidMm*result.grams;
   const double plywoodGrams=foam.plywoodVolumeMm3*state.plywoodDensityKgM3*1e-6;
   result.grams+=plywoodGrams;moment+=foam.plywoodCentroidMm*plywoodGrams;
+  const double carbonGrams=foam.carbonFiberVolumeMm3*state.carbonFiberDensityKgM3*1e-6;
+  result.grams+=carbonGrams;moment+=foam.carbonFiberCentroidMm*carbonGrams;
   for(const auto& part:state.parts) { result.grams+=part.grams;moment+=part.centerMm*part.grams; }
   if(result.grams>0)result.centerMm=moment/result.grams;
   return result;

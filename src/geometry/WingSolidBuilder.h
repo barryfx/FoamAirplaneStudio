@@ -1,4 +1,5 @@
 #pragma once
+#include "geometry/SparMaterial.h"
 #include "geometry/ProcessingControl.h"
 #include "gui/AirfoilLibrary.h"
 #include <TopoDS_Shape.hxx>
@@ -21,7 +22,10 @@ struct WingSolidInput {
 struct WingBuildOptions {
   ProcessingControl processing;
   unsigned maxPanelThreads=0; // 0: bounded automatic concurrency; 1: sequential benchmark.
+  std::vector<SparMaterial>* materials=nullptr; // Published only after successful generation.
 };
+struct WingBuildResult { TopoDS_Shape shape; std::vector<SparMaterial> spars; };
+WingBuildResult buildWingModel(const WingSolidInput& input,const std::function<void(const char*)>& progress={},const WingBuildOptions& options={});
 // Progress calls are serialized but may originate on any worker thread.
 TopoDS_Shape buildWingSolid(const WingSolidInput& input, const std::function<void(const char*)>& progress = {},const WingBuildOptions& options = {});
 }

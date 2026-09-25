@@ -59,6 +59,7 @@ TopoDS_Wire section(const std::vector<domain::Point2>& foil, double leading, dou
 StabilizerBuildResult buildStabilizerModel(const StabilizerSolidInput& input,
     const std::function<void(const char*)>& progress, const ProcessingControl& control) {
   const auto report = [&](const char* message) { control.checkpoint(); if(progress) progress(message); };
+  control.checkpoint();validateStabilizerCuts(input.cutShapes);
   report("Stabilizer: sampling outline...");
   if (!gui::stabilizerOutlineDefined(input.outline))
     throw std::runtime_error("Define one open stabilizer outline with aligned endpoints, a selected leading-edge endpoint and nonzero area.");
@@ -136,7 +137,7 @@ StabilizerBuildResult buildStabilizerModel(const StabilizerSolidInput& input,
   if(!input.hingeLines.curves.empty()) {
     report("Stabilizer: separating control surface and beveling hinge...");
     auto lines=input.hingeLines;for(auto& p:lines.points)p=map(p);
-    shape=cutStabilizerHinge(shape,lines,input.hingeCut,control);
+    shape=cutStabilizerHinge(shape,lines,input.hingeCut,control,!input.horizontal);
   }
   if(input.horizontal) {
     report("Horizontal stabilizer: joining mirrored halves...");

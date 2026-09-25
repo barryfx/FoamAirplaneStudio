@@ -13,6 +13,8 @@
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
+#include <QTableWidget>
+#include <QHeaderView>
 #include <cmath>
 #include <algorithm>
 
@@ -24,7 +26,7 @@ WeightBalancePanel::WeightBalancePanel(PlanViewport& view,QWidget* parent):QWidg
       "Parts are visible only here.\n\nGenerate and position Assembly for the foam weight and balance. "
       "Foam includes the wing, fuselage, stabilizers and controls, with current Assembly cuts. "
       "Formers and servo tray use Aero Plywood density and are included automatically. "
-      "Add spars, covering and other unmodeled items as parts. "
+      "Enabled wing spars use Carbon Fiber density and are included automatically. Add covering and other unmodeled items as parts. "
       "The datum is the placed wing root leading edge; positive is toward the tail.",this};
   description->setWordWrap(true);layout->addWidget(description);
   auto* add=new QPushButton{"Add Part",this};add->setObjectName("balanceAddPart");layout->addWidget(add);
@@ -33,12 +35,26 @@ WeightBalancePanel::WeightBalancePanel(PlanViewport& view,QWidget* parent):QWidg
   edit_->setObjectName("balanceEditPart");delete_->setObjectName("balanceDeletePart");buttons->addWidget(edit_);buttons->addWidget(delete_);layout->addLayout(buttons);
   auto* form=new QFormLayout;density_=new QDoubleSpinBox{this};density_->setObjectName("balanceDensity");
   density_->setDecimals(3);density_->setRange(.001,10000);density_->setValue(state_.densityKgM3);density_->setSuffix(" kg/m³");
-  density_->setToolTip("XPS starting value: 32.5 kg/m³. Enter the density of your actual foam.");
+  density_->setToolTip("XPS starting value: 25.63 kg/m³. Enter the density of your actual foam.");
   form->addRow("Foam density",density_);
   plywoodDensity_=new QDoubleSpinBox{this};plywoodDensity_->setObjectName("balancePlywoodDensity");
   plywoodDensity_->setDecimals(3);plywoodDensity_->setRange(.001,10000);plywoodDensity_->setValue(state_.plywoodDensityKgM3);plywoodDensity_->setSuffix(" kg/m³");
   plywoodDensity_->setToolTip("Birch Aero Plywood starting value: 680 kg/m³. Adjust for your stock.");
-  form->addRow("Aero Plywood density",plywoodDensity_);layout->addLayout(form);layout->addStretch();
+  form->addRow("Aero Plywood density",plywoodDensity_);
+  carbonFiberDensity_=new QDoubleSpinBox{this};carbonFiberDensity_->setObjectName("balanceCarbonFiberDensity");
+  carbonFiberDensity_->setDecimals(3);carbonFiberDensity_->setRange(.001,10000);carbonFiberDensity_->setValue(state_.carbonFiberDensityKgM3);carbonFiberDensity_->setSuffix(" kg/m³");
+  carbonFiberDensity_->setToolTip("Carbon/epoxy composite starting value: 1540 kg/m³. Adjust for your spar stock; tube bores are excluded from material volume.");
+  form->addRow("Carbon Fiber density",carbonFiberDensity_);layout->addLayout(form);
+  layout->addWidget(new QLabel{"Component volume and weight",this});
+  breakdown_=new QTableWidget{0,4,this};breakdown_->setObjectName("balanceBreakdown");
+  breakdown_->setHorizontalHeaderLabels({"Component / material","cm³","g","oz"});
+  breakdown_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  breakdown_->setSelectionBehavior(QAbstractItemView::SelectRows);breakdown_->verticalHeader()->hide();
+  breakdown_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+  breakdown_->horizontalHeader()->setSectionResizeMode(0,QHeaderView::Stretch);
+  breakdown_->setMinimumHeight(180);layout->addWidget(breakdown_,1);
+  auto* volumeHint=new QLabel{"Volumes are solid material, excluding cavities. 1,000 cm³ = 1 liter. Added parts use entered weights; their box dimensions are not material volumes.",this};
+  volumeHint->setWordWrap(true);layout->addWidget(volumeHint);
   results_=new QLabel{this};results_->setObjectName("balanceResults");results_->setWordWrap(true);results_->setTextInteractionFlags(Qt::TextSelectableByMouse);layout->addWidget(results_);
   connect(add,&QPushButton::clicked,this,[this]{editPart(true);});
   connect(edit_,&QPushButton::clicked,this,[this]{editPart(false);});
@@ -46,10 +62,11 @@ WeightBalancePanel::WeightBalancePanel(PlanViewport& view,QWidget* parent):QWidg
   connect(parts_,&QComboBox::currentIndexChanged,this,[this](int i){dragging_=false;edit_->setEnabled(i>=0);delete_->setEnabled(i>=0);view_.viewport()->update();});
   connect(density_,&QDoubleSpinBox::valueChanged,this,[this](double value){state_.densityKgM3=value;updateResults();if(changed)changed();});
   connect(plywoodDensity_,&QDoubleSpinBox::valueChanged,this,[this](double value){state_.plywoodDensityKgM3=value;updateResults();if(changed)changed();});
+  connect(carbonFiberDensity_,&QDoubleSpinBox::valueChanged,this,[this](double value){state_.carbonFiberDensityKgM3=value;updateResults();if(changed)changed();});
   view_.viewport()->installEventFilter(this);view_.installEventFilter(this);refreshList(-1);
 }
 void WeightBalancePanel::restore(const WeightBalanceState& state) {
-  state_=state;dragging_=false;QSignalBlocker block{density_},plywoodBlock{plywoodDensity_};density_->setValue(state_.densityKgM3);plywoodDensity_->setValue(state_.plywoodDensityKgM3);refreshList(-1);updateResults();
+  state_=state;dragging_=false;QSignalBlocker block{density_},plywoodBlock{plywoodDensity_},carbonBlock{carbonFiberDensity_};carbonFiberDensity_->setValue(state_.carbonFiberDensityKgM3);density_->setValue(state_.densityKgM3);plywoodDensity_->setValue(state_.plywoodDensityKgM3);refreshList(-1);updateResults();
 }
 void WeightBalancePanel::configure(ProjectUnits units,geometry::FuselageSideTransform transform,QPointF initialCenter) {
   units_=units;transform_=transform;initialCenter_=initialCenter;updateResults();view_.viewport()->update();
@@ -58,6 +75,7 @@ void WeightBalancePanel::setActive(bool active) {active_=active;dragging_=false;
 void WeightBalancePanel::setFoam(std::optional<FoamMassProperties> foam,std::optional<double> leadingEdge,QString message) {
   foam_=foam;leadingEdge_=leadingEdge;unavailable_=std::move(message);updateResults();
 }
+void WeightBalancePanel::setWingArea(std::optional<double> mm2) { if(wingAreaMm2_!=mm2){wingAreaMm2_=mm2;updateResults();} }
 int WeightBalancePanel::selected() const {return parts_->currentIndex();}
 QPointF WeightBalancePanel::sceneToModel(QPointF point) const {
   return {(point.x()-transform_.left)*transform_.scale,(transform_.verticalOrigin-point.y())*transform_.scale};
@@ -115,12 +133,38 @@ void WeightBalancePanel::deletePart() {
   state_.parts.erase(state_.parts.begin()+index);refreshList(-1);updateResults();if(changed)changed();
 }
 void WeightBalancePanel::updateResults() {
+  breakdown_->setRowCount(0);
+  const auto row=[&](QString name,std::optional<double> volume,double grams) {
+    const int i=breakdown_->rowCount();breakdown_->insertRow(i);
+    const QString values[]{name,volume?QString::number(*volume/1000.,'f',2):QString{"—"},QString::number(grams,'f',2),QString::number(grams/gramsPerOunce,'f',3)};
+    for(int column=0;column<4;++column) {
+      auto* item=new QTableWidgetItem{values[column]};item->setToolTip(values[column]);
+      if(column)item->setTextAlignment(Qt::AlignRight|Qt::AlignVCenter);
+      breakdown_->setItem(i,column,item);
+    }
+  };
+  if(foam_) {
+    for(const auto& component:foam_->components)
+      row(component.name+(component.carbonFiber?" / Carbon Fiber":component.plywood?" / Plywood":" / Foam")+(component.volumeMm3==0?" (not present)":""),
+          component.volumeMm3,component.volumeMm3*(component.carbonFiber?state_.carbonFiberDensityKgM3:component.plywood?state_.plywoodDensityKgM3:state_.densityKgM3)*1e-6);
+    row("Foam subtotal",foam_->volumeMm3,foam_->volumeMm3*state_.densityKgM3*1e-6);
+    row("Plywood subtotal",foam_->plywoodVolumeMm3,foam_->plywoodVolumeMm3*state_.plywoodDensityKgM3*1e-6);
+    row("Carbon Fiber subtotal",foam_->carbonFiberVolumeMm3,foam_->carbonFiberVolumeMm3*state_.carbonFiberDensityKgM3*1e-6);
+  }
+  for(const auto& part:state_.parts)row(part.name+" / Added part",{},part.grams);
+  breakdown_->resizeRowsToContents();
   const auto result=calculateBalance(state_,foam_.value_or(FoamMassProperties{}));
   QString text;
   if(!foam_)text=QString{"Parts weight: %1 g (%2 oz)\nTotal weight: unavailable\nCenter of mass: unavailable\n%3"}.arg(result.grams,0,'f',2).arg(result.grams/gramsPerOunce,0,'f',2).arg(unavailable_);
   else {
     text=QString{"Total weight: %1 g (%2 oz)\nFoam: %3 g"}.arg(result.grams,0,'f',2).arg(result.grams/gramsPerOunce,0,'f',2).arg(foam_->volumeMm3*state_.densityKgM3*1e-6,0,'f',2);
     text+=QString{" | Aero Plywood: %1 g"}.arg(foam_->plywoodVolumeMm3*state_.plywoodDensityKgM3*1e-6,0,'f',2);
+    text+=QString{" | Carbon Fiber: %1 g"}.arg(foam_->carbonFiberVolumeMm3*state_.carbonFiberDensityKgM3*1e-6,0,'f',2);
+    if(wingAreaMm2_&&*wingAreaMm2_>0) {
+      const bool inches=units_==ProjectUnits::Inches;
+      const double loading=result.grams / *wingAreaMm2_ * (inches?304.8*304.8/gramsPerOunce:10000.);
+      text+=QString{"\nWing Loading: %1 %2"}.arg(loading,0,'f',2).arg(inches?"oz/ft²":"g/dm²");
+    }
     if(leadingEdge_&&result.grams>0) {
       const double distance=(result.centerMm.x()-*leadingEdge_)/(units_==ProjectUnits::Inches?25.4:1.);
       text+=QString{"\nCenter of mass: %1%2 %3 from wing root LE"}.arg(distance>=0?"+":"").arg(distance,0,'f',3).arg(units_==ProjectUnits::Inches?"in":"mm");

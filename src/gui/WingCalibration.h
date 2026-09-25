@@ -6,7 +6,7 @@
 
 namespace designrc::gui {
 // Uses the same root frame and mirrored span convention as WingSolidBuilder.
-struct WingCalibration { double scale; double leadingEdgeX; };
+struct WingCalibration { double scale; double leadingEdgeX; double rootChordMm; double wingspanMm; QPointF spanDirection; };
 inline WingCalibration wingCalibration(const std::vector<SketchLayer>& panels,
     const std::vector<ConstrainedLine>& stations,std::optional<double> wingspanMm) {
   if(panels.empty()||stations.empty())throw std::runtime_error("Define the wing root and stations for the balance datum.");
@@ -37,6 +37,6 @@ inline WingCalibration wingCalibration(const std::vector<SketchLayer>& panels,
   if(tip-root<1e-8)throw std::runtime_error("Wing span is zero.");
   const double scale=wingspanMm?*wingspanMm/(2*(tip-root)):1.;
   if(!std::isfinite(scale)||scale<=0)throw std::runtime_error("Wingspan must be positive.");
-  return {scale,std::min(dot(ends[0],chord),dot(ends[1],chord))*scale};
+  return {scale,std::min(dot(ends[0],chord),dot(ends[1],chord))*scale,chordLength*scale,2*(tip-root)*scale,span};
 }
 }

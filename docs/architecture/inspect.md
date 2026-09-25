@@ -1,6 +1,7 @@
 # Inspect workspace
 
-Inspect is the last primary toolbar action. It opens the normal 3D viewport with
+Inspect follows Assembly in the primary toolbar, followed by Weight and Balance
+and Export. It opens the normal 3D viewport with
 2D disabled and a scrollable vertical list of checkboxes and editable names.
 It uses placed/cut Assembly geometry when current, otherwise current individual
 Wing, Fuselage and stabilizer caches. Each manufacturing solid is listed,

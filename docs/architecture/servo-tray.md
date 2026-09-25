@@ -24,17 +24,20 @@ are retained separately as the source for future 2D laser export. This change
 does not introduce a DXF/SVG export action or a bevel/clearance allowance.
 
 The support region is a 5 mm high cavity slice immediately below the tray's
-underside, along the tray length. Subtract copies translated by +5 and -5 mm in
-Y to obtain the two bands extending 5 mm inward from the respective inner sides.
-Fuse these ledges into the fuselage wall, retaining the removable tray separately.
+underside, along the tray length. Subtract a copy translated by -5 mm in Y to
+obtain the band extending 5 mm inward from the right inner side. Fuse it into the
+right wall; reflection supplies the left ledge. The full-symmetric comparison
+path constructs both bands using +5/-5 mm translations. The tray remains separate.
 This applies the user's revised 5 mm inward dimension (superseding 3 mm).
 Missing cavity, outside placements, disconnected tray/support geometry and
 insufficient 5 mm support height report descriptive errors. No automatic relocation
 or wall-thickness reduction is performed.
 
-Pipeline: exterior -> Thicken -> support ledges -> optional formers/retaining rails
--> Fuselage Cut -> main-body left/right split and alignment pins -> separate
-tray/former assembly -> mesh. Thus hatch cuts split the walls and ledges together, while the
+Pipeline: right exterior -> right Thicken -> right support ledge -> optional
+whole formers/right retaining rails -> reflect as separate left half -> Holes/Cut
+-> identify main halves and add alignment pins -> separate tray/former assembly
+-> mesh. Whole-cavity tooling fits the whole tray; reflection supplies the left
+ledge without another support subtraction. Thus hatch cuts split the walls and ledges together, while the
 tray stays an independent part. The model result retains the supported/cut body,
 tray, assembled display shape, and tray top faces. The existing Fuselage worker,
 cancellation checks, stale-result protection and component cache apply. The GUI

@@ -16,6 +16,7 @@ struct FuselageSolidInput {
   std::vector<QRectF> formers; // Side View masks; width is physical thickness after scaling.
   std::vector<double> formerRotationDegrees; // Side View clockwise, about each mask center.
   std::vector<gui::SketchLayer> holes; // Top, Bottom, Left, Right wall loops.
+  bool mirrorConstruction=true; // False: full symmetric lofts/supports for benchmark parity.
 };
 // Shared drawing-to-model alignment for reference imagery and fuselage geometry.
 struct FuselageSideTransform { double left, verticalOrigin, scale; };

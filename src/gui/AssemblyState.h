@@ -8,5 +8,6 @@ struct AssemblyState {
   bool positioned=false;
   std::array<QPointF,3> offsets{}; // Wing, horizontal stabilizer, vertical stabilizer.
   bool cuts=false;
+  std::array<double,3> rotationDegrees{}; // Positive is clockwise in the -Y side view.
 };
 }

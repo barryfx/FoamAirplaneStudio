@@ -67,14 +67,18 @@ actual-scale mode the Side View extent supplies the length in millimetres. Their
 nose centers share Y=Z=0. Nearly vertical straight end edges receive the
 model-only registration described in fuselage-thickness.md. A Side View station's normalized X identifies the
 corresponding Top View section. Profile width and height fit independently to
-those spans; the width is centered between the Top boundaries and height lies
-between the Side boundaries. Offsets of each outline's centerline are retained.
+those spans; height lies between the Side boundaries, retaining Side View
+vertical offsets. The full Top View width is centred at Y=0 for the mirrored body.
 
 For the initial loft, closed fitted boundaries are sampled. Winding is normalized
 clockwise in drawing coordinates. Intersections with the
 profile bounding-box centerlines define top, right, bottom and left landmarks;
 16 arc-length intervals in each quadrant establish 64 corresponding samples.
 Drawn up maps to fuselage up, regardless of curve order or drawing direction.
+The right arc (samples 0 through 32, top/right/bottom) is authoritative and is
+reflected to define the left arc. Thus asymmetrical traced left arcs do not
+produce an asymmetrical model. The Top guide's total width is retained and
+centred on the registered Y=0 plane; the saved sketches are unchanged.
 Using the highest vertex as a seam is deliberately avoided: tiny roof slopes can
 choose opposite corners at adjacent stations and twist the interpolated body.
 Profiles whose directional centerline crossings cannot be ordered around a single
@@ -86,7 +90,7 @@ sections follow guide curvature and narrow shoulders: all sampled outline X
 breakpoints are examined, and intervals subdivide until linear interpolation of
 each of the four rails deviates by at most 0.1 mm from its sampled guide. This is
 rail interpolation tolerance, not an analytic surface or manufacturing guarantee.
-An OCCT ruled solid loft closes the ends. Point-shaped ends use vertices; line-shaped ends use a
+An OCCT ruled solid loft closes the right half, including its mating plane. Point-shaped ends use vertices; line-shaped ends use a
 0.0001 mm finite cap. One assigned profile is sufficient. The complete Fuselage generates an inward wall using saved/default station
 values without requiring a Thicken visit
 (fuselage-thickness.md). The sampled loft is not an exact analytic skin. Sampling may soften
@@ -106,3 +110,9 @@ failure and cancellation. Stabilizers own independent builders and jobs (stabili
 The shared builder also parallelizes independent wall offsets and enables OCCT
 parallel Boolean, validation and meshing work. Loft/cavity/accessory/cut ordering
 is preserved. See regeneration.md for the per-operation serial comparison option.
+
+Generation now hollows and adds supports/rails to the right half, then reflects
+it as a separate left part. The main halves are never joined. Whole cavity tooling
+fits the removable formers and tray. Holes, cuts and alignment pins/sockets are
+applied afterwards; detached cut-out pieces retain whole-part behavior. See
+ADR-0045 and the half-fuselage benchmark report.

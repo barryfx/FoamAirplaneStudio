@@ -3,8 +3,10 @@
 #include "geometry/FuselageSolidBuilder.h"
 #include <BRepClass3d_SolidClassifier.hxx>
 #include <BRepGProp.hxx>
+#include <TopExp_Explorer.hxx>
 #include <GProp_GProps.hxx>
 #include <QApplication>
+#include <QGraphicsScene>
 #include <QAction>
 #include <QLineEdit>
 #include <QComboBox>
@@ -25,7 +27,12 @@ using namespace designrc::gui;
 #define CHECK(c) do {if(!(c))throw std::runtime_error(std::string{#c}+" at "+std::to_string(__LINE__));}while(false)
 SketchLayer polygon(std::vector<QPointF> p) {SketchLayer l{p,{}};for(std::size_t i=0;i<p.size();++i)l.curves.push_back({SketchTool::Line,{i,(i+1)%p.size()}});return l;}
 SketchLayer rectangle(double x,double y,double w,double h){return polygon({{x,y},{x+w,y},{x+w,y+h},{x,y+h}});}
-bool inside(const TopoDS_Shape& shape,double x,double y,double z){return BRepClass3d_SolidClassifier{shape,gp_Pnt{x,y,z},1e-6}.State()==TopAbs_IN;}
+bool inside(const TopoDS_Shape& shape,double x,double y,double z) {
+  // Generated fuselages contain separate solids; classify their material union.
+  for(TopExp_Explorer solid{shape,TopAbs_SOLID};solid.More();solid.Next())
+    if(BRepClass3d_SolidClassifier{solid.Current(),gp_Pnt{x,y,z},1e-6}.State()==TopAbs_IN)return true;
+  return false;
+}
 int main(int argc,char** argv) {
   QApplication app{argc,argv};QTemporaryDir dir;
   QCoreApplication::setOrganizationName("FoamThickenTests");QCoreApplication::setApplicationName("FoamThickenTests");
@@ -70,13 +77,16 @@ int main(int argc,char** argv) {
     units->setCurrentIndex(1);app.processEvents();CHECK(field(0)->text()==formattedLength(7.5,ProjectUnits::Inches));
     commit("8.25 mm");CHECK(window.projectDocument().fuselageStations.lines[0].thicknessMm==8.25);
     auto visibleProfiles=[&] {
-      view->fitInView(QRectF{0,0,900,500},Qt::KeepAspectRatio);app.processEvents();const auto pixels=view->viewport()->grab().toImage();
+      // This synthetic project has no reference image to establish the canvas.
+      // Include the off-outline profile sketches in the capture's scene bounds.
+      view->scene()->setSceneRect(QRectF{0,0,900,500});
+      app.processEvents();view->fitAll();app.processEvents();const auto pixels=view->viewport()->grab().toImage();
       for(auto point:{QPointF{730,140},QPointF{730,300}}) {
-        const auto local=view->mapFromScene(point);const QPoint at{qRound(local.x()*pixels.devicePixelRatio()),qRound(local.y()*pixels.devicePixelRatio())};bool blue=false;
+        const auto local=view->mapFromScene(point);const QPoint at{qRound(local.x()*pixels.devicePixelRatio()),qRound(local.y()*pixels.devicePixelRatio())};bool stroke=false;
         for(int dy=-3;dy<=3;++dy)for(int dx=-3;dx<=3;++dx)if(pixels.rect().contains(at+QPoint{dx,dy})) {
-          const auto c=pixels.pixelColor(at+QPoint{dx,dy});if(c.blue()>c.red()+40&&c.green()>c.red()+30)blue=true;
+          const auto c=pixels.pixelColor(at+QPoint{dx,dy});if((c.blue()>c.red()+40&&c.green()>c.red()+30)||(c.red()>200&&c.green()>70&&c.green()<190&&c.blue()<70))stroke=true;
         }
-        if(!blue){window.grab().save("build/debug/fuselage-visibility-failure.png");std::cerr<<"mapped "<<at.x()<<","<<at.y()<<" image "<<pixels.width()<<","<<pixels.height()<<std::endl;}CHECK(blue);
+        if(!stroke){window.grab().save("fuselage-visibility-failure.png");std::cerr<<"mapped "<<at.x()<<","<<at.y()<<" image "<<pixels.width()<<","<<pixels.height()<<std::endl;}CHECK(stroke);
       }
     };
     visibleProfiles();toolbar->actions()[4]->trigger();visibleProfiles();toolbar->actions()[2]->trigger();visibleProfiles();
@@ -89,7 +99,7 @@ int main(int argc,char** argv) {
     CHECK(source.stationEditor().lines()[0].thicknessMm==8.25);CHECK(window.saveProjectFile(file,error));
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[3]->trigger();app.processEvents();app.processEvents();
     const auto capture=qEnvironmentVariable("FOAM_THICKEN_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==28);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);
     auto legacy=encoded;legacy["version"]=11;legacy.remove("fuselageThickening");CHECK(!decodeProject(legacy).fuselageThickening);CHECK(!decodeProject(legacy).fuselageStations.lines[0].thicknessMm);
     auto invalid=encoded;auto stations=invalid["fuselageStations"].toObject();auto lines=stations["lines"].toArray();auto record=lines[0].toObject();record["thicknessMm"]=-1;lines[0]=record;stations["lines"]=lines;invalid["fuselageStations"]=stations;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

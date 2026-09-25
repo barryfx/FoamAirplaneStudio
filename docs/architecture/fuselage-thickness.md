@@ -33,7 +33,7 @@ its thickness. Thicken activation persists through mode changes. Version 12 save
 the activation and values; versions 1-11 start disabled. New/Close resets them.
 Dirty checks and the Fuselage fingerprint include thickness, while Wing's do not.
 
-The outer guided loft is retained. At each longitudinal section, OCCT planar
+The right-half outer guided loft is retained. At each longitudinal section, OCCT planar
 offsets move the section inward by the interpolated wall distance. These values
 specify offsets in the cross-section plane, rather than a global 3D surface-normal
 offset. A monotone cubic smoothstep law passes through station values with zero
@@ -56,9 +56,12 @@ the outermost profile, that end stays closed: an axial end wall is retained and
 narrow tips remain solid. A station terminating an outline must leave room for
 its requested wall and opening, otherwise generation reports an error.
 
-The inner wall is lofted and joined to the outer shell without remeshing or
-modifying the input sketches. Closed cavities use reversed inner shells; open
-ends use sewn rims. The result must pass OCCT validity and positive-volume checks
+The right-half inner wall is lofted and subtracted from the right outer solid.
+The cavity reaches the end plane for an open end, leaving an annular half-rim;
+closed ends retain axial material. The completed half is reflected as a separate
+part. Whole-cavity tooling is assembled only for inserts and holes. The input
+sketches remain unchanged. The full-symmetric benchmark comparison path retains
+the prior shell/rim assembly procedure. The result must pass OCCT validity and positive-volume checks
 and contain less material than the exterior solid. A thickness that eliminates
 the cavity or pinches it off inside the body is rejected. Sampling and planar
 offset assumptions are explicit; manufacturing surface-normal thickness controls
@@ -67,3 +70,13 @@ remain a future refinement.
 Generation stays in the independent Fuselage worker with existing cancellation,
 stale-result and cache protections. Status reports cover offsets, inner loft,
 closed tips, failures and hollow-body completion.
+
+When OCCT's planar Intersection offset fails without a result on a sampled
+polygon, a checked line-offset fallback intersects the inward-shifted edges and
+removes consumed convex edges. It rejects reversed concave edges, intersections,
+nonfinite/degenerate edges, and any edge violating the original wall clearance.
+The normal inside/area checks still apply. A successful kernel result containing
+multiple or no loops is not replaced by this fallback. This handles the mirrored
+BabyBuzzard corner sampling failure without reducing thickness or bridging a
+collapsed neck. `insetFuselageSection` exposes this numeric section operation
+for focused tests without generating a fuselage.

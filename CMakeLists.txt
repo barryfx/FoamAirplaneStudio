@@ -114,14 +114,16 @@ target_include_directories(foam_dialogs PUBLIC src)
 target_link_libraries(foam_dialogs PUBLIC Qt6::Widgets)
 
 add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerAirfoilPanel.h src/gui/AirfoilLibrary.cpp src/gui/AirfoilLibrary.h
-  src/gui/AirfoilPanel.cpp src/gui/AirfoilPanel.h)
+  src/gui/AirfoilPanel.cpp src/gui/AirfoilPanel.h
+  src/gui/AirfoilSmoothing.cpp src/gui/AirfoilSmoothing.h
+  src/gui/AirfoilSmoothingDialog.cpp src/gui/AirfoilSmoothingDialog.h)
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/FuselageEndRegistration.cpp src/geometry/WeightBalance.cpp src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/FuselageSymmetry.cpp src/geometry/FuselageEndRegistration.cpp src/geometry/WeightBalance.cpp src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
-add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h)
+add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h src/gui/AirplaneStatistics.cpp)
 target_include_directories(foam_project PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_project PUBLIC foam_airfoils TKernel TKMath)
 
@@ -163,7 +165,7 @@ set_target_properties(designrc PROPERTIES
 )
 if(WIN32)
   target_sources(designrc PRIVATE
-    resources/graphics/designrc.rc
+    resources/windows/app.rc
   )
 endif()
 target_include_directories(designrc PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
@@ -315,6 +317,7 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(view_controls_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(view_controls_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME view_controls_tests COMMAND view_controls_tests "${CMAKE_CURRENT_BINARY_DIR}/view-controls.png")
+  add_test(NAME startup_gui_tests COMMAND view_controls_tests --startup-only "${CMAKE_CURRENT_BINARY_DIR}")
   add_executable(editor_history_tests tests/EditorHistoryTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
@@ -342,6 +345,17 @@ if(DESIGNRC_BUILD_TESTS)
   if(NOT WIN32)
     set_tests_properties(weight_balance_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
+  add_executable(airplane_statistics_tests tests/AirplaneStatisticsTests.cpp resources/designrc.qrc
+    src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
+    src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
+    src/gui/ReferenceWorkflow.cpp src/gui/WingWorkflow.cpp)
+  set_target_properties(airplane_statistics_tests PROPERTIES AUTOMOC ON AUTORCC ON)
+  target_include_directories(airplane_statistics_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(airplane_statistics_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME airplane_statistics_tests COMMAND airplane_statistics_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  if(NOT WIN32)
+    set_tests_properties(airplane_statistics_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
   add_executable(assembly_tests tests/AssemblyTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
@@ -363,8 +377,13 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(stabilizer_outline_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(stabilizer_outline_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME stabilizer_outline_tests COMMAND stabilizer_outline_tests)
+  add_executable(stabilizer_bevel_tests tests/StabilizerBevelTests.cpp)
+  target_include_directories(stabilizer_bevel_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
+  target_link_libraries(stabilizer_bevel_tests PRIVATE ${_foam_project_app_libraries})
+  add_test(NAME stabilizer_bevel_tests COMMAND stabilizer_bevel_tests "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/babybuzzard-stabilizer-bevels.json")
+  set_tests_properties(stabilizer_bevel_tests PROPERTIES TIMEOUT 1200)
   if(NOT WIN32)
-    set_tests_properties(stabilizer_outline_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(stabilizer_outline_tests stabilizer_bevel_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
 
   add_executable(fuselage_outline_tests tests/FuselageOutlineTests.cpp resources/designrc.qrc
@@ -394,6 +413,10 @@ if(DESIGNRC_BUILD_TESTS)
     set_tests_properties(fuselage_profile_tests circle_profile_tests profile_operations_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
 
+  add_executable(former_diagnostics_tests tests/FormerDiagnosticsTests.cpp)
+  target_include_directories(former_diagnostics_tests PRIVATE src)
+  target_link_libraries(former_diagnostics_tests PRIVATE Qt6::Core)
+  add_test(NAME former_diagnostics_tests COMMAND former_diagnostics_tests)
   add_executable(former_tests tests/FormerTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
@@ -476,7 +499,19 @@ if(DESIGNRC_BUILD_TESTS)
   add_executable(processing_tests tests/ProcessingTests.cpp)
   target_link_libraries(processing_tests PRIVATE foam_wing)
   add_test(NAME processing_tests COMMAND processing_tests)
+  add_executable(fuselage_wall_offset_tests tests/FuselageWallOffsetTests.cpp)
+  target_link_libraries(fuselage_wall_offset_tests PRIVATE foam_wing)
+  add_test(NAME fuselage_wall_offset_tests COMMAND fuselage_wall_offset_tests)
+  add_executable(fuselage_symmetry_tests tests/FuselageSymmetryTests.cpp)
+  target_link_libraries(fuselage_symmetry_tests PRIVATE foam_wing foam_project TKV3d TKService)
+  add_test(NAME fuselage_symmetry_tests COMMAND fuselage_symmetry_tests)
+  add_test(NAME fuselage_cancellation_tests COMMAND fuselage_symmetry_tests --cancel-stages)
+  set_tests_properties(fuselage_cancellation_tests PROPERTIES TIMEOUT 600)
   add_executable(fuselage_benchmark tests/FuselageBenchmark.cpp)
+  add_executable(former_rail_cut_tests tests/FormerRailCutTests.cpp)
+  target_link_libraries(former_rail_cut_tests PRIVATE foam_wing)
+  add_test(NAME former_rail_cut_tests COMMAND former_rail_cut_tests "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/babybuzzard36-former4" 417.462)
+  add_test(NAME former_rear_rail_cut_tests COMMAND former_rail_cut_tests "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/babybuzzard36-former4-rear" 401.579)
   target_link_libraries(fuselage_benchmark PRIVATE foam_wing foam_project TKV3d TKService)
 
   add_executable(regeneration_benchmark tests/RegenerationBenchmark.cpp)
@@ -498,7 +533,7 @@ if(DESIGNRC_BUILD_TESTS)
   add_test(NAME wing_solid_tests COMMAND wing_solid_tests)
   add_executable(airfoil_panel_tests tests/AirfoilPanelTests.cpp src/gui/PlanViewport.cpp)
   target_link_libraries(airfoil_panel_tests PRIVATE foam_airfoils)
-  add_test(NAME airfoil_panel_tests COMMAND airfoil_panel_tests)
+  add_test(NAME airfoil_panel_tests COMMAND airfoil_panel_tests "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/babybuzzard-airfoil.dat")
   if(NOT WIN32)
     set_tests_properties(airfoil_panel_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()

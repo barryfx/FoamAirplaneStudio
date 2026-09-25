@@ -21,6 +21,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolBar>
+#include <QTableWidget>
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
@@ -58,14 +59,30 @@ static void mathematics() {
   auto mass=geometry::foamMassProperties(parts());
   CHECK(closeEnough(mass.volumeMm3,2e6,.001));CHECK(closeEnough(mass.centroidMm.x(),100));
   CHECK(closeEnough(mass.plywoodVolumeMm3,2e5,.001));CHECK(closeEnough(mass.plywoodCentroidMm.x(),255));
+  CHECK(mass.components.size()==8);double foamSum=0,plywoodSum=0;
+  for(const auto& component:mass.components)(component.plywood?plywoodSum:foamSum)+=component.volumeMm3;
+  CHECK(closeEnough(foamSum,mass.volumeMm3));CHECK(closeEnough(plywoodSum,mass.plywoodVolumeMm3));
+  CHECK(mass.components[0].name=="Fuselage"&&closeEnough(mass.components[0].volumeMm3,1e6,.001));
+  CHECK(mass.components[6].name=="Former 1"&&mass.components[6].plywood);
   WeightBalanceState state;auto result=calculateBalance(state,mass);
-  CHECK(closeEnough(result.grams,65+136));CHECK(closeEnough(result.centerMm.x(),(65.*100+136.*255)/201));
+  CHECK(closeEnough(result.grams,51.26+136));CHECK(closeEnough(result.centerMm.x(),(51.26*100+136.*255)/187.26));
   state.parts.push_back({"Battery",20,30,50,100,{0,20},false});result=calculateBalance(state,mass);
-  CHECK(closeEnough(result.grams,301));CHECK(closeEnough(result.centerMm.x(),(65.*100+136.*255)/301));
+  CHECK(closeEnough(result.grams,287.26));CHECK(closeEnough(result.centerMm.x(),(51.26*100+136.*255)/287.26));
   state.parts[0].centerMm.setX(400);auto moved=calculateBalance(state,mass);
-  CHECK(closeEnough(moved.grams,result.grams));CHECK(closeEnough(moved.centerMm.x()-result.centerMm.x(),40000./301));
+  CHECK(closeEnough(moved.grams,result.grams));CHECK(closeEnough(moved.centerMm.x()-result.centerMm.x(),40000./287.26));
   state.densityKgM3=65;state.plywoodDensityKgM3=700;CHECK(closeEnough(calculateBalance(state,mass).grams,370));
   CHECK(calculateBalance({},{}).grams==0);
+  auto carbon=parts();carbon.sparMaterials={{"Mid tube",10000,{60,100,12}},{"Top rod",5000,{80,-100,20}}};
+  auto cf=geometry::foamMassProperties(carbon);CHECK(cf.components.size()==10&&cf.components.back().carbonFiber);
+  CHECK(closeEnough(cf.carbonFiberVolumeMm3,15000));CHECK(closeEnough(cf.carbonFiberCentroidMm.x(),200./3));
+  WeightBalanceState cfState;auto withCf=calculateBalance(cfState,cf);
+  CHECK(closeEnough(withCf.grams,187.26+23.1));CHECK(closeEnough(withCf.centerMm.x(),(51.26*100+136*255+23.1*200/3)/(187.26+23.1)));
+  AssemblyState placement;placement.offsets[0]={20,30};placement.rotationDegrees[0]=90;
+  auto placed=geometry::placeAssembly(carbon,placement);CHECK(closeEnough(placed.sparMaterials[0].volumeMm3,10000));
+  CHECK(placed.sparMaterials[0].center.Distance(gp_Pnt{32,100,-30})<1e-6);
+  const auto cut=geometry::cutAssemblyIntersections(placed);CHECK(cut.parts.sparMaterials.size()==2);
+  CHECK(cut.parts.sparMaterials[0].center.Distance(placed.sparMaterials[0].center)<1e-6);
+
   auto p=fixture();CHECK(closeEnough(geometry::wingRootLeadingEdgeX(p.wing.layers,p.stations.lines,1000),50));
   CHECK(closeEnough(geometry::wingRootLeadingEdgeX(p.wing.layers,p.stations.lines,{}),10));
   // Reverse the drawing chord direction; root LE remains the user-defined edge.
@@ -76,15 +93,25 @@ static void mathematics() {
   CHECK(closeEnough(geometry::wingRootLeadingEdgeX(p.wing.layers,p.stations.lines,1000),50));
 }
 static void persistence() {
-  auto p=fixture();p.workspace=7;p.weightBalance.parts.push_back({"Motor",30,40,50,gramsPerOunce,{123,-45},true});
+  auto p=fixture();p.spars[0][2].sizeMm=6.35;p.spars[0][2].sizeText=".25 in";
+  p.spars[0][2].insideDiameterMm=5.08;p.spars[0][2].insideDiameterText=".2 in";
+  p.weightBalance.carbonFiberDensityKgM3=1600;p.workspace=7;p.weightBalance.parts.push_back({"Motor",30,40,50,gramsPerOunce,{123,-45},true});
   p.weightBalance.plywoodDensityKgM3=725;p.weightBalance.densityKgM3=35;
-  auto json=encodeProject(p);CHECK(json["version"]==28);auto restored=decodeProject(json);
+  auto json=encodeProject(p);CHECK(json["version"]==29);auto restored=decodeProject(json);
+  CHECK(restored.weightBalance.carbonFiberDensityKgM3==1600);
+  CHECK(restored.spars[0][2].insideDiameterMm==5.08&&restored.spars[0][2].insideDiameterText==".2 in");
+  auto previous=json;previous["version"]=28;auto earlier=decodeProject(previous);
+  CHECK(earlier.weightBalance.carbonFiberDensityKgM3==1540);
+  CHECK(closeEnough(earlier.spars[0][2].insideDiameterMm,5.35)&&earlier.spars[0][2].sizeMm==6.35);
   CHECK(restored.workspace==7);CHECK(restored.weightBalance.parts[0].centerMm==QPointF(123,-45));
   CHECK(restored.weightBalance.parts[0].ounces);CHECK(closeEnough(restored.weightBalance.parts[0].grams,gramsPerOunce));
   CHECK(restored.weightBalance.plywoodDensityKgM3==725);CHECK(restored.weightBalance.densityKgM3==35);
   auto old=json;old["version"]=25;old.remove("weightBalance");auto ui=old["ui"].toObject();ui["workspace"]=0;old["ui"]=ui;
-  const auto legacy=decodeProject(old);CHECK(legacy.weightBalance.parts.empty());CHECK(legacy.weightBalance.densityKgM3==32.5);
+  const auto legacy=decodeProject(old);CHECK(legacy.weightBalance.parts.empty());CHECK(legacy.weightBalance.densityKgM3==25.63);
   auto rejects=[](QJsonObject value){try{decodeProject(value);}catch(const std::exception&){return true;}return false;};
+  auto invalid=json;auto panels=invalid["spars"].toArray();auto spars=panels[0].toArray();auto mid=spars[2].toObject();
+  mid["insideDiameterMm"]=6.35;spars[2]=mid;panels[0]=spars;invalid["spars"]=panels;CHECK(rejects(invalid));
+  invalid=json;auto invalidBalance=invalid["weightBalance"].toObject();invalidBalance["carbonFiberDensityKgM3"]=0;invalid["weightBalance"]=invalidBalance;CHECK(rejects(invalid));
   auto bad=json;auto balance=bad["weightBalance"].toObject();balance["densityKgM3"]=-1;bad["weightBalance"]=balance;CHECK(rejects(bad));
   bad=json;balance=bad["weightBalance"].toObject();auto list=balance["parts"].toArray();list.append(list[0]);balance["parts"]=list;bad["weightBalance"]=balance;CHECK(rejects(bad));
   bad=json;balance=bad["weightBalance"].toObject();list=balance["parts"].toArray();auto part=list[0].toObject();part["grams"]=-2;list[0]=part;balance["parts"]=list;bad["weightBalance"]=balance;CHECK(rejects(bad));
@@ -118,7 +145,14 @@ public:
     w.assemblyState_.offsets[0].rx()+=10;w.updateWeightBalance();CHECK(calculations==2);
     w.assemblyState_.offsets[0].rx()-=10;w.updateWeightBalance();CHECK(calculations==3);
     w.assemblyOriginals_=parts();w.updateWeightBalance();CHECK(calculations==4); // Rebuilt solids.
-    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("201.00 g"));
+    w.assemblyState_.rotationDegrees[0]=.5;w.updateWeightBalance();CHECK(calculations==5);
+    w.updateWeightBalance();CHECK(calculations==5); // Same rotation reuses the cache.
+    w.assemblyState_.rotationDegrees[0]=0;w.updateWeightBalance();CHECK(calculations==6);
+    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("187.26 g"));
+    auto* breakdown=panel->findChild<QTableWidget*>("balanceBreakdown");CHECK(breakdown&&breakdown->rowCount()==11);
+    CHECK(breakdown->item(0,1)->text()=="1000.00");CHECK(breakdown->item(0,2)->text()=="25.63");
+    CHECK(breakdown->item(0,3)->text()=="0.904");CHECK(breakdown->item(2,0)->text().contains("not present"));
+    CHECK(breakdown->item(6,2)->text()=="68.00");CHECK(breakdown->item(8,2)->text()=="51.26");
     auto mass=geometry::foamMassProperties(*w.exportAssemblyParts());
     const double expected=calculateBalance(panel->state(),mass).centerMm.x()-75;
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains(QString::number(expected,'f',3)));
@@ -168,9 +202,9 @@ public:
       d->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->click();
     });panel->findChild<QPushButton*>("balanceAddPart")->click();
     CHECK(panel->state().parts.size()==2);
-    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("272.70 g"));
+    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("258.96 g"));
     panel->findChild<QPushButton*>("balanceDeletePart")->click();CHECK(panel->state().parts.size()==1);
-    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("257.70 g"));
+    CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("243.96 g"));
     panel->findChild<QComboBox*>("balanceParts")->setCurrentIndex(0);
     // Unit changes retain physical placement, dimensions and grams.
     auto reference=w.projectReference();reference.units=ProjectUnits::Inches;
@@ -184,9 +218,12 @@ public:
     const int beforeCuts=calculations;
     w.assemblyCutParts_=parts();w.assemblyCutParts_->fuselage=box(0,50,100,100);w.assemblyState_.cuts=true;w.updateWeightBalance();
     CHECK(calculations==beforeCuts+1);
-    CHECK(closeEnough(calculateBalance(panel->state(),geometry::foamMassProperties(*w.assemblyCutParts_)).grams,48.75+136+2*gramsPerOunce));
+    CHECK(closeEnough(calculateBalance(panel->state(),geometry::foamMassProperties(*w.assemblyCutParts_)).grams,38.445+136+2*gramsPerOunce));
     panel->findChild<QDoubleSpinBox*>("balanceDensity")->setValue(40);CHECK(panel->state().densityKgM3==40);
     panel->findChild<QDoubleSpinBox*>("balancePlywoodDensity")->setValue(700);CHECK(panel->state().plywoodDensityKgM3==700);
+    CHECK(breakdown->item(0,1)->text()=="500.00");CHECK(breakdown->item(0,2)->text()=="20.00");
+    CHECK(breakdown->item(6,2)->text()=="70.00");CHECK(breakdown->item(8,2)->text()=="60.00");
+    CHECK(breakdown->rowCount()==12);CHECK(breakdown->item(11,1)->text()==QString::fromUtf8("—"));
     w.updateWeightBalance();CHECK(calculations==beforeCuts+1); // Density/part edits reuse volumes.
     QString error;const auto file=directory+"/weight-balance.foam";CHECK(w.saveProjectFile(file,error));CHECK(!w.projectModified());
     panel->findChild<QComboBox*>("balanceParts")->setCurrentIndex(-1);CHECK(!w.projectModified());
@@ -202,12 +239,21 @@ public:
     CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_);CHECK(w.wingShape_.IsNull()&&w.fuselageShape_.IsNull());
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Total weight: unavailable"));
     panel->findChild<QComboBox*>("balanceParts")->setCurrentIndex(0);panel->findChild<QPushButton*>("balanceDeletePart")->click();
+    CHECK(breakdown->rowCount()==0); // Stale geometry must not leave old component rows.
     CHECK(panel->state().parts.empty());CHECK(w.projectModified());
     w.assemblyOriginals_=parts();w.assemblySourceFingerprint_=w.assemblyFingerprint();w.updateWeightBalance();
     auto side=w.planViewport_->fuselageSketchEditor().state();side.layers[1].points[1].rx()+=1;
     w.planViewport_->fuselageSketchEditor().restoreState(side);w.updateProjectTitle();
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Total weight: unavailable"));
-    w.resetProject();CHECK(panel->state().parts.empty());CHECK(panel->state().densityKgM3==32.5);CHECK(!toolbar->actions()[7]->isEnabled());
+    w.assemblyOriginals_=parts();w.assemblyOriginals_.sparMaterials={{"Mid tube",10000,{60,0,10}}};
+    w.assemblyState_.cuts=false;w.assemblySourceFingerprint_=w.assemblyFingerprint();w.updateWeightBalance();
+    auto* carbonDensity=panel->findChild<QDoubleSpinBox*>("balanceCarbonFiberDensity");CHECK(carbonDensity&&carbonDensity->value()==1540);
+    CHECK(breakdown->item(8,0)->text().contains("Carbon Fiber"));CHECK(breakdown->item(8,2)->text()=="15.40");
+    const int beforeCarbonDensity=calculations;carbonDensity->setValue(1600);w.updateWeightBalance();CHECK(calculations==beforeCarbonDensity);
+    CHECK(breakdown->item(8,2)->text()=="16.00");CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Carbon Fiber: 16.00 g"));
+    CHECK(w.projectDocument().weightBalance.carbonFiberDensityKgM3==1600);
+    QApplication::processEvents();CHECK(w.grab().save(directory+"/weight-balance-carbon.png"));
+    w.resetProject();CHECK(panel->state().carbonFiberDensityKgM3==1540);CHECK(panel->state().parts.empty());CHECK(panel->state().densityKgM3==25.63);CHECK(!toolbar->actions()[7]->isEnabled());
   }
 };
 }

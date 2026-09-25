@@ -47,7 +47,7 @@ TopoDS_Shape cut(const TopoDS_Shape& s,const TopoDS_Shape& tool,const Processing
 }
 TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,double halfSpan,
     const std::function<std::pair<double,double>(double)>& chordAtSpan,
-    const std::function<void(const char*)>& progress, double rootInset,double tipInset,bool mitered,double lighteningWall,const std::vector<std::pair<double,double>>& bays,const ProcessingControl& control) {
+    const std::function<void(const char*)>& progress, double rootInset,double tipInset,bool mitered,double lighteningWall,const std::vector<std::pair<double,double>>& bays,const ProcessingControl& control,std::vector<SparMaterial>* materials) {
   control.checkpoint();
   const bool lighten=lighteningWall>0;const bool split=spars[2].enabled || lighten;
   if(!lighten && std::none_of(spars.begin(),spars.end(),[](const auto& s){return s.enabled;}))return half;
@@ -89,12 +89,12 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
     if(!std::isfinite(spar.chordPercent)||spar.chordPercent<0||spar.chordPercent>100 ||
        !std::isfinite(spar.lengthPercent)||spar.lengthPercent<=0||spar.lengthPercent>100 ||
        !std::isfinite(spar.sizeMm)||spar.sizeMm<=0 || !std::isfinite(spar.heightMm)||spar.heightMm<=0 ||
-       (spar.shape!=gui::SparShape::Round && spar.shape!=gui::SparShape::Strip) || (index==2 && spar.shape!=gui::SparShape::Round))
+       (spar.shape!=gui::SparShape::Round && spar.shape!=gui::SparShape::Strip) || (index==2 && (spar.shape!=gui::SparShape::Round || !std::isfinite(spar.insideDiameterMm) || spar.insideDiameterMm<0 || spar.insideDiameterMm>=spar.sizeMm)))
       throw std::runtime_error("Invalid spar dimensions or shape.");
     if(progress)progress(index==0?"Cutting top spar groove...":index==1?"Cutting bottom spar groove...":"Cutting mid-height spar hole...");
     const double end=halfSpan*spar.lengthPercent/100;
     BRepOffsetAPI_ThruSections tool{true,index==2,1e-7};tool.CheckCompatibility(false);tool.SetMaxDegree(3);
-    std::vector<gp_Pnt> centers;
+    std::vector<gp_Pnt> centers,materialCenters;
     // Sample the actual solid skin, including the selected wing-tip treatment.
     // All profiles lie in parallel chord/height planes so sizes remain explicit.
     std::vector<double> sampleSpans;
@@ -128,6 +128,38 @@ TopoDS_Shape cutSpars(const TopoDS_Shape& half,const gui::SparState& spars,doubl
       const double planeY=y==0?(mitered?std::min(0.0,y0):0)-1e-5:
           mitered && spar.lengthPercent==100 && y==end?std::max(end,y1)+1e-5:y;
       centers.emplace_back(x,planeY,z);
+      if(materials)materialCenters.emplace_back(x,y,z);
+    }
+    if(materials) {
+      // Use the same sampled skin and section orientation as the groove, but
+      // stop at nominal panel span/length (not the boolean tool's cap overruns).
+      // Surface strips occupy only their entered inward depth. Tube bores are
+      // subtracted as volume/moments, avoiding another CAD boolean operation.
+      const auto measure=[&](double diameter) {
+        BRepOffsetAPI_ThruSections stock{true,index==2,1e-7};stock.CheckCompatibility(false);stock.SetMaxDegree(3);
+        for(const auto& center:materialCenters) {
+          control.checkpoint();
+          if(spar.shape==gui::SparShape::Round) {
+            const gp_Circ circle{gp_Ax2{center,gp_Dir{0,1,0},gp_Dir{1,0,0}},diameter/2};
+            stock.AddWire(BRepBuilderAPI_MakeWire{BRepBuilderAPI_MakeEdge{circle}.Edge()}.Wire());
+          } else {
+            const double bottom=index==0?center.Z()-spar.heightMm:center.Z();
+            BRepBuilderAPI_MakePolygon wire;
+            for(auto p:{gp_Pnt{center.X()-spar.sizeMm/2,center.Y(),bottom},gp_Pnt{center.X()+spar.sizeMm/2,center.Y(),bottom},
+                gp_Pnt{center.X()+spar.sizeMm/2,center.Y(),bottom+spar.heightMm},gp_Pnt{center.X()-spar.sizeMm/2,center.Y(),bottom+spar.heightMm}})wire.Add(p);
+            wire.Close();stock.AddWire(wire.Wire());
+          }
+        }
+        stock.Build(control.range());control.checkpoint();
+        if(!stock.IsDone())throw std::runtime_error("Could not measure carbon fiber spar stock.");
+        GProp_GProps props;BRepGProp::VolumeProperties(stock.Shape(),props,1e-7);control.checkpoint();return props;
+      };
+      const auto outer=measure(spar.sizeMm);double volume=outer.Mass();gp_XYZ moment=outer.CentreOfMass().XYZ()*volume;
+      if(index==2 && spar.insideDiameterMm>0) {
+        const auto inner=measure(spar.insideDiameterMm);volume-=inner.Mass();moment-=inner.CentreOfMass().XYZ()*inner.Mass();
+      }
+      if(!std::isfinite(volume)||volume<=0)throw std::runtime_error("Carbon fiber spar has no measurable material volume.");
+      materials->push_back({name,volume,gp_Pnt{moment/volume}});
     }
     if(index==2) {
       midCenters=centers;

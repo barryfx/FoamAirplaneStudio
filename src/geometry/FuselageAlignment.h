@@ -11,6 +11,7 @@ struct FuselageAlignmentSpec {
   TopoDS_Shape seamReference;
   // Sorted physical X / nominal wall thickness, with the same smooth blend as the loft.
   std::vector<std::pair<double,double>> wallStations;
+  bool separateHalves=false; // Y=0 is a mating face rather than interior material.
 };
 // Halves may arrive in either order. Pins project from negative Y into positive Y.
 std::array<TopoDS_Shape,2> addFuselageAlignmentPins(const TopoDS_Shape& mainBody,

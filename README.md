@@ -6,7 +6,7 @@ printing, plus outlines for laser cutting.
 
 ## Current progress
 
-As of September 20, 2026, Reference and Wing provide:
+As of September 25, 2026, Reference and Wing provide:
 
 - PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
 - Numbered panel outlines, reusable line/spline editing, curve-attached stations,
@@ -17,8 +17,8 @@ As of September 20, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-28 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text, view state. Versions 1-27 remain readable.
+- Portable version-29 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text, view state. Versions 1-28 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -46,7 +46,17 @@ geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers f
 (see [Export](docs/architecture/export.md)). Project-wide Undo/Redo uses Ctrl+Z/Ctrl+Y; Assembly also includes Undo Cuts.
 SVG and tray DXF remain future work.
 
-Weight and Balance adds named RC parts to Side View and calculates mass/center from current Assembly foam and Aero Plywood plus entered parts. See docs/architecture/weight-and-balance.md.
+Fuselage generation uses the right profile half and reflects the completed body
+as a separate left part, with whole formers and tray. Former/rail work and mating
+hardware use bounded parallel workers; see the [benchmark and validation](docs/baseline/fuselage-speedup-validation.md).
+
+Weight and Balance adds named RC parts to Side View and calculates mass, CG and wing loading from current Assembly foam, Aero Plywood, carbon-fiber spars and entered parts. Default densities are 25.63, 680 and 1540 kg/m³ respectively. Mid spars default to 6 mm outside and 5 mm inside diameter, with mixed mm/in inputs. See [Weight and Balance](docs/architecture/weight-and-balance.md).
+
+Other data panels show available airplane dimensions, areas, aspect ratio, weight, wing loading and CG. These statistics are saved with the project and refreshed when their inputs change. See [airplane statistics](docs/architecture/airplane-statistics.md).
+
+Wing Airfoils can smooth traced profiles while preserving a straight blunt trailing edge, and export normalized DAT files with at most 69 cosine-sampled points. Assembly rotates components about their root center in 0.5-degree steps and cuts formers for wing clearance.
+
+The primary toolbar ends with Inspect, Weight and Balance, then Export. Startup displays the application image for three seconds; Help → About describes the workflow and credits OpenAI Codex.
 
 Inspect shows and hides individual generated components and saves editable names
 for Export. Combined STEP files use the project basename.

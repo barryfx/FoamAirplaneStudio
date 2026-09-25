@@ -21,6 +21,23 @@ display units, zoom and camera orbit. Centerline Y remains zero. A stabilizer
 and its control surface move together. Selection alone is transient; positioning
 affects project dirty state.
 
+Rotate Clockwise and Rotate Counter-Clockwise turn the selected component in
+0.5-degree steps. The pivot is the root chord midpoint, between its original
+leading and trailing endpoints, on the root chord line. It is derived from the
+source outlines, not the full component bounding box, so sweep, cut-outs and
+separate controls do not shift it. Rotation is about the transverse Y axis;
+positive is clockwise in the standard side view from negative Y, independent of
+camera orbit. Translation moves the pivot with the part. Stabilizers and their
+controls share one transform. The angle appears below the buttons, updates when
+selection changes, and wraps within +/-180 degrees. Buttons require a selection
+and are disabled after Cut Intersections until Undo Cuts.
+
+Angles participate in project history, save/load, placed/cut exports and Weight
+and Balance cache invalidation. The wing LE datum follows the rotated root.
+Original component models remain immutable; each placement applies the total
+angle from originals, without accumulating transformations. Rotation metadata is
+optional in the existing input format; older projects load with zero angles.
+
 Cut Intersections runs in a cancellable background job. It deep-copies shapes
 and checks positive-volume intersections (>0.000001 mm3) only between Elevator
 and Rudder. A popup reports that pair before any seat is cut. No other pair
@@ -28,7 +45,10 @@ blocks cutting. Mere touching is permitted. Deflection envelopes
 and structural clearance are not modeled.
 
 Wing and both fixed stabilizers cut the fuselage; the fixed fin also cuts the
-fixed horizontal stabilizer. Cuts operate separately on manufacturing solids,
+fixed horizontal stabilizer. The placed/rotated wing also cuts seats in each
+former, identified by its manufacturing plane rather than its editable name.
+The servo tray remains unchanged. Former names, IDs and section planes are retained
+for display and export. Cuts operate separately on manufacturing solids,
 retain resulting valid solids, and reject consuming an entire source part.
 Original Wing, stabilizers, control surfaces and component caches are preserved.
 Successful cuts disable the three positioning buttons and change the action to
@@ -39,9 +59,11 @@ keeps Fuselage, Wing, fixed horizontal/vertical stabilizers and elevator/rudder
 distinct. `StabilizerBuildResult` preserves those roles through user Cut Shapes.
 `MainWindow::exportAssemblyParts()` returns the current placed/cut snapshot, or
 no snapshot when stale/unavailable; Export uses this snapshot (export.md). Body manufacturing parts and standalone inserts use separate records. Formers
-and the servo tray retain their original solids through placement and seat cuts;
-Assembly never fuses them to the body. Each insert has a separate 3D presentation. Source-model edits invalidate derived cuts while
-retaining physical translations. New/Close resets placements and derived caches. Current format 28 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
+retain their original solids through placement and receive wing seats only in
+the derived cut snapshot; the servo tray retains its original solid throughout.
+Assembly never fuses inserts to the body. Cut formers are meshed on private copies.
+Each insert has a separate 3D presentation. Source-model edits invalidate derived cuts while
+retaining physical translations. New/Close resets placements and derived caches. Current format 29 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
 caches are session-only. Former rotation is included in Fuselage snapshots and
 cache invalidation. Version-22 embedded models are ignored on Open.
 

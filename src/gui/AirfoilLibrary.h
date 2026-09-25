@@ -12,10 +12,13 @@ struct LibraryAirfoil {
 };
 // Returns a traversal of exactly one closed, non-degenerate sketch loop.
 std::optional<std::vector<QPointF>> closedAirfoilBoundary(const SketchLayer& layer);
+domain::AirfoilProfile normalizedAirfoil(const LibraryAirfoil& entry);
 class AirfoilLibrary {
 public:
   bool loadDat(const QString& path, QString& error);
   bool addSketch(const QString& name, const SketchLayer& sketch, QString& error);
+  bool exportDat(std::size_t index, const QString& path, QString& error) const;
+  void addProfile(const QString& name, const domain::AirfoilProfile& profile);
   const std::vector<LibraryAirfoil>& entries() const { return entries_; }
   void clear() { entries_.clear(); }
   void restore(std::vector<LibraryAirfoil> entries) { entries_=std::move(entries); }

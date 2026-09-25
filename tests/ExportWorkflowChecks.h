@@ -21,7 +21,7 @@ public:
   static void run(const QString& evidence) {
     QTemporaryDir outputs;CHECK(outputs.isValid());
     MainWindow w;w.resize(1400,900);w.show();QApplication::processEvents();
-    CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled());
+    CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled());
     auto document=fixture();
     // The shared scale now comes from the mirrored 90-unit wing half-span.
     // Keep the injected former solids aligned at .25 mm per scene unit.
@@ -43,9 +43,9 @@ public:
     builder.Add(all,sample.fuselage);builder.Add(all,aft);builder.Add(all,nose);
     builder.Add(all,tray);
     w.fuselageModel_.shape=all;w.fuselageShape_=all;
-    CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled()); // Cached components alone are insufficient.
+    CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled()); // Cached components alone are insufficient.
     w.workspaceToolBar_->actions()[5]->trigger();waitForModel(w);
-    CHECK(w.workspaceToolBar_->actions()[6]->isEnabled());
+    CHECK(w.workspaceToolBar_->actions()[8]->isEnabled());
     CHECK(w.exportAssemblyParts()->fuselage.IsSame(sample.fuselage));
     CHECK(w.exportAssemblyParts()->inserts.size()==3);
     auto catalog=geometry::assemblyExportParts(*w.exportAssemblyParts());
@@ -55,14 +55,16 @@ public:
     w.assemblyState_.offsets={};w.assemblyCutButton_->click();waitForModel(w);
     CHECK(w.assemblyState_.cuts);
     catalog=geometry::assemblyExportParts(*w.exportAssemblyParts());
-    CHECK(catalog[0].shape.IsSame(nose)&&catalog[1].shape.IsSame(aft));
+    CHECK(std::abs(volume(catalog[0].shape)-volume(nose))<1e-6);
+    CHECK(volume(catalog[1].shape)<volume(aft));
+    CHECK(catalog[1].formerPlane.has_value());
     CHECK(w.exportAssemblyParts()->inserts.size()==3);
     int trays=0;
     for(const auto& part:catalog)if(part.name=="Servo Tray") {++trays;CHECK(part.shape.IsSame(tray));}
-    CHECK(trays==1); // Seat cutters overlap inserts but must never modify or join them.
+    CHECK(trays==1); // Wing seats modify formers, but never the servo tray.
     CHECK(volume(w.exportAssemblyParts()->fuselage)<volume(sample.fuselage));
     CHECK(volume(w.fuselageModel_.formers[0])==volume(aft));
-    w.workspaceToolBar_->actions()[6]->trigger();QApplication::processEvents();
+    w.workspaceToolBar_->actions()[8]->trigger();QApplication::processEvents();
     CHECK(w.exportPanel_->isVisible()&&!w.graphicsTabs_->isTabEnabled(0));
     CHECK(w.findChild<QRadioButton*>("formersStep")->isChecked());
     CHECK(w.exportPanel_->formerFormat()==geometry::FormerExportFormat::Step);
@@ -190,12 +192,12 @@ public:
     if(auto* screen=w.screen())CHECK(screen->grabWindow(w.winId()).save(evidence+"/export-panel.png"));
     // Saved Export mode opens in 2D without rebuilding or enabling stale exports.
     CHECK(w.openProjectFile(outputs.path()+"/export.foam",error));CHECK(w.graphicsTabs_->currentIndex()==0);
-    CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled()&&!w.property("modelProcessing").toBool());
+    CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled()&&!w.property("modelProcessing").toBool());
     AssemblyWorkflowTest::install(w,sample);w.assemblyOriginals_=sample;w.assemblyState_.cuts=false;
     w.assemblySourceFingerprint_=w.assemblyFingerprint();
-    w.updateExportAvailability();CHECK(w.workspaceToolBar_->actions()[6]->isEnabled());
-    w.assemblySourceFingerprint_="obsolete";w.invalidateAssembly();CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled());
-    w.resetProject();CHECK(!w.workspaceToolBar_->actions()[6]->isEnabled());
+    w.updateExportAvailability();CHECK(w.workspaceToolBar_->actions()[8]->isEnabled());
+    w.assemblySourceFingerprint_="obsolete";w.invalidateAssembly();CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled());
+    w.resetProject();CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled());
   }
 };
 }

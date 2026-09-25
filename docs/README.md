@@ -1,12 +1,12 @@
 # Documentation guide
 
-Current state: September 22, 2026.
+Current state: September 25, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
-- `formats/foam-project.md` specifies version 28 and migration from versions 1-27.
+- `formats/foam-project.md` specifies version 29 and migration from versions 1-28.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.
@@ -86,7 +86,7 @@ Former rotation: [design](adr/0036-former-rotation.md) and
 [Fuselage Holes](architecture/fuselage-holes.md) removes closed loops through a
 selected wall and shares path controls with Cut (ADR-0038, project version 25).
 
-[Weight and Balance](architecture/weight-and-balance.md) places RC parts in Side View and combines their masses with foam and Aero Plywood from current Assembly geometry (ADR-0039, format 26).
+[Weight and Balance](architecture/weight-and-balance.md) places RC parts in Side View and combines their masses with foam, Aero Plywood and carbon-fiber spars from current Assembly geometry, including wing loading (ADR-0039 and ADR-0046; introduced in format 26, extended in format 29).
 
 - `architecture/inspect.md` describes component visibility and persistent export names.
 
@@ -96,3 +96,16 @@ Project-wide Undo/Redo and individual curve selection/deletion are described in
 Circle/profile copy and movement, orphan recovery/deletion, and tolerant fuselage
 end registration are described in `architecture/fuselage-profiles.md`,
 `architecture/fuselage-thickness.md`, ADR-0042 and ADR-0044.
+
+[ADR-0045](adr/0045-mirrored-fuselage-construction.md) describes right-half fuselage
+construction and reflection, with whole inserts and separate main halves.
+
+Half-fuselage timing and geometry parity: [validation](baseline/fuselage-speedup-validation.md).
+
+- [BabyBuzzard thickening and retry regression](baseline/babybuzzard-thickening-regression.md)
+
+- [Fuselage cancellation validation](baseline/fuselage-cancellation-validation.md)
+
+- `adr/0046-carbon-fiber-spar-mass.md` describes automatic spar material accounting and tube dimensions.
+
+- `architecture/airplane-statistics.md` and `adr/0047-persistent-airplane-statistics.md` describe shared summaries, Wing Loading and persistent measurement validity.

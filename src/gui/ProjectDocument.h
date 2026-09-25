@@ -9,8 +9,10 @@
 #include "gui/AssemblyState.h"
 #include "gui/WeightBalanceState.h"
 #include "gui/ComponentNames.h"
+#include "gui/AirplaneStatistics.h"
 namespace designrc::gui {
 struct ProjectDocument {
+  AirplaneStatistics statistics;
   ComponentNames componentNames;
   WeightBalanceState weightBalance;
   AssemblyState assembly;

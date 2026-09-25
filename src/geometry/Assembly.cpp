@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <cmath>
 #include <tuple>
+#include <numbers>
 
 namespace designrc::geometry {
 namespace {
@@ -36,10 +37,9 @@ double volume(const TopoDS_Shape& shape) {
 TopoDS_Shape copy(const TopoDS_Shape& shape) {
   return shape.IsNull()?TopoDS_Shape{}:BRepBuilderAPI_Copy{shape,true,true}.Shape();
 }
-TopoDS_Shape move(const TopoDS_Shape& shape,QPointF offset) {
+TopoDS_Shape move(const TopoDS_Shape& shape,const gp_Trsf& placement) {
   if(shape.IsNull())return {};
-  gp_Trsf translation;translation.SetTranslation(gp_Vec{offset.x(),0,offset.y()});
-  return shape.Moved(TopLoc_Location{translation});
+  return shape.Moved(TopLoc_Location{placement});
 }
 bool overlaps(const TopoDS_Shape& a,const TopoDS_Shape& b,const ProcessingControl& control) {
   control.checkpoint();if(a.IsNull()||b.IsNull())return false;
@@ -85,9 +85,19 @@ gui::AssemblyState initialAssemblyPlacement(const AssemblyParts& parts) {
                   QPointF{f[3]-v[3],f[5]+gap-v[2]}};
   return result;
 }
+gp_Trsf assemblyComponentPlacement(const AssemblyParts& p,const gui::AssemblyState& s,std::size_t component) {
+  gp_Trsf rotation,translation;
+  rotation.SetRotation(gp_Ax1{p.rootCenters.at(component),gp_Dir{0,1,0}},s.rotationDegrees.at(component)*std::numbers::pi/180.);
+  const auto offset=s.offsets.at(component);translation.SetTranslation(gp_Vec{offset.x(),0,offset.y()});
+  return translation*rotation; // Rotate about the root, then translate that root.
+}
 AssemblyParts placeAssembly(const AssemblyParts& p,const gui::AssemblyState& s) {
-  return {p.fuselage,move(p.wing,s.offsets[0]),move(p.horizontal,s.offsets[1]),
-      move(p.vertical,s.offsets[2]),move(p.elevator,s.offsets[1]),move(p.rudder,s.offsets[2]),p.fuselageParts,p.inserts};
+  const auto w=assemblyComponentPlacement(p,s,0),h=assemblyComponentPlacement(p,s,1),v=assemblyComponentPlacement(p,s,2);
+  AssemblyParts result{p.fuselage,move(p.wing,w),move(p.horizontal,h),
+      move(p.vertical,v),move(p.elevator,h),move(p.rudder,v),p.fuselageParts,p.inserts};
+  result.sparMaterials=p.sparMaterials;for(auto& spar:result.sparMaterials)spar.center.Transform(w);
+  for(std::size_t i=0;i<3;++i)result.rootCenters[i]=p.rootCenters[i].Transformed(assemblyComponentPlacement(p,s,i));
+  return result;
 }
 TopoDS_Shape assemblyShape(const AssemblyParts& p) {
   std::vector<TopoDS_Shape> shapes{p.fuselage,p.wing,p.horizontal,p.vertical,p.elevator,p.rudder};
@@ -102,8 +112,9 @@ AssemblyCutResult cutAssemblyIntersections(const AssemblyParts& placed,
   result.parts={placed.fuselageParts.empty()?copy(placed.fuselage):TopoDS_Shape{},
       copy(placed.wing),copy(placed.horizontal),copy(placed.vertical),copy(placed.elevator),copy(placed.rudder)};
   auto& p=result.parts;
-  // Inserts bypass every Boolean and meshing operation. Sharing these immutable
-  // handles retains their exact geometry and independent component identities.
+  p.rootCenters=placed.rootCenters;p.sparMaterials=placed.sparMaterials;
+  // Inserts remain independent parts. Only formers receive wing seats below;
+  // the tray continues to share its immutable source geometry.
   p.inserts=placed.inserts;
   if(overlaps(p.elevator,p.rudder,control))result.collisions.emplace_back("Elevator intersects Rudder");
   if(!result.collisions.empty())return result;
@@ -111,7 +122,7 @@ AssemblyCutResult cutAssemblyIntersections(const AssemblyParts& placed,
   if(placed.fuselageParts.empty()) {
     p.fuselage=subtract(p.fuselage,{p.wing,p.horizontal,p.vertical},"Fuselage",control);
   } else {
-    // Seat cuts apply only to fuselage body pieces, never removable inserts.
+    // All three fixed lifting surfaces cut the body manufacturing pieces.
     std::vector<TopoDS_Shape> shapes;
     for(const auto& source:placed.fuselageParts) {
       auto part=source;
@@ -120,11 +131,21 @@ AssemblyCutResult cutAssemblyIntersections(const AssemblyParts& placed,
     }
     p.fuselage=compound(shapes);
   }
+  report("Assembly: cutting wing seats in formers...");
+  for(auto& insert:p.inserts) {
+    control.checkpoint();
+    // The manufacturing plane identifies formers even after the user renames them.
+    if(insert.formerPlane&&!insert.shape.IsNull()&&!p.wing.IsNull())
+      insert.shape=subtract(copy(insert.shape),{p.wing},insert.name.c_str(),control);
+  }
   report("Assembly: cutting fin slot in horizontal stabilizer...");
   p.horizontal=subtract(p.horizontal,{p.vertical},"Horiz Stab",control);
   report("Assembly: meshing cut parts...");
   IMeshTools_Parameters parameters;parameters.Deflection=.1;parameters.Angle=.25;parameters.InParallel=false;
-  for(const auto& shape:{p.fuselage,p.horizontal}) {
+  std::vector<TopoDS_Shape> meshShapes{p.fuselage,p.horizontal};
+  for(const auto& insert:p.inserts)
+    if(insert.formerPlane&&!insert.shape.IsNull()&&!p.wing.IsNull())meshShapes.push_back(insert.shape);
+  for(const auto& shape:meshShapes) {
     BRepMesh_IncrementalMesh mesh{shape,parameters,control.range()};control.checkpoint();
     if(!mesh.IsDone())throw std::runtime_error("Assembly display meshing failed.");
   }

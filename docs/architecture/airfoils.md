@@ -5,6 +5,44 @@ Sketch Airfoil, and a scrollable radio list titled Airfoil for selected station.
 The shared file chooser remembers its last selection with purpose key airfoilDat.
 Names come from the DAT header when present; coordinate-only files use the file
 basename. Selig contour and Lednicer two-surface DAT layouts are supported.
+Export Selected Airfoil .dat saves the checked library entry through the shared
+save dialog (purpose `airfoilDatExport`). It supports imported and traced profiles,
+using 35 cosine-spaced samples per surface (69 coordinate rows maximum, excluding
+the name header), ordered from
+upper TE through LE to lower TE. LE X is 0 and both TE X values are 1; a blunt
+trailing edge retains its two heights. Traces use image Y inversion and remove the
+LE-to-TE-midpoint baseline. The name is written as the DAT header and numbers use
+decimal points independent of locale. Saving is atomic. Export is disabled for
+an empty library or during tracing and does not modify profiles or assignments.
+
+Smooth Airfoil opens a modal comparison of the checked entry. Blue dashed lines
+show the original and orange shows the result at equal X/Y scale. A 0–100 strength
+slider defaults to 25; larger values penalize local curvature more strongly.
+Maximum thickness and signed maximum camber are displayed as percentages of chord.
+Save Copy adds a named imported-profile entry (default “Name — Smoothed”), leaving
+the original trace, selection and station assignments unchanged. Select the new
+entry to assign or export it. Cancel has no project effect. The button is disabled
+while tracing or without a selected entry. Copies participate in ordinary project
+history and input-only save/load; no format change is required.
+
+The fitter operates on 161 cosine samples per surface, using 16-control clamped
+cubic B-splines for camber and half-thickness and a second-difference penalty.
+Endpoint baselines plus an x(1-x) camber envelope preserve LE and both TE heights.
+For a contour that repeats its starting TE point, a short, nearly vertical final
+closing segment is excluded from the surface fit. Detection requires a segment
+within the last 0.5% chord, at least 0.1% chord in height, steeper than 2:1 and
+ten times the adjacent surface slope. The adjoining surface tangent extends to
+X=1 to recover its own TE endpoint. This handles either traversal direction and
+exactly vertical caps; ordinary sharp or already-separated blunt TE endpoints
+remain unchanged. The preview closes the result with a separate straight line.
+The dialog starts at 1000 by 680 pixels and can be resized.
+The sqrt(x)(1-x) thickness envelope gives a common vertical nose tangent;
+positive thickness coefficients prevent interior crossings for the entire fitted
+curve. Existing crossed surfaces and zero-thickness input are rejected. A small
+positive coefficient floor supplies a rounded nose even for a pointed trace.
+The fitted curve is stored as a 321-point contour; DAT export still uses 69 points.
+Normalization is shared with DAT export. Maximum thickness/camber are reported,
+not locked; this is geometric smoothing, not aerodynamic optimization.
 Empty, underspecified, zero-chord, zero-thickness or otherwise unusable imports
 show an error and leave the library unchanged. Nonzero leading-edge X coordinates
 are normalized using an unchanged source minimum across every input point.

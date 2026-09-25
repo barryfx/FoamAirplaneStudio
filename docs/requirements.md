@@ -273,7 +273,7 @@ The software shall support designing an aircraft from imported reference drawing
 - Project files shall embed selected airfoil data.
 - Only Outline shall be selectable until a valid open outline with nonzero area and a selected leading-edge endpoint exists.
 - Entering 3D shall generate the selected stabilizer in its own worker with status progress and the shared Cancel control. Changes to outline, airfoil or physical scale invalidate only the affected stabilizer cache.
-- Hinge Line supports connected segments and Tape/Standard relief on the longest segment; Cut supports multiple closed Line/Spline Cut Shapes with selection/deletion and through-thickness material removal.
+- Hinge Line supports connected segments (including two-line hinges), with Tape/Standard relief on the segment closest to span direction for vertical fins or the longest segment for horizontal stabilizers; Cut supports multiple closed Line/Spline Cut Shapes with selection/deletion and through-thickness material removal.
 
 ### 5.5 Stabilizer Tips
 
@@ -320,6 +320,8 @@ The software shall support designing an aircraft from imported reference drawing
 - The current Assembly process shall subtract the positioned fixed fin from the fuselage and/or horizontal stabilizer while preserving the fin itself (ADR-0033).
 - Before cutting, check only Rudder against Elevator and report their intersection in a popup. Fixed stabilizer and fuselage intersections do not block cutting.
 - Preserve original caches, use cut results for export, disable movement after cuts, and provide Undo Cuts to restore original parts at their current positions.
+
+- Assembly rotation uses Clockwise and Counter-Clockwise buttons in 0.5-degree steps about the selected component's root chord midpoint. The current angle is shown beneath the buttons. Stabilizer controls rotate with their fixed component; saved placement, undo/redo, exports and balance calculations include the angle.
 
 ## 7. Final 3D Assembly
 
@@ -474,13 +476,13 @@ the overlay, overlap checks, fitted solid and retaining rails; save it per forme
 
 ### Weight and Balance
 
-- Add Weight and Balance after Export and before Inspect for 2D Side View part placement.
+- Place Weight and Balance after Inspect and before Export for 2D Side View part placement.
 - Provide instructions, Add Part, part-name selector, Edit/Delete and material densities.
 - Record decimal width, height, length and weight in grams/ounces. Draw length
   horizontally, height vertically, with width into the screen; label each part.
 - Start parts centrally and allow selection/dragging, with visibility only in this mode.
 - Combine generated foam and Aero Plywood former/tray volumes and centroids with
-  entered part masses and centers. Default XPS to 32.5 kg/m³ and plywood to 680 kg/m³;
+  entered part masses and centers. Default XPS to 25.63 kg/m³ and plywood to 680 kg/m³;
   permit density edits to match actual stock.
 - Update total weight and longitudinal center of mass after every part or density edit.
   Display center relative to the placed wing root LE in Reference units, positive aft.

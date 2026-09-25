@@ -7,6 +7,7 @@
 #include "geometry/ServoTray.h"
 #include "geometry/Formers.h"
 #include "gui/FormerPanel.h"
+#include "gui/WingCalibration.h"
 #include "geometry/FuselageCut.h"
 #include "WaitForModel.h"
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -111,11 +112,13 @@ void geometryTests() {
   std::cout<<"Former geometry: full/partial height, cavity fit, ledge clearance, overlaps, taper, invalid placement and cancellation passed\n";
 }
 #include "FuselageHolesChecks.h"
+#include "FuselageHoleProjectChecks.h"
 int main(int argc,char** argv) {
   qInstallMessageHandler([](QtMsgType,const QMessageLogContext&,const QString& text){std::cerr<<text.toStdString()<<std::endl;});
   QApplication app{argc,argv};QTemporaryDir dir;QCoreApplication::setOrganizationName("FoamFormerTests");QCoreApplication::setApplicationName("FoamFormerTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
+    if(app.arguments().contains("--project-holes")){CHECK(argc==6);projectHoleChecks(argv[2],argv[3],argv[4],std::string{argv[5]}=="interference");return 0;}
     if(app.arguments().contains("--holes")){holeChecks(app,argc>2?QString::fromLocal8Bit(argv[2]):dir.path());return 0;}
     if(app.arguments().contains("--preview-brep")){
       CHECK(argc==4);TopoDS_Shape shape;BRep_Builder builder;CHECK(BRepTools::Read(shape,argv[2],builder));
@@ -123,6 +126,33 @@ int main(int argc,char** argv) {
       bool captured=false;QTimer::singleShot(1000,&app,[&]{captured=viewer.screen()->grabWindow(viewer.winId()).save(QString::fromLocal8Bit(argv[3]));app.quit();});app.exec();CHECK(captured);return 0;
     }
     if(app.arguments().contains("--geometry-only")){geometryTests();return 0;}
+    if(const int arg=app.arguments().indexOf("--scale-project");arg>=0) {
+      CHECK(arg+1<app.arguments().size());QString error;MainWindow w;w.show();
+      CHECK(w.openProjectFile(app.arguments()[arg+1],error));
+      const auto original=w.projectDocument();CHECK(!original.reference.toScale);
+      CHECK(!original.formers.rectangles.empty());
+      const double initialScale=wingCalibration(original.wing.layers,original.stations.lines,original.reference.wingspanMm).scale;
+      const auto verify=[&] {
+        const auto p=w.projectDocument();const double scale=wingCalibration(p.wing.layers,p.stations.lines,p.reference.wingspanMm).scale;
+        CHECK(p.formers.rectangles.size()==original.formers.rectangles.size());
+        for(std::size_t i=0;i<p.formers.rectangles.size();++i) {
+          CHECK(std::abs(p.formers.rectangles[i].width()*scale-original.formers.rectangles[i].width()*initialScale)<1e-8);
+          CHECK(p.formers.rectangles[i].center()==original.formers.rectangles[i].center());
+          CHECK(p.formers.rectangles[i].height()==original.formers.rectangles[i].height());
+        }
+      };
+      w.findChild<QToolBar*>("workspaceToolBar")->actions()[0]->trigger();
+      auto* span=w.findChild<QLineEdit*>("referenceWingspan");CHECK(span);
+      for(double inches:{48.,24.,36.}) {
+        span->setText(QString::number(inches)+" in");app.processEvents();verify();
+        QKeyEvent undo{QEvent::KeyPress,Qt::Key_Z,Qt::ControlModifier};QApplication::sendEvent(&w,&undo);app.processEvents();verify();
+        QKeyEvent redo{QEvent::KeyPress,Qt::Key_Y,Qt::ControlModifier};QApplication::sendEvent(&w,&redo);app.processEvents();verify();
+        CHECK(std::abs(*w.projectDocument().reference.wingspanMm-inches*25.4)<1e-8);
+        const auto snapshot=dir.filePath("scale-check.foam");CHECK(w.saveProjectFile(snapshot,error));
+        CHECK(w.openProjectFile(snapshot,error));verify();CHECK(!w.projectModified());
+      }
+      std::cout<<"Project thickness preserved for "<<original.formers.rectangles.size()<<" formers at 48, 24 and 36 inches, including undo/redo and save/reopen; no geometry generated.\n";return 0;
+    }
     // A mirrored 90-unit half-span establishes 1 mm per scene unit.
     ProjectDocument p;p.reference.wingspanMm=180;p.reference.fuselageLengthMm=400;p.wingspanText="180 mm";p.fuselageText="400 mm";
     p.wing.layers[0]=rectangle(10,10,90,70);p.wing.layers[0].curves.pop_back();
@@ -189,7 +219,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==28);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
     auto v23=encoded;v23["version"]=23;auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
     auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
     bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);
@@ -211,6 +241,25 @@ int main(int argc,char** argv) {
     drag(transform.map(QPointF{tilted.center().x(),tilted.top()}),transform.map(QPointF{tilted.center().x(),tilted.top()+3}));CHECK(editor.state().rectangles[0].height()<tilted.height()-1);
     const auto capture=qEnvironmentVariable("FOAM_FORMER_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
     if(app.arguments().contains("--editor-only")) {
+      const auto beforeScale=editor.state();
+      auto* span=window.findChild<QLineEdit*>("referenceWingspan");CHECK(span);
+      window.findChild<QToolBar*>("workspaceToolBar")->actions()[0]->trigger();
+      span->setText("360 mm");app.processEvents();
+      auto checkScale=[&](double scale) {
+        const auto& after=editor.state();CHECK(after.rectangles.size()==beforeScale.rectangles.size());
+        CHECK(after.rotationDegrees==beforeScale.rotationDegrees);
+        for(std::size_t i=0;i<after.rectangles.size();++i) {
+          CHECK(std::abs(after.rectangles[i].width()*scale-beforeScale.rectangles[i].width())<1e-8);
+          CHECK(after.rectangles[i].center()==beforeScale.rectangles[i].center());
+          CHECK(after.rectangles[i].height()==beforeScale.rectangles[i].height());
+        }
+      };
+      checkScale(2);
+      CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));checkScale(2);
+      CHECK(!window.projectModified());
+      span->setText("");app.processEvents();checkScale(2); // Incomplete entry must not lose thickness.
+      span->setText("90 mm");app.processEvents();checkScale(.5);
+      span->setText("180 mm");app.processEvents();checkScale(1);
       CHECK(window.findChild<QLabel*>("formerInstructions")->text().contains("4 mm fore/aft"));
       CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==0);
       CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);

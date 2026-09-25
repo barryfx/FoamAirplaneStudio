@@ -63,3 +63,21 @@ tasks and joins them before reporting; cancellation publishes no partial snapsho
 Wing panel concurrency is limited to one while other missing components are
 scheduled, avoiding nested worker pools; a lone missing Wing uses its normal panel
 parallelism. The GUI remains locked until the complete Assembly result is ready.
+
+## Root rotation extension (2026-09-23)
+Assembly now adds a pitch angle per movable component about its source root chord
+midpoint. The fixed-Y side-view convention matches translation controls; positive
+rotation is clockwise from negative Y. Controls share the fixed stabilizer pivot.
+Store optional rotationDegrees alongside offsets, defaulting missing angles to
+zero. Geometry caches stay immutable; exports and balance use the same transform.
+The UI steps by 0.5 degrees and shows the selected angle below its rotation buttons.
+
+## Former wing seats extension (2026-09-23)
+Cut Intersections also subtracts the placed wing from private copies of formers,
+identified by their existing manufacturing-plane metadata. Retain names, IDs and
+planes in the derived snapshot, including multiple valid remaining solids. The
+servo tray and source caches remain unchanged. The existing cancellation and
+whole-part-consumption checks apply. Undo discards the cut former geometry with
+the rest of the cut snapshot. Regression coverage was initially left unbuilt and
+unrun at the user's request; the subsequent DAT export task authorized validation.
+Debug Assembly and export suites now pass; see the Assembly validation baseline.

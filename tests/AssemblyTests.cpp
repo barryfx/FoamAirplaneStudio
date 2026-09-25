@@ -1,6 +1,7 @@
 #include "domain/DxfExporter.h"
 #include "geometry/Assembly.h"
 #include "gui/MainWindow.h"
+#include "gui/AirfoilPanel.h"
 #include "gui/PlanViewport.h"
 #include "WaitForModel.h"
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -14,6 +15,11 @@
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QLabel>
+#include <BRep_Tool.hxx>
+#include <TopoDS.hxx>
+#include <TopExp_Explorer.hxx>
+#include <numbers>
 #include <QPainter>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
@@ -91,7 +97,7 @@ public:
     CHECK(w.saveProjectFile(file,error));
     QFile input{file};CHECK(input.open(QIODevice::ReadOnly));
     const auto json=QJsonDocument::fromJson(input.readAll()).object();input.close();
-    CHECK(json["version"]==28&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
+    CHECK(json["version"]==29&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
     CHECK(!w.wingShape_.IsNull()&&w.assemblyCutParts_); // Save retains session caches.
     for(const QJsonValue obsolete:{QJsonValue{QJsonObject{{"wing",QJsonObject{{"fingerprint","bad"},{"shapes",QJsonArray{QJsonObject{{"brep","not compressed geometry"},{"sha256","bad"}}}}}}}},QJsonValue{"invalid legacy cache"},QJsonValue{}}) {
       auto legacy=json;legacy["version"]=22;legacy["models"]=obsolete;
@@ -106,11 +112,26 @@ public:
       CHECK(w.assemblyState_.cuts&&w.assemblyState_.offsets[0]==QPointF(12,34));
       CHECK(!w.projectModified());if(!w.saveProjectFile(file,error))throw std::runtime_error(error.toStdString());
       CHECK(input.open(QIODevice::ReadOnly));const auto resaved=QJsonDocument::fromJson(input.readAll()).object();input.close();
-      CHECK(resaved["version"]==28&&!resaved.contains("models"));
+      CHECK(resaved["version"]==29&&!resaved.contains("models"));
     }
     auto older=json;older["version"]=21;CHECK(decodeProject(older).assembly.cuts);
     auto invalid=json;invalid["assembly"]=false;bool rejected=false;
     try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
+    // Smoothing copies use normal project persistence/history, without model generation.
+    auto smoothingProject=fixture();smoothingProject.airfoils.chosen=0;smoothingProject.airfoils.panelChoices={0};
+    MainWindow smoothing;smoothing.restoreProject(smoothingProject);smoothing.captureEdit();
+    QTimer::singleShot(0,[] {
+      auto* dialog=qobject_cast<QDialog*>(QApplication::activeModalWidget());CHECK(dialog);
+      auto* save=dialog->findChild<QPushButton*>("saveSmoothedAirfoil");CHECK(save&&save->isEnabled());save->click();
+    });
+    smoothing.airfoilPanel_->findChild<QPushButton*>("smoothAirfoil")->click();smoothing.captureEdit();
+    CHECK(smoothing.projectDocument().airfoils.entries.size()==2);
+    CHECK(smoothing.saveProjectFile(directory+"/smoothed-airfoil.foam",error));
+    const auto smoothed=readProject(directory+"/smoothed-airfoil.foam",error);CHECK(smoothed);
+    CHECK(smoothed->airfoils.entries.size()==2&&smoothed->airfoils.entries[1].imported);
+    CHECK(smoothed->airfoils.entries[1].imported->outline().size()==321);
+    smoothing.applyEdit(false);CHECK(smoothing.projectDocument().airfoils.entries.size()==1);
+    smoothing.applyEdit(true);CHECK(smoothing.projectDocument().airfoils.entries.size()==2);
   }
   static void run(const QString& directory) {
     MainWindow w;w.show();QApplication::processEvents();
@@ -146,6 +167,28 @@ public:
     CHECK(w.assemblyState_.offsets[0]==offset+QPointF(1,0));
     w.moveAssembly(Qt::Key_Up,Qt::ShiftModifier);CHECK(w.assemblyState_.offsets[0]==offset+QPointF(1,10));
     w.moveAssembly(Qt::Key_Down,Qt::ControlModifier);CHECK(std::abs(w.assemblyState_.offsets[0].y()-offset.y()-9.9)<1e-8);
+    CHECK(w.assemblyRotate_[0]->text()=="Rotate Clockwise"&&w.assemblyRotate_[1]->text()=="Rotate Counter-Clockwise");
+    for(int component=0;component<3;++component) {
+      w.assemblySelect_[component]->click();w.captureEdit();
+      CHECK(w.assemblyRotationLabel_->text()==QString::fromUtf8("Rotation: 0.0°"));
+      w.assemblyRotate_[0]->click();w.captureEdit();
+      CHECK(w.assemblyState_.rotationDegrees[component]==.5);
+      CHECK(w.assemblyRotationLabel_->text()==QString::fromUtf8("Rotation: +0.5°"));
+      w.applyEdit(false);CHECK(w.assemblyState_.rotationDegrees[component]==0);
+      w.applyEdit(true);CHECK(w.assemblyState_.rotationDegrees[component]==.5);
+      w.assemblyRotate_[0]->click();CHECK(w.assemblyState_.rotationDegrees[component]==1.);
+      w.assemblyRotate_[1]->click();CHECK(w.assemblyState_.rotationDegrees[component]==.5);
+      w.assemblyRotate_[1]->click();w.assemblyRotate_[1]->click();
+      CHECK(w.assemblyState_.rotationDegrees[component]==-.5);
+      CHECK(w.assemblyRotationLabel_->text()==QString::fromUtf8("Rotation: -0.5°"));
+      w.assemblyRotate_[0]->click();CHECK(w.assemblyState_.rotationDegrees[component]==0);
+    }
+    w.assemblySelect_[0]->click();w.assemblyRotate_[0]->click();
+    QString rotationError;CHECK(w.saveProjectFile(directory+"/assembly-rotation.foam",rotationError));
+    const auto rotatedProject=readProject(directory+"/assembly-rotation.foam",rotationError);
+    CHECK(rotatedProject&&rotatedProject->assembly.rotationDegrees[0]==.5);
+    QApplication::processEvents();CHECK(w.grab().save(directory+"/assembly-rotation.png"));
+    w.assemblyRotate_[1]->click();
     // Position fixture parts into known intersecting seats, with controls clear.
     w.assemblyState_.offsets={};
     // Rudder initially overlaps elevator; report both names and leave originals untouched.
@@ -155,12 +198,18 @@ public:
       }});dismiss.start(10);
     w.assemblyCutButton_->click();waitForModel(w);dismiss.stop();CHECK(popup);CHECK(!w.assemblyState_.cuts);
     w.assemblyOriginals_.rudder=box(100,-2,5,5,4,15); // Same fixed fin; control above elevator.
+    const auto former=box(34,-8,-8,2,16,16);
+    w.assemblyOriginals_.inserts={{"Bulkhead",former,gp_Pln{gp_Pnt{35,0,0},gp_Dir{1,0,0}},"Former/0"}};
     const double before=volume(w.assemblyOriginals_.fuselage);
     w.assemblyCutButton_->click();waitForModel(w);
     CHECK(w.assemblyState_.cuts);CHECK(w.assemblyCutButton_->text()=="Undo Cuts");
     for(auto* button:w.assemblySelect_)CHECK(!button->isEnabled());
+    for(auto* button:w.assemblyRotate_)CHECK(!button->isEnabled());
+    w.rotateAssembly(.5);CHECK(w.assemblyState_.rotationDegrees[0]==0);
     CHECK(volume(w.assemblyOriginals_.fuselage)==before);CHECK(w.exportAssemblyParts());
     CHECK(volume(w.exportAssemblyParts()->fuselage)<before);
+    CHECK(std::abs(volume(w.exportAssemblyParts()->inserts[0].shape)-416)<1e-6);
+    CHECK(w.assemblyOriginals_.inserts[0].shape.IsSame(former));
     auto frozen=w.assemblyState_.offsets;w.moveAssembly(Qt::Key_Left,Qt::NoModifier);CHECK(w.assemblyState_.offsets==frozen);
     QString error;CHECK(w.saveProjectFile(directory+"/assembly.foam",error));
     const auto saved=readProject(directory+"/assembly.foam",error);CHECK(saved&&saved->assembly.cuts);
@@ -172,6 +221,7 @@ public:
     w.workspaceToolBar_->actions()[5]->trigger();waitForModel(w);CHECK(w.assemblyState_.cuts);
     w.assemblyCutButton_->click();CHECK(!w.assemblyState_.cuts);
     CHECK(volume(w.exportAssemblyParts()->fuselage)==before);
+    CHECK(w.exportAssemblyParts()->inserts[0].shape.IsSame(former));
     for(auto* button:w.assemblySelect_)CHECK(button->isEnabled());
     // Cancel uses the standard worker control and publishes no result.
     w.assemblyCutButton_->click();w.cancelProcessing_->click();waitForModel(w);CHECK(!w.assemblyState_.cuts);
@@ -182,6 +232,54 @@ public:
     w.resetProject();CHECK(!w.assemblyState_.positioned&&!w.assemblyState_.cuts);CHECK(!w.exportAssemblyParts());
   }
 };
+}
+// Synthetic solids exercise Assembly only, without generating a wing or fuselage.
+void formerWingCuts() {
+  auto p=parts();p.rudder=box(100,-2,5,5,4,15);
+  const gp_Pln plane{gp_Pnt{35,0,0},gp_Dir{1,0,0}};
+  p.inserts={{"Renamed bulkhead",box(34,-8,-8,2,16,16),plane,"Former/0"},
+             {"Tail former",box(86,-8,-8,2,16,16),gp_Pln{gp_Pnt{87,0,0},gp_Dir{1,0,0}},"Former/1"},
+             {"Servo Tray",box(40,-8,6,8,16,2),{},"Servo Tray"}};
+  const auto cut=geometry::cutAssemblyIntersections(p);
+  CHECK(cut.collisions.empty()&&cut.parts.inserts.size()==3);
+  CHECK(std::abs(volume(cut.parts.inserts[0].shape)-416)<1e-6); // 96 mm3 wing seat.
+  CHECK(std::abs(volume(cut.parts.inserts[1].shape)-512)<1e-6); // Stabilizers do not cut formers.
+  CHECK(cut.parts.inserts[2].shape.IsSame(p.inserts[2].shape));
+  for(int i=0;i<2;++i) {
+    const auto& former=cut.parts.inserts[i];
+    CHECK(BRepCheck_Analyzer{former.shape}.IsValid());
+    CHECK(former.name==p.inserts[i].name&&former.id==p.inserts[i].id);
+    CHECK(former.formerPlane->Location().Distance(p.inserts[i].formerPlane->Location())<1e-9);
+    CHECK(former.formerPlane->Axis().Direction().IsEqual(p.inserts[i].formerPlane->Axis().Direction(),1e-9));
+    CHECK(std::abs(volume(p.inserts[i].shape)-512)<1e-6); // Originals support Undo Cuts.
+  }
+  // Wing placement is applied before cutting; a through-slot may split a former.
+  p.inserts.resize(1);p.inserts[0].shape=box(0,0,0,2,10,10);
+  p.inserts[0].formerPlane=gp_Pln{gp_Pnt{1,0,0},gp_Dir{1,0,0}};
+  p.wing=box(0,-5,0,2,20,4);
+  AssemblyState placement;placement.rotationDegrees[0]=90;placement.offsets[0]={0,4};
+  const auto placed=geometry::placeAssembly(p,placement);
+  const auto rotated=geometry::cutAssemblyIntersections(placed);
+  CHECK(std::abs(volume(rotated.parts.inserts[0].shape)-160)<1e-6);
+  int solids=0;for(TopExp_Explorer e{rotated.parts.inserts[0].shape,TopAbs_SOLID};e.More();e.Next())++solids;
+  CHECK(solids==2&&BRepCheck_Analyzer{rotated.parts.inserts[0].shape}.IsValid());
+  placement.offsets[0]={20,4};
+  const auto clear=geometry::cutAssemblyIntersections(geometry::placeAssembly(p,placement));
+  CHECK(std::abs(volume(clear.parts.inserts[0].shape)-200)<1e-6);
+  // Complete removal is an actionable failure, not a silently missing part.
+  auto consumed=p;consumed.wing=box(-1,-1,-1,4,12,12);
+  bool rejected=false;
+  try{geometry::cutAssemblyIntersections(consumed);}catch(const std::runtime_error& e) {
+    rejected=std::string{e.what()}.find("consume an entire Renamed bulkhead")!=std::string::npos;
+  }
+  CHECK(rejected&&std::abs(volume(p.inserts[0].shape)-200)<1e-6);
+  std::stop_source stop;bool cancelled=false;
+  try {
+    geometry::cutAssemblyIntersections(p,[&](const char* message) {
+      if(std::string{message}=="Assembly: cutting wing seats in formers...")stop.request_stop();
+    },{stop.get_token()});
+  }catch(const geometry::ProcessingCancelled&){cancelled=true;}
+  CHECK(cancelled&&std::abs(volume(p.inserts[0].shape)-200)<1e-6);
 }
 #include "ExportWorkflowChecks.h"
 int main(int argc,char** argv) {
@@ -198,7 +296,32 @@ int main(int argc,char** argv) {
       AssemblyWorkflowTest::persistenceUi(argc>2?QString::fromLocal8Bit(argv[2]):settings.path());
       std::cout<<"Input-only saves, ignored legacy caches and 2D restore passed; no geometry tests run.\n";return 0;
     }
+    formerWingCuts();
     auto p=parts();const double original=volume(p.fuselage);
+    p.rootCenters={gp_Pnt{40,0,10},gp_Pnt{90,0,0},gp_Pnt{90,0,-5}};
+    for(double angle:{.5,-.5,1.}) {
+      AssemblyState placement;placement.offsets={QPointF{12,34},QPointF{-7,2},QPointF{5,-3}};
+      placement.rotationDegrees.fill(angle);const auto placed=geometry::placeAssembly(p,placement);
+      CHECK(placed.fuselage.IsEqual(p.fuselage));
+      const std::array<TopoDS_Shape,5> source{p.wing,p.horizontal,p.vertical,p.elevator,p.rudder};
+      const std::array<TopoDS_Shape,5> result{placed.wing,placed.horizontal,placed.vertical,placed.elevator,placed.rudder};
+      const std::array<int,5> components{0,1,2,1,2};
+      for(int part=0;part<5;++part) {
+        const int component=components[part];const auto pivot=p.rootCenters[component];const auto offset=placement.offsets[component];
+        const auto fixed=pivot.Transformed(geometry::assemblyComponentPlacement(p,placement,component));
+        CHECK(fixed.Distance(pivot.Translated(gp_Vec{offset.x(),0,offset.y()}))<1e-9);
+        TopExp_Explorer a{source[part],TopAbs_VERTEX},b{result[part],TopAbs_VERTEX};
+        const double radians=angle*std::numbers::pi/180.;
+        for(;a.More()&&b.More();a.Next(),b.Next()) {
+          const auto point=BRep_Tool::Pnt(TopoDS::Vertex(a.Current()));
+          const double dx=point.X()-pivot.X(),dz=point.Z()-pivot.Z();
+          const gp_Pnt expected{pivot.X()+offset.x()+dx*std::cos(radians)+dz*std::sin(radians),point.Y(),
+            pivot.Z()+offset.y()-dx*std::sin(radians)+dz*std::cos(radians)};
+          CHECK(expected.Distance(BRep_Tool::Pnt(TopoDS::Vertex(b.Current())))<1e-8);
+        }
+        CHECK(!a.More()&&!b.More());CHECK(std::abs(volume(result[part])-volume(source[part]))<1e-6);
+      }
+    }
     auto collision=geometry::cutAssemblyIntersections(p);CHECK(collision.collisions.size()==1);
     CHECK(collision.collisions[0]=="Elevator intersects Rudder");CHECK(volume(p.fuselage)==original);
     p.rudder=box(100,-2,5,5,4,15);
@@ -221,7 +344,15 @@ int main(int argc,char** argv) {
     CHECK(mapping.left==200&&mapping.verticalOrigin==225&&mapping.scale==.25);
     const auto physical=geometry::fuselageSideTransform(side,std::nullopt);CHECK(physical.scale==1.);
     auto doc=fixture();doc.assembly=geometry::initialAssemblyPlacement(p);doc.assembly.cuts=true;
-    auto json=encodeProject(doc);CHECK(json["version"]==28);CHECK(decodeProject(json).assembly.cuts);
+    auto json=encodeProject(doc);CHECK(json["version"]==29);CHECK(decodeProject(json).assembly.cuts);
+    doc.assembly.rotationDegrees={.5,-1,179.5};json=encodeProject(doc);
+    CHECK(decodeProject(json).assembly.rotationDegrees==doc.assembly.rotationDegrees);
+    auto zeroAngles=json;auto oldAssembly=zeroAngles["assembly"].toObject();oldAssembly.remove("rotationDegrees");zeroAngles["assembly"]=oldAssembly;
+    CHECK((decodeProject(zeroAngles).assembly.rotationDegrees==std::array<double,3>{}));
+    for(auto angles:{QJsonArray{.5},QJsonArray{0,181,0},QJsonArray{0,"bad",0}}) {
+      auto badAngles=json;auto assembly=badAngles["assembly"].toObject();assembly["rotationDegrees"]=angles;badAngles["assembly"]=assembly;
+      bool rejected=false;try{decodeProject(badAngles);}catch(const std::exception&){rejected=true;}CHECK(rejected);
+    }
     auto legacy=json;legacy["version"]=20;legacy.remove("assembly");CHECK(!decodeProject(legacy).assembly.positioned);
     auto invalid=json;auto state=invalid["assembly"].toObject();state["offsets"]=QJsonArray{};invalid["assembly"]=state;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

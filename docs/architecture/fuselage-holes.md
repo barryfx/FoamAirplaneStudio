@@ -17,9 +17,24 @@ component is subtracted. If it also reaches the opposite side, generation asks
 for the hole to be moved/resized rather than cutting both walls. Therefore the
 whole footprint must reach the cavity, not merely fit the exterior outline.
 Variable thickness and asymmetric cross-sections do not require a fixed depth.
+The isolation error identifies the wall and the one-based hole number in that
+wall's path list. Changing Wingspan scales the drawn hole and exterior outline,
+but retains physical wall thickness. A formerly valid hole can therefore extend
+beyond the inner cavity after shrinking the model; move it inward or reduce its
+size in Holes. Increasing CAD tolerances does not resolve a real clearance gap.
 
-Holes are applied to the supported body after rails and before Cut and centre
-splitting/alignment. They stop at the original inner cavity and do not remove
+When isolation fails, an independent check traces sample paths from the actual
+CAD hole boundary along the cut direction. If a path crosses fuselage material
+but never reaches the inner cavity, generation reports that the named hole
+overlaps a wall parallel to the cut direction. Top/Bottom holes can interfere
+with side/end walls; Left/Right holes can interfere with roof/floor/end walls.
+This diagnostic checks 33 parameter samples per boundary edge and honors Cancel.
+Sampling is used only to confirm interference, never to approve a failed cut.
+If it cannot confirm interference, the error retains the possibility of a CAD
+isolation failure instead of asserting that the drawing is wrong.
+
+Holes are applied to the supported, reflected halves after rails and before Cut
+and alignment. They stop at the original inner cavity and do not remove
 internal supports or separate former/tray inserts. Alignment avoids the resulting
 openings. Existing Cut still splits through both walls and retains cut-out bodies.
 

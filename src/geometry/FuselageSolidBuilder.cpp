@@ -1,5 +1,7 @@
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/FuselageProcessing.h"
 #include "geometry/FuselageEndRegistration.h"
+#include "geometry/FuselageSymmetry.h"
 #include "geometry/FuselageHoles.h"
 #include "geometry/FuselageTopology.h"
 #include "geometry/FuselageWall.h"
@@ -151,7 +153,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(!input.formers.empty()&&!input.thicken)throw std::runtime_error("Enter Thicken before generating formers; formers need inner walls.");
   if(input.servoTray&&!input.thicken)throw std::runtime_error("Enter Thicken before generating a servo tray; the tray needs inner fuselage walls.");
   if(input.outlines.size()!=2 || input.stations.empty() || (input.lengthMm && (!std::isfinite(*input.lengthMm) || *input.lengthMm<=0)))
-    throw std::runtime_error("Define both outlines, a profile at every station, and a positive Fuselage Length.");
+    throw std::runtime_error("Define both outlines, a profile at every station, and a positive model length.");
   if(progress)progress("Fuselage: aligning Top and Side outlines at the nose...");
   const auto sideRegistration=registerFuselageEnds(input.outlines[1],input.lengthMm);
   const double registeredLength=(sideRegistration.tailX-sideRegistration.noseX)*sideRegistration.scale;
@@ -172,7 +174,15 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     if(t<0||t>1)throw std::runtime_error("A station lies outside the Side View outline.");
     if(input.thicken&&(!station.thicknessMm||!std::isfinite(*station.thicknessMm)||*station.thicknessMm<=0))
       throw std::runtime_error("Set a positive wall thickness for every fuselage station.");
-    sections.push_back({t,sampleFuselageProfile(input.profiles[*station.profile]),station.thicknessMm.value_or(0)});
+    auto profile=sampleFuselageProfile(input.profiles[*station.profile]);
+    // The right arc is authoritative. Preserve drawn up and mirror its samples;
+    // never average it with the separately traced left arc.
+    profile[0].setX(.5);profile[32].setX(.5);
+    for(std::size_t i=1;i<32;++i) {
+      if(profile[i].x()<.5-1e-7)throw std::runtime_error("The right profile half folds across its centreline. Simplify the profile.");
+      profile[64-i]={1-profile[i].x(),profile[i].y()};
+    }
+    sections.push_back({t,std::move(profile),station.thicknessMm.value_or(0)});
   }
   std::sort(sections.begin(),sections.end(),[](const auto& a,const auto& b){return a.t<b.t;});
   const bool openNose=sideRegistration.noseStation(sb.left()+sections.front().t*sb.width());
@@ -196,7 +206,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   for(double t:positions) {
     processing.checkpoint();const auto w=span(top,tb.left()+t*tb.width()),h=span(side,sb.left()+t*sb.width());
     double width=(w.second-w.first)*topScale,height=(h.second-h.first)*sideScale;
-    const double center=(.5*(w.first+w.second)-lateralOrigin)*topScale;
+    const double center=0.; // Symmetric body; retain the full guide width about Y=0.
     const double ztop=(verticalOrigin-h.first)*sideScale;
     auto upper=std::upper_bound(sections.begin(),sections.end(),t,[](double v,const Section& s){return v<s.t;});
     const auto& a=upper==sections.begin()?sections.front():*(upper-1);
@@ -213,35 +223,41 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     const auto box=bounds(interpolated);BRepBuilderAPI_MakePolygon wire;
     for(auto p:interpolated) {
       const double y=center+width*((p.x()-box.left())/box.width()-.5),z=ztop-height*(p.y()-box.top())/box.height();
-      wire.Add(gp_Pnt{t*length,y,z});wall.perimeter.push_back({y,z});
+      wall.perimeter.push_back({y,z});
     }
+    const auto points=input.mirrorConstruction?rightFuselageSection(wall.perimeter):wall.perimeter;
+    for(auto point:points)wire.Add(gp_Pnt{wall.x,point.x(),point.y()});
     walls.push_back(std::move(wall));
     wire.Close();if(!wire.IsDone())throw std::runtime_error("Could not construct a profile section.");loft.AddWire(wire.Wire());
   }
-  if(progress)progress("Fuselage: lofting and closing the solid...");
+  if(progress)progress(input.mirrorConstruction?"Fuselage: lofting the right half...":"Fuselage: lofting the full symmetric solid...");
   {auto range=processing.range();loft.Build(range);}processing.checkpoint();
   if(!loft.IsDone())throw std::runtime_error("Fuselage loft failed. Check profile loops and outline crossings.");
   if(progress)progress("Fuselage: merging coincident outer loft faces...");
   auto shape=simplifyFuselageTopology(loft.Shape(),processing);
-  if(!BRepCheck_Analyzer{shape,true,processing.parallel}.IsValid())throw std::runtime_error("Fuselage loft is not a valid solid. Check for crossing profiles.");
+  if(!fuselageValid(shape,processing))throw std::runtime_error("Fuselage loft is not a valid solid. Check for crossing profiles.");
   int solids=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++solids;
-  GProp_GProps props;BRepGProp::VolumeProperties(shape,props);
+  GProp_GProps props;fuselageVolumeProperties(shape,props,processing);
   if(solids!=1||std::abs(props.Mass())<1e-9)throw std::runtime_error("Fuselage did not produce one solid with positive volume.");
   if(props.Mass()<0)shape.Reverse();
   TopoDS_Shape cavity;FuselageBuildResult result;
-  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty())?&cavity:nullptr);
+  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty())?&cavity:nullptr,input.mirrorConstruction);
   if(input.servoTray) {
     const auto& r=*input.servoTray;
     const QRectF physical{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};
-    const auto tray=addServoTray(shape,cavity,physical,progress,processing);
+    const auto tray=addServoTray(shape,cavity,physical,progress,processing,input.mirrorConstruction);
     shape=tray.body;result.servoTray=tray.tray;result.servoTrayTopFaces=tray.topFaces;
   }
   if(!input.formers.empty()) {
     auto physical=[&](const QRectF& r){return QRectF{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};};
     std::vector<QRectF> formers;for(const auto& r:input.formers)formers.push_back(physical(r));
-    result.formers=buildFormers(cavity,shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing,input.formerRotationDegrees);
+    result.formers=buildFormers(cavity,input.mirrorConstruction?fuselagePair(shape,processing):shape,formers,input.servoTray?std::optional<QRectF>{physical(*input.servoTray)}:std::nullopt,progress,processing,input.formerRotationDegrees);
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
-    shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees);
+    shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees,input.mirrorConstruction);
+  }
+  if(input.mirrorConstruction) {
+    if(progress)progress("Fuselage: reflecting the completed right half as a separate left part...");
+    shape=fuselagePair(shape,processing);
   }
   if(!input.holes.empty()) {
     if(progress)progress("Fuselage: cutting holes through the selected walls...");
@@ -252,7 +268,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);
   if(!input.cuts.empty())shape=cutFuselage(shape,input.cuts,
       {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing);
-  shape=splitFuselageMainBody(shape,progress,processing,&alignment);
+  shape=input.mirrorConstruction?finishFuselageHalves(shape,progress,processing,alignment):splitFuselageMainBody(shape,progress,processing,&alignment);
   result.body=shape;
   if(!result.servoTray.IsNull()||!result.formers.empty()) {
     BRep_Builder builder;TopoDS_Compound assembly;builder.MakeCompound(assembly);

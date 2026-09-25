@@ -61,3 +61,48 @@ no geometry coverage. The real Wing, Fuselage, stabilizer, Assembly, export,
 persistence, and editor regression suites passed. Full output is retained locally
 in `build/weight-balance-all-regressions.log`; build output is in
 `build/weight-balance-regression-build.log`.
+# Component volume breakdown — 2026-09-24
+
+Added cached component volumes for the six foam component categories and each
+plywood insert. The panel shows cm³, grams and ounces, material subtotals,
+missing components, and entered-part weights without treating their boxes as
+material volume. No mass equation, project format or geometry generation changed.
+
+Built only `weight_balance_tests` and ran it successfully. Checks cover component
+volume sums versus material totals, no duplicate fuselage records, cm³/g/oz
+conversion, density updates without CAD recomputation, replacement Assembly cuts,
+part rows and stale-data clearing, alongside the existing GUI/persistence tests.
+Reviewed `build/debug/weight-balance.png` for readable table layout. Evidence:
+`build/debug/balance-breakdown-build.log` and `balance-breakdown-tests.log`.
+The Debug application was neither rebuilt nor launched, as requested.
+
+## Default density update — 2026-09-24
+
+Changed the foam default to 25.63 kg/m³ at the user's request, with matching UI,
+help, documentation and regression expectations. Existing saved densities remain
+unchanged. No build, tests or application launch were performed for this update,
+as requested; the passing checks above predate this default change.
+
+## Carbon fiber spars — 2026-09-24
+
+Debug application and targeted test targets built successfully. Passed:
+- `spar_panel_tests`: 6/5 mm defaults even in inch projects, OD/ID inch entry,
+  automatic OD-minus-1 bore until edited, unchanged focus retaining automatic
+  default, invalid dimensions rejected, and per-panel restore/units behavior.
+- `spar_tests`: full rod and finite strip material volumes against analytic
+  expectations; hollow tube outer-minus-bore volume and centroid; groove foam
+  removal unchanged by ID; generated tapered wing mirroring and multi-panel
+  dihedral placement. No unrelated Wing/Fuselage suites were run.
+- `weight_balance_tests`: foam/plywood/CF/added-part mass and moments, transformed
+  spar centroids, retention through Assembly cuts, version-29 round trip and
+  older-file migration, invalid ID/density rejection, Carbon Fiber GUI rows and
+  summary, cached-volume reuse after density changes and defaults after reset.
+
+Visually inspected `build/debug/spar-panel-carbon.png` and
+`build/debug/weight-balance-carbon.png`. The ID/OD labels and both unit formats
+are readable; CF density sits immediately below Aero Plywood and the component
+row, subtotal (table scroll), total and center of mass use CF material weight.
+Build logs: `build/debug/carbon-fiber-build.log` and
+`build/debug/carbon-fiber-final-build.log`. Geometry test log:
+`build/debug/carbon-spar-tests.log`; balance log:
+`build/debug/carbon-weight-balance-tests.log`. Build artifacts are untracked.

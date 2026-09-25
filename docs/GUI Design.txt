@@ -4,7 +4,7 @@ Legend (text) = comments
 -------------------------- Start GUI -----------------------
 Menu Bar: File, Edit (Undo Ctrl+Z, Redo Ctrl+Y, Copy, Paste), View, Help
 (File menu: New, Open, Close Project, Save, Save As, Exit. Unsaved changes offer Save/Discard/Cancel.)
-(ToolBar Buttons)  Reference  |  Wing  |  Fuselage  |  Horiz Stab  |  Vert Stab  |  Assembly  |  Export  |  Weight and Balance  |  Inspect
+(ToolBar Buttons)  Reference  |  Wing  |  Fuselage  |  Horiz Stab  |  Vert Stab  |  Assembly  |  Inspect  |  Weight and Balance  |  Export
 (The Assembly button is active when all components are completed.  The Export button is active only after current Assembly generation succeeds)
 (When the above buttons are selected as noted below, another toolbar is displayed here)
 (When Reference selected, no secondary toolbar, Dialog displayed to choose a image file or PDF to be displayed in background of 2D view)
@@ -127,7 +127,7 @@ Airfoil shows "Load the airfoil to use for the stabilizer from a .dat file.", th
 "Load Airfoil .dat File" and the loaded DAT name. Bundle naca009.dat as the default,
 even before Airfoil is visited. Enable other tools only after a valid Outline.
 Entering 3D generates that stabilizer in its own worker with progress and Cancel.
-Hinge Line draws connected segments and applies Tape/Standard relief on the longest segment. Cut supports closed material-removal shapes. See architecture/stabilizer-solids.md.
+Hinge Line draws connected segments and applies Tape/Standard relief on the segment closest to span direction for vertical fins, or the longest segment for horizontal stabilizers. Other segments remain square cuts. Cut supports closed material-removal shapes. See architecture/stabilizer-solids.md.
 
 Assembly: on entry disable 2D View, activate 3D and show the left side centered
 on the fuselage. Select a component to translate with arrow keys (1 mm, Shift

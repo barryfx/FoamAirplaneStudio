@@ -44,6 +44,8 @@ private:
   QButtonGroup* group_{};
   QWidget* description_{};
   QPushButton* load_{};
+  QPushButton* export_{};
+  QPushButton* smooth_{};
   QPushButton* sketchButton_{};
   QWidget* tools_{};
   QWidget* list_{};

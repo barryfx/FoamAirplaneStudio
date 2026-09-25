@@ -10,6 +10,15 @@ FormerEditor::FormerEditor(QGraphicsView& view):QObject{&view},view_{view}{view.
 void FormerEditor::refresh(bool data){view_.viewport()->update();emit controlsChanged();if(data)emit changed();}
 void FormerEditor::restore(const FormerState& state){state_=state;state_.rotationDegrees.resize(state_.rectangles.size(),0);selected_=drag_=-1;refresh();}
 void FormerEditor::setEditing(bool enabled){if(editing_==enabled)return;editing_=enabled;drag_=-1;if(!enabled)selected_=-1;refresh();}
+void FormerEditor::preserveThicknessAtScale(double scale) {
+  if(!std::isfinite(scale)||scale<=0||scale==scale_)return;
+  // Widths are stored in drawing coordinates. Preserve each physical width,
+  // including mixed plywood sizes, without moving its center or height.
+  for(auto& r:state_.rectangles) {
+    const auto center=r.center();r.setWidth(r.width()*scale_/scale);r.moveCenter(center);
+  }
+  scale_=scale;drag_=-1;refresh(true);
+}
 bool FormerEditor::allowsTray(const QRectF& r) const {for(std::size_t i=0;i<state_.rectangles.size();++i)if(formerMasksOverlap(r,0,state_.rectangles[i],formerAngle(state_.rotationDegrees,i)))return false;return true;}
 bool FormerEditor::allowed(const QRectF& r,int ignore,double angle) const {
   if(!std::isfinite(r.x())||!std::isfinite(r.y())||!std::isfinite(r.width())||!std::isfinite(r.height())||r.width()<=0||r.height()<=0)return false;

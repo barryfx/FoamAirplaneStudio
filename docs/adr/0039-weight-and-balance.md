@@ -17,8 +17,10 @@ only in this workspace; dragging and list selection refer to the same part.
 Use current placed/cut Assembly solids for adaptive OCCT volume/centroid
 integration. Count the fuselage body once, plus wing, fixed stabilizers and
 controls. Separate former and servo-tray inserts use Aero Plywood density.
-Default to 32.5 kg/m³ XPS and 680 kg/m³ birch Aero Plywood, both editable.
-These are representative stock values, not universal material constants.
+Default to 25.63 kg/m³ foam and 680 kg/m³ birch Aero Plywood, both editable.
+The foam default was changed from 32.5 to 25.63 kg/m³ at the user's request on
+2026-09-24. Existing projects retain their saved densities. These are starting
+values, not universal material constants.
 
 The datum is the wing root leading-edge endpoint projected into the same chord
 frame and scale as WingSolidBuilder, plus the Assembly wing X translation. It

@@ -95,6 +95,39 @@ std::array<double,3> xyz(const QJsonValue& value) {
   return {number(a[0],"camera vector"),number(a[1],"camera vector"),number(a[2],"camera vector")};
 }
 }
+static const std::pair<const char*,std::optional<double> AirplaneStatistics::*> statisticFields[]{
+  {"wingspanMm",&AirplaneStatistics::wingspanMm},{"wingAreaMm2",&AirplaneStatistics::wingAreaMm2},
+  {"rootChordMm",&AirplaneStatistics::rootChordMm},{"aspectRatio",&AirplaneStatistics::aspectRatio},
+  {"fuselageLengthMm",&AirplaneStatistics::fuselageLengthMm},{"horizontalAreaMm2",&AirplaneStatistics::horizontalAreaMm2},
+  {"verticalAreaMm2",&AirplaneStatistics::verticalAreaMm2},{"weightGrams",&AirplaneStatistics::weightGrams},
+  {"cgFromLeadingEdgeMm",&AirplaneStatistics::cgFromLeadingEdgeMm},{"wingLoadingGramsPerDm2",&AirplaneStatistics::wingLoadingGramsPerDm2}};
+static QJsonObject encodeStatistics(const AirplaneStatistics& s) {
+  QJsonObject out;for(const auto& [name,field]:statisticFields)out[name]=length(s.*field);
+  if(s.balance) {
+    const auto& b=*s.balance;const auto& m=b.materials;
+    out["balance"]=QJsonObject{{"sourceKey",QString::fromLatin1(b.sourceKey)},{"leadingEdgeMm",b.leadingEdgeMm},
+      {"volumesMm3",QJsonArray{m.volumeMm3,m.plywoodVolumeMm3,m.carbonFiberVolumeMm3}},
+      {"centersMm",QJsonArray{point(m.centroidMm),point(m.plywoodCentroidMm),point(m.carbonFiberCentroidMm)}}};
+  }
+  return out;
+}
+static AirplaneStatistics decodeStatistics(const QJsonValue& value) {
+  AirplaneStatistics s;if(value.isUndefined())return s;const auto o=object(value,"airplane statistics");
+  for(const auto& [name,field]:statisticFields)if(!o[name].isNull()&&!o[name].isUndefined())
+    s.*field=number(o[name],name,field==&AirplaneStatistics::cgFromLeadingEdgeMm?-1e24:0,1e24);
+  if(o.contains("balance")) {
+    const auto b=object(o["balance"],"statistics balance");StatisticsBalance cache;
+    cache.sourceKey=string(b["sourceKey"],"statistics source key",64).toLatin1();
+    if(cache.sourceKey.size()!=64||!std::all_of(cache.sourceKey.begin(),cache.sourceKey.end(),[](char c){return (c>='0'&&c<='9')||(c>='a'&&c<='f');}))bad("statistics source key");
+    cache.leadingEdgeMm=number(b["leadingEdgeMm"],"statistics leading edge");
+    const auto volumes=array(b["volumesMm3"],"statistics volumes",3),centers=array(b["centersMm"],"statistics centers",3);
+    if(volumes.size()!=3||centers.size()!=3)bad("statistics materials");
+    auto& m=cache.materials;m.volumeMm3=number(volumes[0],"foam volume",0,1e24);
+    m.plywoodVolumeMm3=number(volumes[1],"plywood volume",0,1e24);m.carbonFiberVolumeMm3=number(volumes[2],"carbon volume",0,1e24);
+    m.centroidMm=point(centers[0]);m.plywoodCentroidMm=point(centers[1]);m.carbonFiberCentroidMm=point(centers[2]);s.balance=cache;
+  }
+  return s;
+}
 QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonArray pages;
   for(const auto& page:p.reference.image.pages) {
@@ -159,7 +192,7 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   for(const auto& panel:p.spars) {
     QJsonArray entries;
     for(const auto& s:panel)entries.append(QJsonObject{{"enabled",s.enabled},{"shape",static_cast<int>(s.shape)},
-      {"chordPercent",s.chordPercent},{"lengthPercent",s.lengthPercent},{"sizeMm",s.sizeMm},{"heightMm",s.heightMm},{"sizeText",QString::fromStdString(s.sizeText)},{"heightText",QString::fromStdString(s.heightText)}});
+      {"chordPercent",s.chordPercent},{"lengthPercent",s.lengthPercent},{"sizeMm",s.sizeMm},{"heightMm",s.heightMm},{"sizeText",QString::fromStdString(s.sizeText)},{"heightText",QString::fromStdString(s.heightText)},{"insideDiameterMm",s.insideDiameterMm},{"insideDiameterText",QString::fromStdString(s.insideDiameterText)}});
     spars.append(entries);
   }
   QJsonArray lightText;for(const auto& t:p.lightening.text)lightText.append(QString::fromStdString(t));
@@ -174,14 +207,15 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonArray formerAngles;for(std::size_t i=0;i<p.formers.rectangles.size();++i)formerAngles.append(formerAngle(p.formers.rotationDegrees,i));
   QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
   QJsonArray offsets;for(auto offset:p.assembly.offsets)offsets.append(point(offset));
-  QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts}};
+  QJsonArray rotations;for(auto angle:p.assembly.rotationDegrees)rotations.append(angle);
+  QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts},{"rotationDegrees",rotations}};
   QJsonArray balanceParts;
   for(const auto& part:p.weightBalance.parts)balanceParts.append(QJsonObject{
       {"name",part.name},{"widthMm",part.widthMm},{"heightMm",part.heightMm},{"lengthMm",part.lengthMm},
       {"grams",part.grams},{"centerMm",point(part.centerMm)},{"ounces",part.ounces}});
-  QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"parts",balanceParts}};
+  QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"carbonFiberDensityKgM3",p.weightBalance.carbonFiberDensityKgM3},{"parts",balanceParts}};
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
-  return {{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",28},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",29},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
@@ -194,8 +228,8 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>28)throw std::runtime_error("This project version is not supported by this application.");
-  ProjectDocument p;
+  if(version>29)throw std::runtime_error("This project version is not supported by this application.");
+  ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
   if(version>=27) {
     const auto names=object(json["componentNames"],"component names");
     if(names.size()>10000)bad("component names");
@@ -209,6 +243,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   if(version>=26) {
     const auto balance=object(json["weightBalance"],"weight and balance");
     p.weightBalance.densityKgM3=number(balance["densityKgM3"],"foam density",.001,10000);
+    if(version>=29)p.weightBalance.carbonFiberDensityKgM3=number(balance["carbonFiberDensityKgM3"],"carbon fiber density",.001,10000);
     p.weightBalance.plywoodDensityKgM3=number(balance["plywoodDensityKgM3"],"plywood density",.001,10000);
     for(auto value:array(balance["parts"],"balance parts",1000)) {
       const auto o=object(value,"balance part");BalancePart part;
@@ -237,6 +272,11 @@ ProjectDocument decodeProject(const QJsonObject& json) {
       if(std::abs(p.assembly.offsets[i].x())>1e7 || std::abs(p.assembly.offsets[i].y())>1e7)bad("assembly offset range");
     }
     if(p.assembly.cuts&&!p.assembly.positioned)bad("assembly cuts without placement");
+    if(assembly.contains("rotationDegrees")) {
+      const auto rotations=array(assembly["rotationDegrees"],"assembly rotations",3);
+      if(rotations.size()!=3)bad("assembly rotations");
+      for(int i=0;i<3;++i)p.assembly.rotationDegrees[i]=number(rotations[i],"assembly rotation",-180,180);
+    }
   }
   auto r=object(json["reference"],"reference");
   p.reference.image.path=string(r["filename"],"reference filename");
@@ -304,16 +344,19 @@ ProjectDocument decodeProject(const QJsonObject& json) {
         s.enabled=boolean(o["enabled"],"spar enabled");s.shape=static_cast<SparShape>(integer(o["shape"],"spar shape",0,i==2?0:1));
         s.chordPercent=number(o["chordPercent"],"spar chord",0,100);s.lengthPercent=number(o["lengthPercent"],"spar length",0.01,100);
         s.sizeMm=number(o["sizeMm"],"spar size",0.0001,10000);s.heightMm=number(o["heightMm"],"spar height",0.0001,10000);
+        s.insideDiameterMm=version>=29?number(o["insideDiameterMm"],"spar inside diameter",0,10000):(i==2?std::max(0.0,s.sizeMm-1.0):0);
+        if(i==2 && s.insideDiameterMm>=s.sizeMm)bad("spar inside diameter must be less than outside diameter");
         if(version>=6) {
           auto display=[&](const char* key,double mm) {
             const auto text=string(o[key],key,256);
             if(!text.isEmpty()) {
-              const auto parsed=lengthInMm(text,p.reference.units);
+              const auto parsed=lengthInMm(text,p.reference.units,true);
               if(!parsed || std::abs(*parsed-mm)>1.e-8*std::max(1.0,mm))bad("spar display length mismatch");
             }
-            return explicitLength(text,p.reference.units).toStdString();
+            return explicitLength(text,p.reference.units,true).toStdString();
           };
           s.sizeText=display("sizeText",s.sizeMm);s.heightText=display("heightText",s.heightMm);
+          if(version>=29)s.insideDiameterText=display("insideDiameterText",s.insideDiameterMm);
         }
       }
     };

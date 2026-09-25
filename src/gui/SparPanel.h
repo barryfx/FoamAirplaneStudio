@@ -23,6 +23,7 @@ private:
   void updateControls();
   PanelSpars state_{1};
   QTabBar* tabs_{};
+  QLineEdit* insideDiameter_{};
   ProjectUnits units_=ProjectUnits::Millimeters;
   std::array<QCheckBox*,3> checks_{};
   std::array<QWidget*,3> details_{};

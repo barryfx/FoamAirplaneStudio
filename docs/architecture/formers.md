@@ -1,5 +1,10 @@
 # Fuselage Formers
 
+Assembly's Cut Intersections additionally cuts wing seats in the finished formers
+using the wing's current placement and rotation. Formers remain separate parts;
+stabilizers do not cut them. Undo Cuts restores their original geometry. Export
+uses the cut geometry and retains the former's local section plane for DXF.
+
 Formers replaces the former Firewall toolbar placeholder. It becomes available
 when every Fuselage station has a closed profile and opens Side View in 2D.
 The panel provides instructions, Width (thickness), Add Former, Rotation Angle and Delete Former.
@@ -7,6 +12,13 @@ Reference units apply to bare decimals; explicit mm/in suffixes override them.
 The initial thickness is 3 mm and is valid without editing. Zero thickness is
 rejected explicitly; positive thickness has no arbitrary minimum entry value. Selected formers show their own width; changing it
 resizes about the center and also sets the next added former's thickness.
+Changing Reference Wingspan preserves every existing former's physical thickness,
+including mixed thicknesses. Its drawing width adjusts about its center, while
+position and height continue to follow project scaling. Save/Open and undo restore
+the adjusted rectangles at their saved scale without applying the change twice.
+An incomplete Wingspan entry leaves the last valid thickness calibration intact.
+Existing projects retain their current effective thickness on opening; this cannot
+recover an older intended thickness already lost through earlier scaling.
 
 Add Former creates a vertical rectangle with a margin above and below the Side
 View bounds. It chooses the available fore/aft position closest to the view center,
@@ -39,7 +51,7 @@ projects 3 mm inward along Y. Cavity clipping follows the available full side
 height even for partial-height formers; other former/tray solids are subtracted
 so rails cannot penetrate removable inserts. Existing supports may merge with
 rails. Empty portions beyond the cavity are omitted; disconnected supports
-produce an error. The main body is then split left/right (fuselage-cuts.md). Assembly Export defaults formers to separate named solids in the combined STEP file, with individual DXF/STL files also available (export.md).
+produce an error. The completed right body is reflected into a separate left part (fuselage-cuts.md). Assembly Export defaults formers to separate named solids in the combined STEP file, with individual DXF/STL files also available (export.md).
 
 Version 15 persists rectangle masks and next-former thickness in physical mm.
 Earlier versions load no formers; the legacy Firewall tool name maps to Formers.
@@ -56,6 +68,17 @@ The rail itself remains 4 mm wide with 3 mm inward depth. An interior-centroid
 classification check rejects residual solids whose interior centre remains
 inside the clearance tool; it supplements, rather than replaces, final topology
 validation. The padding rotates with the former and does not enlarge the rail.
+If the cut fails, has invalid topology or retains a cavity plug, it is retried
+with bounded fuzzy tolerances of 0.00001 mm and then at most 0.0001 mm, rather
+than the normal 0.0000001 mm. All attempts preserve input shapes and use
+cancellable OCCT progress. Each retry
+must pass the same interior-clearance and topology checks; failure still stops
+generation. It does not change the 4 by 3 mm rail dimensions. This addresses
+BabyBuzzard36 former 4's front- and rear-right cuts returning the entire valid pocket despite
+OCCT reporting success. See `../baseline/babybuzzard36-rail-fix.md`.
+The compact error identifies the former in nose-to-tail order and front/rear,
+left/right rail, without measurements. Parallel progress explains that the
+operation builds support rails and clears their hollow centers.
 See `../baseline/former-rail-clearance-fix.md` for the GentleLady diagnosis.
 All completed rail shapes are fused to the shell in one multi-tool operation,
 including overlap resolution for rails belonging to nearby formers. Progress
@@ -80,3 +103,9 @@ They extend through the cavity's full local height and clear removable inserts.
 Both Fuselage and Assembly snapshots include angles; changing an angle invalidates
 the shared Fuselage cache and dependent Assembly cuts. Project format 24 persists
 one angle per rectangle; earlier projects initialize all angles to zero.
+
+With mirrored fuselage construction, each former still fits the whole cavity and
+remains one removable part. Only positive-Y retaining material is fused to the
+right body; reflection creates its left counterpart. If a curved-roof clearance
+band crosses the centre plane, both bands' positive-Y material is retained before
+reflection. The complete final body contains separate main halves (ADR-0045).

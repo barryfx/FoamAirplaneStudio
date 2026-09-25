@@ -121,7 +121,7 @@ TopoDS_Wire sectionWire(const std::vector<domain::Point2>& foil, QPointF le, QPo
 }
 struct WingFrame {QPointF chord,span;double scale;};
 static TopoDS_Shape buildWingPanel(const WingSolidInput& input, const std::function<void(const char*)>& progress,
-                                 std::optional<WingFrame> frame={}, bool internalPanel=false, PanelMiter miter={},double* generatedSpan=nullptr, const std::vector<std::pair<double,double>>& lighteningBays={},const ProcessingControl& control={}) {
+                                 std::optional<WingFrame> frame={}, bool internalPanel=false, PanelMiter miter={},double* generatedSpan=nullptr, const std::vector<std::pair<double,double>>& lighteningBays={},const ProcessingControl& control={},std::vector<SparMaterial>* materials=nullptr) {
   const auto report = [&](const char* message) { control.checkpoint();if(progress) progress(message); };
   if(gui::controlSurfacesOverlap(input.controls))
     throw std::runtime_error("Aileron and flap rectangles must not overlap. Edit their rectangles in Ailerons/Flaps mode.");
@@ -348,7 +348,7 @@ static TopoDS_Shape buildWingPanel(const WingSolidInput& input, const std::funct
           if(!rootCapBounds.IsVoid()){rootCapBounds.Get(a,b,c,d,e,f);rootInset=std::max(rootInset,e);}
           if(!tipCapBounds.IsVoid()){tipCapBounds.Get(a,b,c,d,e,f);tipInset=std::max(0.0,miter.span-b);}
         }
-        auto result=cutSpars(piece,input.spars[i],end-begin,panelChord,progress,rootInset,tipInset,miter.enabled,input.lightening.enabled?input.lightening.wallMm:0,lighteningBays,control);
+        auto result=cutSpars(piece,input.spars[i],end-begin,panelChord,progress,rootInset,tipInset,miter.enabled,input.lightening.enabled?input.lightening.wallMm:0,lighteningBays,control,materials);
         local.SetTranslation(gp_Vec{0,begin,0});
         if(begin!=0)result=BRepBuilderAPI_Transform{result,local,true}.Shape();
         builder.Add(panels,result);
@@ -442,7 +442,7 @@ TopoDS_Shape buildWingSolid(const WingSolidInput& input,const std::function<void
     for(int i=1;i<=l.crossmembers;++i){const double center=start+i*pitch;globalBays.emplace_back(a,center-l.ribMm*.5);a=center+l.ribMm*.5;}
     globalBays.emplace_back(a,end);
   }
-  struct PanelResult {TopoDS_Shape shape;double span=0;};
+  struct PanelResult {TopoDS_Shape shape;double span=0;std::vector<SparMaterial> materials;};
   std::vector<PanelResult> results(input.panels.size());std::mutex progressMutex;
   processing::runIndexedTasks(input.panels.size(),[&](std::size_t panel,std::stop_token token) {
     const ProcessingControl control{options.maxPanelThreads==1 && !options.processing.stop.stop_possible()?std::stop_token{}:token,options.processing.parallel};
@@ -466,13 +466,14 @@ TopoDS_Shape buildWingSolid(const WingSolidInput& input,const std::function<void
       miter.tipSlope=panel+1<angles.size()?-std::tan(angles[panel+1]*std::numbers::pi/360):0;
       std::vector<std::pair<double,double>> panelBays;
       for(auto [a,b]:globalBays)panelBays.emplace_back(a-unfoldedStarts[panel],b-unfoldedStarts[panel]);
-      results[panel].shape=buildWingPanel(local,report,WingFrame{chord,span,scale},panel+1<input.panels.size(),miter,&results[panel].span,panelBays,control);
+      results[panel].shape=buildWingPanel(local,report,WingFrame{chord,span,scale},panel+1<input.panels.size(),miter,&results[panel].span,panelBays,control,options.materials?&results[panel].materials:nullptr);
       report("Complete.");
     } catch(const ProcessingCancelled&) {throw;}
       catch(const Standard_Failure& e) {control.checkpoint();throw std::runtime_error("Panel "+std::to_string(panel+1)+": "+e.what());}
       catch(const std::exception& e) {control.checkpoint();throw std::runtime_error("Panel "+std::to_string(panel+1)+": "+e.what());}
   },options.processing.stop,options.maxPanelThreads);
   options.processing.checkpoint();
+  std::vector<SparMaterial> materials;
   double orientation=0,originY=0,originZ=0;
   BRep_Builder builder;TopoDS_Compound half;builder.MakeCompound(half);
   for(std::size_t panel=0;panel<results.size();++panel) {
@@ -484,6 +485,10 @@ TopoDS_Shape buildWingSolid(const WingSolidInput& input,const std::function<void
       originY+=results[panel].span*std::cos(orientation);originZ+=results[panel].span*std::sin(orientation);
     } else placement.SetTranslation(gp_Vec{0,(dot(rootEnds[0],span)-root)*scale,0});
     builder.Add(half,BRepBuilderAPI_Transform{results[panel].shape,placement,true}.Shape());
+    for(auto material:results[panel].materials) {
+      material.center.Transform(placement);material.name="Right wing panel "+std::to_string(panel+1)+" "+material.name;
+      materials.push_back(std::move(material));
+    }
   }
   if(progress)progress("Meshing right wing panels for display...");
   options.processing.checkpoint();
@@ -497,6 +502,15 @@ TopoDS_Shape buildWingSolid(const WingSolidInput& input,const std::function<void
   // triangulation instead of tessellating the identical left wing again.
   const auto reflected=BRepBuilderAPI_Transform{half,mirror,true,true}.Shape();
   alignMeshOrientation(reflected,options.processing);builder.Add(result,reflected);
-  options.processing.checkpoint();return result;
+  const auto count=materials.size();
+  for(std::size_t i=0;i<count;++i) {
+    auto material=materials[i];material.center.Transform(mirror);material.name.replace(0,5,"Left");materials.push_back(std::move(material));
+  }
+  options.processing.checkpoint();if(options.materials)*options.materials=std::move(materials);return result;
 }
+WingBuildResult buildWingModel(const WingSolidInput& input,const std::function<void(const char*)>& progress,const WingBuildOptions& options) {
+  WingBuildResult result;auto settings=options;settings.materials=&result.spars;
+  result.shape=buildWingSolid(input,progress,settings);return result;
+}
+
 }

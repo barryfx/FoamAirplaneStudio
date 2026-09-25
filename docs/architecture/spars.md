@@ -6,11 +6,16 @@ Chord percentage is measured from the local LE; length is a percentage of that
 panel's span starting at its root. Size entries accept mm or in regardless of project units and are stored
 in millimetres. Entered numeric text and units remain visible across unit changes,
 panel switches and Save/Open. Bare entries use the current project units and gain
-an explicit suffix when committed. Untouched defaults display in project units.
+an explicit suffix when committed. Untouched Top/Bottom defaults display in project units; Mid defaults display in mm.
 Invalid or out-of-range edits restore the previous committed value when focus
 leaves the field or Enter is pressed. Top/Bottom offer Round (diameter) or Strip (width and inward
 height/depth); Mid is round only. Defaults are 30% chord, 80% panel length,
-3 mm diameter/width and 1 mm strip depth. Unchecking retains values.
+3 mm diameter/width and 1 mm strip depth for Top/Bottom. Mid uses Outside Diameter
+and Inside Diameter, initially 6 mm and 5 mm. Until Inside Diameter is edited,
+it follows max(0, Outside Diameter minus 1 mm). Explicit values accept mm/in and
+persist across Save/Open. Zero ID represents a solid rod; ID must be less than OD.
+An OD edit conflicting with an explicit ID restores the previous value.
+Unchecking retains values. All spars are assumed to be Carbon Fiber.
 
 New panels have disabled spars. Removing a panel removes its settings. Selecting
 a tab changes only view state; values in other tabs are retained. All lifecycle
@@ -44,3 +49,11 @@ move together into the accumulated dihedral frame; see dihedral.md.
 Lightening also requires splitting the main panel when Mid is disabled, using
 half thickness at 30% chord. Existing Mid splits and alignment features remain;
 hollowing preserves wall-thickness support around pins and sockets. See lightening.md.
+
+Wing generation also measures the carbon stock separately from the foam: full
+round rods, bounded inward-depth strips, and outer-minus-inner mid tubes. Stock
+uses the groove's sampled center path and parallel section planes, stopping at
+nominal panel root and entered percentage length, without cutting-tool overruns.
+Material volumes and centroids follow each panel's dihedral and mirrored wing,
+then Assembly rotation/translation. They contribute to Weight and Balance but
+are not added as foam export parts. See ADR-0046.

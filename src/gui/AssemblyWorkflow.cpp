@@ -1,6 +1,7 @@
 #include "gui/FuselageOutlinePanel.h"
 #include "gui/FuselageProfilePanel.h"
 #include "gui/StabilizerOutlinePanel.h"
+#include "geometry/StabilizerCut.h"
 #include "gui/InspectPanel.h"
 #include <QFileInfo>
 #include "gui/MainWindow.h"
@@ -12,6 +13,7 @@
 #include "gui/StabilizerAirfoilPanel.h"
 #include "gui/StabilizerHingePanel.h"
 #include "gui/PlanViewport.h"
+#include "gui/WingCalibration.h"
 #include "gui/ExportPanel.h"
 #include "gui/FileSelectionDialog.h"
 #include "gui/ProcessingScope.h"
@@ -54,10 +56,21 @@ std::vector<geometry::ExportPart> MainWindow::namedExportParts(const geometry::A
 }
 geometry::AssemblyParts MainWindow::cachedModelParts() const {
   geometry::AssemblyParts parts;
-  if(builtWingFingerprint_==wingFingerprint())parts.wing=wingShape_;
+  if(builtWingFingerprint_==wingFingerprint()){parts.wing=wingShape_;parts.sparMaterials=wingSparMaterials_;}
+  if(!parts.wing.IsNull()) {
+    const auto& reference=projectReference();
+    const auto root=wingCalibration(planViewport_->sketchEditor().layers(),planViewport_->sketchEditor().stationEditor().lines(),
+        reference.toScale?std::nullopt:reference.wingspanMm);
+    parts.rootCenters[0]={root.leadingEdgeX+root.rootChordMm*.5,0,0};
+  }
   for(int i=0;i<2;++i)if(builtStabilizerFingerprints_[i]==stabilizerFingerprint(i)) {
     (i==0?parts.horizontal:parts.vertical)=stabilizerModels_[i].fixed;
     (i==0?parts.elevator:parts.rudder)=stabilizerModels_[i].control;
+    const auto& outline=planViewport_->stabilizerSketchEditor(i).layers().front();
+    std::vector<int> degree(outline.points.size());
+    for(const auto& curve:outline.curves)for(std::size_t n=1;n<curve.points.size();++n){++degree[curve.points[n-1]];++degree[curve.points[n]];}
+    std::vector<QPointF> ends;for(std::size_t n=0;n<degree.size();++n)if(degree[n]==1)ends.push_back(outline.points[n]);
+    if(ends.size()==2)parts.rootCenters[i+1]={QLineF{ends[0],ends[1]}.length()*projectLengthScale()*.5,0,0};
   }
   if(builtFuselageFingerprint_!=fuselageFingerprint())return parts;
   parts.fuselage=fuselageModel_.body;
@@ -100,7 +113,7 @@ void MainWindow::displayInspect() {
 void MainWindow::updateExportAvailability() {
   if(!workspaceToolBar_)return;
   const bool ready=projectOpen_&&!property("modelProcessing").toBool()&&exportAssemblyParts().has_value();
-  workspaceToolBar_->actions().at(6)->setEnabled(ready);
+  workspaceActions_.at(6)->setEnabled(ready);
   if(exportPanel_)exportPanel_->setEnabled(ready);
 }
 void MainWindow::exportComponents() {
@@ -159,6 +172,8 @@ void MainWindow::buildAssemblyPanel(QVBoxLayout* layout) {
       "Position the aircraft components against the fuselage in the left-side 3D view. "
       "Select Wing, Horiz Stab or Vert Stab, then use the arrow keys: Left/Right move toward the nose/tail; "
       "Up/Down raise/lower the part. Each step is 1 mm (Shift: 10 mm; Ctrl: 0.1 mm). "
+      "Rotate Clockwise/Counter-Clockwise changes the angle by 0.5 degrees about the midpoint of the root chord. "
+      "Positive angles are clockwise in the standard side view, independent of camera orbit. "
       "The fuselage stays fixed and all parts remain on its centerline. "
       "The reference image is aligned behind the model; sketch lines are hidden. "
       "Mouse: left-drag to orbit, right-drag to pan, wheel to zoom around the cursor. Re-enter Assembly to return to the left-side view.\n\n"
@@ -175,6 +190,14 @@ void MainWindow::buildAssemblyPanel(QVBoxLayout* layout) {
     button->setFocusPolicy(Qt::ClickFocus);group->addButton(button);box->addWidget(button);
     connect(button,&QPushButton::clicked,this,[this,i]{assemblySelected_=i;displayAssembly();});
   }
+  for(int i=0;i<2;++i) {
+    auto* button=new QPushButton{i==0?"Rotate Clockwise":"Rotate Counter-Clockwise",assemblyPanel_};assemblyRotate_[i]=button;
+    button->setObjectName(i==0?"assemblyRotateClockwise":"assemblyRotateCounterClockwise");
+    button->setEnabled(false);box->addWidget(button);
+    connect(button,&QPushButton::clicked,this,[this,i]{rotateAssembly(i==0?.5:-.5);});
+  }
+  assemblyRotationLabel_=new QLabel{"Rotation: select a component",assemblyPanel_};
+  assemblyRotationLabel_->setObjectName("assemblyRotationAngle");box->addWidget(assemblyRotationLabel_);
   box->addStretch();assemblyCutButton_=new QPushButton{"Cut Intersections",assemblyPanel_};
   assemblyCutButton_->setObjectName("assemblyCutIntersections");box->addWidget(assemblyCutButton_);
   connect(assemblyCutButton_,&QPushButton::clicked,this,[this]{toggleAssemblyCuts();});
@@ -233,8 +256,14 @@ void MainWindow::updateAssembly(bool inspect) {
   std::vector<geometry::StabilizerSolidInput> stabilizers;
   for(int i=0;i<2;++i)stabilizers.push_back({p.stabilizerOutlines[i].layers.front(),stabilizerAirfoilPanels_[i]->airfoil(),
       projectLengthScale(),i==0,p.stabilizerHinges[i].layers.front(),p.stabilizerHingeCuts[i],p.stabilizerCuts[i].layers});
+  try {
+    for(int i=0;i<2;++i)if(requested[i+2])geometry::validateStabilizerCuts(stabilizers[i].cutShapes);
+  } catch(const std::exception& error) {
+    statusBar()->showMessage(QString{inspect?"Inspect generation failed: ":"Assembly generation failed: "}+QString::fromUtf8(error.what()));
+    return;
+  }
   AssemblyPrepared cached;
-  if(builtWingFingerprint_==assemblyComponentFingerprints_[0])cached.wing=wingShape_;
+  if(builtWingFingerprint_==assemblyComponentFingerprints_[0]){cached.wing=wingShape_;cached.spars=wingSparMaterials_;}
   if(builtFuselageFingerprint_==assemblyComponentFingerprints_[1]&&!fuselageShape_.IsNull())cached.fuselage=fuselageModel_;
   for(int i=0;i<2;++i)if(builtStabilizerFingerprints_[i]==assemblyComponentFingerprints_[i+2])cached.stabilizers[i]=stabilizerModels_[i];
   const bool missing=(requested[0]&&cached.wing.IsNull())||(requested[1]&&cached.fuselage.shape.IsNull())||
@@ -258,7 +287,7 @@ void MainWindow::updateAssembly(bool inspect) {
           if(component==0) {
             // Avoid nested panel workers competing with the other components.
             // A lone missing Wing retains its normal panel concurrency.
-            cached.wing=geometry::buildWingSolid(wing,progress,{componentControl,missing.size()>1?1u:0u});
+            cached.wing=geometry::buildWingSolid(wing,progress,{componentControl,missing.size()>1?1u:0u,&cached.spars});
           } else if(component==1)cached.fuselage=geometry::buildFuselageModel(fuselage,progress,componentControl);
           else cached.stabilizers[component-2]=geometry::buildStabilizerModel(stabilizers[component-2],progress,componentControl);
         },stop);
@@ -293,6 +322,10 @@ void MainWindow::displayAssembly(bool entry) {
   displayedComponent_=5;setProperty("assemblyReady",true);setProperty("assemblyCuts",assemblyState_.cuts);
   updateExportAvailability();
   for(auto* button:assemblySelect_)button->setEnabled(!assemblyState_.cuts);
+  for(auto* button:assemblyRotate_)button->setEnabled(!assemblyState_.cuts&&assemblySelected_>=0);
+  assemblyRotationLabel_->setText(assemblySelected_<0?QString{"Rotation: select a component"}:
+      QString{"Rotation: %1%2°"}.arg(assemblyState_.rotationDegrees[assemblySelected_]>0?"+":"")
+        .arg(assemblyState_.rotationDegrees[assemblySelected_],0,'f',1));
   assemblyCutButton_->setEnabled(true);assemblyCutButton_->setText(assemblyState_.cuts?"Undo Cuts":"Cut Intersections");
   statusBar()->showMessage(assemblyState_.cuts?"Assembly cuts ready for export. Undo Cuts to reposition.":"Assembly: select a component and move it with arrow keys (1 mm; Shift 10 mm; Ctrl 0.1 mm).");
 }
@@ -304,6 +337,12 @@ void MainWindow::moveAssembly(int key,Qt::KeyboardModifiers modifiers) {
   if(key==Qt::Key_Up)offset.ry()+=step;if(key==Qt::Key_Down)offset.ry()-=step;
   if(std::abs(offset.x())>1e7||std::abs(offset.y())>1e7)return;
   assemblyState_.offsets[assemblySelected_]=offset;displayAssembly();updateProjectTitle();
+}
+void MainWindow::rotateAssembly(double degrees) {
+  if(dataPanel_->property("workspaceIndex").toInt()!=5||assemblySelected_<0||assemblyState_.cuts||assemblyProcessing()||assemblyOriginals_.fuselage.IsNull())return;
+  auto& angle=assemblyState_.rotationDegrees[assemblySelected_];angle=std::remainder(angle+degrees,360.);
+  if(angle==0)angle=0; // Avoid a negative-zero readout after a complete turn.
+  displayAssembly();updateProjectTitle();
 }
 void MainWindow::toggleAssemblyCuts() {
   if(assemblyProcessing()||assemblyOriginals_.fuselage.IsNull())return;
@@ -344,7 +383,7 @@ void MainWindow::pollAssemblyJob() {
       viewport_->setProperty("wingModelReady",!prepared.wing.IsNull());viewport_->setProperty("fuselageModelReady",!prepared.fuselage.shape.IsNull());
       viewport_->setProperty("servoTrayReady",!prepared.fuselage.servoTray.IsNull());
       viewport_->setProperty("formerCount",static_cast<int>(prepared.fuselage.formers.size()));
-      wingShape_=prepared.wing;fuselageModel_=prepared.fuselage;fuselageShape_=prepared.fuselage.shape;
+      wingShape_=prepared.wing;wingSparMaterials_=std::move(prepared.spars);fuselageModel_=prepared.fuselage;fuselageShape_=prepared.fuselage.shape;
       servoTrayTopFaces_=prepared.fuselage.servoTrayTopFaces;stabilizerModels_=prepared.stabilizers;
       builtWingFingerprint_=assemblyComponentFingerprints_[0];builtFuselageFingerprint_=assemblyComponentFingerprints_[1];
       for(int i=0;i<2;++i){stabilizerShapes_[i]=prepared.stabilizers[i].shape;builtStabilizerFingerprints_[i]=assemblyComponentFingerprints_[i+2];}

@@ -42,21 +42,31 @@ int main(int argc,char** argv) {
     auto chord=[](double){return std::pair{0.0,200.0};};gui::SparState spars;
     spars[0]={true,gui::SparShape::Round,30,60,4,1};
     std::cout<<"Top round groove"<<std::endl;
-    auto shape=geometry::cutSpars(box,spars,500,chord);auto parts=bodies(shape);CHECK(parts.size()==1);
+    std::vector<geometry::SparMaterial> materials;
+    auto shape=geometry::cutSpars(box,spars,500,chord,{},0,0,false,0,{}, {},&materials);
+    CHECK(materials.size()==1);CHECK(std::abs(materials[0].volumeMm3-3.141592653589793*4*300)<.001);
+    CHECK(materials[0].center.Distance(gp_Pnt{60,150,10})<.001);auto parts=bodies(shape);CHECK(parts.size()==1);
     CHECK(!inside(parts[0],60,150,9));CHECK(inside(parts[0],60,150,7.9));CHECK(inside(parts[0],60,301,9));
     CHECK(std::abs(volume(shape)-(2000000-0.5*3.141592653589793*4*300))<0.1);
     std::cout<<"Bottom strip groove"<<std::endl;
     spars[0].enabled=false;spars[1]={true,gui::SparShape::Strip,40,50,6,2};
-    parts=bodies(geometry::cutSpars(box,spars,500,chord));CHECK(parts.size()==1);
+    materials.clear();parts=bodies(geometry::cutSpars(box,spars,500,chord,{},0,0,false,0,{}, {},&materials));CHECK(parts.size()==1);
+    { double expectedVolume=0;for(int i=0;i<2;++i)if(spars[i].enabled)expectedVolume+=500*spars[i].lengthPercent/100*(spars[i].shape==gui::SparShape::Round?3.141592653589793*spars[i].sizeMm*spars[i].sizeMm/4:spars[i].sizeMm*spars[i].heightMm);
+    double actualVolume=0;for(const auto& material:materials)actualVolume+=material.volumeMm3;CHECK(std::abs(actualVolume-expectedVolume)<.01); }
     CHECK(!inside(parts[0],80,100,-9));CHECK(inside(parts[0],80,100,-7.9));CHECK(inside(parts[0],83.1,100,-9));
     CHECK(inside(parts[0],80,251,-9));
     std::cout<<"Combined surface grooves"<<std::endl;
     spars[0]={true,gui::SparShape::Strip,20,50,5,2};spars[1].shape=gui::SparShape::Round;
-    parts=bodies(geometry::cutSpars(box,spars,500,chord));CHECK(parts.size()==1);
+    materials.clear();parts=bodies(geometry::cutSpars(box,spars,500,chord,{},0,0,false,0,{}, {},&materials));CHECK(parts.size()==1);
+    { double expectedVolume=0;for(int i=0;i<2;++i)if(spars[i].enabled)expectedVolume+=500*spars[i].lengthPercent/100*(spars[i].shape==gui::SparShape::Round?3.141592653589793*spars[i].sizeMm*spars[i].sizeMm/4:spars[i].sizeMm*spars[i].heightMm);
+    double actualVolume=0;for(const auto& material:materials)actualVolume+=material.volumeMm3;CHECK(std::abs(actualVolume-expectedVolume)<.01); }
     CHECK(!inside(parts[0],40,100,9));CHECK(!inside(parts[0],80,100,-9));
     std::cout<<"Mid split and tabs"<<std::endl;
     spars={};spars[2]={true,gui::SparShape::Round,30,60,4,1};
-    shape=geometry::cutSpars(box,spars,500,chord);parts=bodies(shape);CHECK(parts.size()==2);
+    spars[2].insideDiameterMm=3;materials.clear();
+    shape=geometry::cutSpars(box,spars,500,chord,{},0,0,false,0,{}, {},&materials);parts=bodies(shape);
+    CHECK(materials.size()==1);CHECK(std::abs(materials[0].volumeMm3-3.141592653589793*(16-9)/4*300)<.001);
+    CHECK(materials[0].center.Distance(gp_Pnt{60,150,0})<.001);CHECK(parts.size()==2);
     CHECK(!inside(parts[0],60,150,1));CHECK(!inside(parts[1],60,150,-1));
     CHECK(inside(parts[0],60,301,1));CHECK(inside(parts[1],60,301,-1));
     for(double y:{100.0,400.0})for(double x:{53.5,66.5}) {
@@ -112,7 +122,10 @@ int main(int argc,char** argv) {
     wing.airfoils.push_back({"NACA0012",domain::AirfoilProfile::nacaSymmetric(.12),{}, {}});
     wing.wingspanMm=1000;wing.spars[0][2]={true,gui::SparShape::Round,30,60,3,1};
     wing.controls[0][0]={true,gui::HingeCut::Tape,QRectF{100,140,300,100}};
-    parts=bodies(geometry::buildWingSolid(wing,[](const char* p){std::cout<<p<<std::endl;}));CHECK(parts.size()==6);
+    wing.spars[0][2].insideDiameterMm=2;
+    auto model=geometry::buildWingModel(wing,[](const char* p){std::cout<<p<<std::endl;});parts=bodies(model.shape);CHECK(parts.size()==6);
+    CHECK(model.spars.size()==2);CHECK(std::abs(model.spars[0].volumeMm3-3.141592653589793*5/4*300)<.01);
+    CHECK(model.spars[0].center.X()==model.spars[1].center.X());CHECK(model.spars[0].center.Y()==-model.spars[1].center.Y());
     // At y=250 the local LE/TE are 10/190, so the hole is at x=64.
     for(const auto& p:parts) {CHECK(!inside(p,64,250,0.5));CHECK(!inside(p,64,-250,0.5));}
     // Independent panel settings and intact controls within each panel.
@@ -126,7 +139,11 @@ int main(int argc,char** argv) {
       {{1,0,1,{500,20}},{1,2,0,{500,180}},gui::LineAlignment::Vertical,0}};
     wing.spars.resize(2);wing.spars[0][2].chordPercent=30;
     wing.spars[1][2]={true,gui::SparShape::Round,50,50,3,1};
-    parts=bodies(geometry::buildWingSolid(wing));CHECK(parts.size()==10);
+    wing.dihedralDegrees={3,5};model=geometry::buildWingModel(wing);parts=bodies(model.shape);CHECK(parts.size()==10);
+    CHECK(model.spars.size()==4);CHECK(model.spars[1].center.Z()>model.spars[0].center.Z());
+    CHECK(model.spars[1].center.Y()==-model.spars[3].center.Y());
+    // Restore flat geometry for the existing fixed-coordinate control assertions.
+    wing.dihedralDegrees={};parts=bodies(geometry::buildWingSolid(wing));CHECK(parts.size()==10);
     // The one aileron per half stays whole rather than receiving the Mid split.
     int crossing=0;
     for(const auto& p:parts)if(inside(p,160,100,0) && inside(p,160,150,0))++crossing;

@@ -1,6 +1,6 @@
 # Weight and Balance
 
-Weight and Balance follows Export and precedes Inspect on the primary toolbar. It enables once Reference has
+Weight and Balance follows Inspect and precedes Export on the primary toolbar. It enables once Reference has
 a physical scale and the fuselage Side View is closed. In Specify Dimensions,
 the wing outline and stations establish the shared Wingspan calibration first.
 It is a 2D-only workspace
@@ -24,8 +24,21 @@ New/Close reset parts and densities. Format 26 preserves all entered data.
 The current Assembly snapshot supplies foam body volumes and centers, respecting
 placement and optional interface cuts. Fuselage part records are not counted
 again. Formers and the servo tray are separately integrated as Aero Plywood.
-Default densities are 32.5 kg/m³ XPS and 680 kg/m³ birch aircraft plywood; users
-can change both to match their actual stock. See ADR-0039 for sources.
+Enabled wing spars are automatically included as Carbon Fiber: solid surface
+rods/strips and hollow mid tubes. Their cached material properties follow wing
+placement and remain intact when Assembly cuts foam interfaces.
+The component breakdown lists each foam component, plywood insert and carbon spar with
+solid material volume in cm³ and weight in grams and ounces. Foam, plywood and Carbon Fiber
+subtotals use the same measurements as the overall balance calculation. Missing
+foam components are marked "not present". Entered parts show their supplied
+weights and no material volume; their drawing boxes are not measured foam.
+Component volumes share the existing statistics cache, so density edits update
+all row weights without repeating CAD integration. Stale Assembly data clears
+the geometry rows. The breakdown is derived and is not saved in the project.
+Default densities are 25.63 kg/m³ XPS, 680 kg/m³ birch aircraft plywood and
+1540 kg/m³ Carbon Fiber composite; users can change all three to match their
+actual stock. The Carbon Fiber field follows Aero Plywood density. See ADR-0039
+and ADR-0046 for sources. CF density applies to material only, excluding bores.
 
 For volume V in mm³ and density rho in kg/m³, mass in grams is V × rho × 10⁻⁶.
 The total center is sum(mass × center) / sum(mass), including each entered part.
@@ -43,8 +56,13 @@ and cut state, project epoch, and source solid identities. Geometry regeneration
 placement changes and cut replacement therefore cannot reuse stale statistics;
 part and density edits reuse volumes and recalculate only weighted totals.
 On a cache miss, the standard processing scope displays a calculation status and
-the application's busy cursor before measuring foam and plywood. It repaints the
+the application's busy cursor before measuring foam, plywood and carbon spars. It repaints the
 status synchronously without dispatching user input, and restores the cursor on
-success or failure. The cache is transient and is never saved to the project.
+success or failure. The per-component cache is transient; aggregate measurements may be saved separately for the shared statistics summary.
 Part shapes are mass envelopes only, with uniform mass at their centers; they
-do not cut foam. Add spars, covering and other unmodeled weights as parts.
+do not cut foam. Add covering and other unmodeled weights as parts; do not add the automatically counted wing spars again.
+
+Wing Loading is also displayed when total mass and nominal full wing area are
+available, in g/dm² for metric Reference units or oz/ft² for inches. The shared
+statistics footer is intentionally omitted here. Other panels save and display
+an independently validated summary cache; see airplane-statistics.md.

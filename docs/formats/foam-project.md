@@ -1,4 +1,15 @@
-# FoamAirplaneStudio project format, version 28
+# FoamAirplaneStudio project format, version 29
+
+Version 29 adds `insideDiameterMm` and `insideDiameterText` to each spar record,
+and `carbonFiberDensityKgM3` to `weightBalance`. Mid ID is finite, nonnegative
+and strictly less than OD (`sizeMm`); zero denotes a solid rod. Empty ID text
+means the default follows max(0, OD minus 1 mm) on subsequent OD edits. Explicit
+text must parse to the stored millimetres. CF density is finite, 0.001–10000 kg/m³,
+default 1540. Older projects retain their OD and initialize Mid ID to max(0,
+OD minus 1 mm), other IDs to zero, and CF density to 1540. New panels default
+to 6 mm OD / 5 mm ID; Top/Bottom defaults remain unchanged. Spar material
+per-spar volumes/centroids remain transient; aggregate material measurements may be saved in the statistics cache. Older readers
+reject version 29 rather than silently losing the new material settings.
 
 Version 28 adds Circle (`type: 3`) only to `fuselageProfiles` curves and tools.
 Each circle references exactly two distinct points: center and radius handle,
@@ -12,7 +23,7 @@ and valid as cross-platform filename stems. Identifiers are at most 240 characte
 at most 10,000 overrides are accepted. Versions 1–26 load an empty name map.
 Inspect checkbox visibility remains session-only. See ADR-0041.
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 28`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 29`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
@@ -57,7 +68,10 @@ use JSON null. Each page stores `png` (base64 lossless PNG) and optional
 `physicalMm: [width,height]`. The saved filename is provenance, not a required
 external dependency. The original reference is not reread on Open.
 
-UI workspace indices follow the primary toolbar; viewport is 0 2D or 1 3D.
+UI workspace IDs are stable: 0 Reference, 1 Wing, 2 Fuselage, 3 Horiz Stab,
+4 Vert Stab, 5 Assembly, 6 Export, 7 Weight and Balance, 8 Inspect. Visual toolbar
+order ends with Inspect, Weight and Balance, Export; it does not change saved IDs.
+Viewport is 0 2D or 1 3D.
 2D state contains positive zoom and scene center. Camera fields are eye, center,
 up (three-element vectors), scale, vertical field of view and OCCT projection
 type (0 orthographic, 1 perspective, 2 stereo, 3/4 mono stereo eyes).
@@ -86,7 +100,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 28.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 29.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -115,7 +129,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 28; older
+into Panel 1, with others disabled. Current Save/Save As writes version 29; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -180,7 +194,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 28; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 29; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -220,7 +234,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints remain transient. Save writes version 28; earlier versions remain readable.
+fingerprints remain transient. Save writes version 29; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -246,7 +260,7 @@ It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 28. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 29. Generated cut
 bodies remain transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -344,6 +358,12 @@ the stabilizer generation fingerprint. Cut-out material is removed, not retained
 
 `assembly` contains boolean `positioned`, `offsets` (exactly three `[x,z]` pairs
 in millimetres, ordered Wing, Horiz Stab, Vert Stab), and boolean `cuts`.
+The optional `rotationDegrees` array contains exactly three finite angles in
+the same order, each within [-180,180]. Positive is clockwise in Assembly's
+standard side view about the component's root chord midpoint. Missing angles
+default to zero, including existing version-28 files. Current writers include
+the array; earlier readers may ignore it, so use a rotation-capable build to
+retain these placements. Root pivots are derived from inputs, not serialized.
 Each coordinate must be finite and within +/-10,000,000 mm. `cuts=true` requires
 `positioned=true`. Versions 1-20 initialize false flags and zero offsets.
 The first successful Assembly preparation chooses starting positions when
@@ -354,7 +374,7 @@ Translations and cut intent affect document dirty state, but not individual
 component generation fingerprints. Selected component is transient. Source edits
 clear derived cut intent/caches while retaining translations. Solids and meshes are not serialized. Entering Assembly after Open
 rebuilds components and reapplies requested cuts. Failed/cancelled cuts remain uncut.
-Applications supporting only earlier formats reject current version 28. Original files change only on Save.
+Applications supporting only earlier formats reject current version 29. Original files change only on Save.
 
 ## Retired model caches (version 22) and input-only saving (version 23)
 
@@ -369,8 +389,8 @@ All generated component, accessory, and original/cut Assembly geometry stays in
 memory for the current session. Saving does not clear those caches. Opening starts
 with empty caches and 2D selected; entering 3D or Assembly regenerates geometry
 from saved inputs and reapplies requested Assembly cuts. Saving an older file
-writes version 28 without its embedded models. Existing files remain unchanged
-until Save. Applications supporting only earlier formats reject current version 28.
+writes version 29 without its embedded models. Existing files remain unchanged
+until Save. Applications supporting only earlier formats reject current version 29.
 
 ## Former rotation (version 24)
 
@@ -381,7 +401,7 @@ Side View, negative counter-clockwise and positive clockwise. Width remains
 normal thickness. Positive-area overlap validation uses the rotated masks for
 former/former and former/tray pairs. Touching is allowed.
 
-Versions 1–23 initialize former angles to zero. New saves write version 28;
+Versions 1–23 initialize former angles to zero. New saves write version 29;
 older applications reject it rather than silently generating unrotated inserts.
 Version-22 model caches remain ignored, and generated models are never written.
 
@@ -396,7 +416,7 @@ managed individually by the shared Add/Delete controls.
 
 ## Version 26: Weight and Balance
 
-`weightBalance` stores `densityKgM3` (XPS, default 32.5),
+`weightBalance` stores `densityKgM3` (XPS, default 25.63),
 `plywoodDensityKgM3` (Aero Plywood, default 680), and `parts` (up to 1000).
 Densities are finite, positive, from 0.001 through 10000 kg/m³. Each part stores
 `name` (trimmed, unique ignoring case, 1–200 characters, single line), `widthMm`,
@@ -419,3 +439,23 @@ fuselage/stabilizer sizes follow the shared wing scale (ADR-0040).
 Undo/Redo history, highlighted orphan profiles, and model-only end registration
 are transient. Recovery changes the existing station profile index; deleting an
 orphan empties its stable sketch slot. Neither requires a format revision.
+
+## Smoothed airfoil copies
+
+Smoothed copies use the existing imported-profile representation with embedded
+normalized coordinates. Originals and station assignments remain unchanged.
+Preview strength is transient; no persistent field or version change is needed.
+
+## Optional airplane statistics cache (format 29)
+
+`airplaneStatistics` stores nullable finite numeric fields `wingspanMm`,
+`wingAreaMm2`, `rootChordMm`, `aspectRatio`, `fuselageLengthMm`,
+`horizontalAreaMm2`, `verticalAreaMm2`, `weightGrams`, `cgFromLeadingEdgeMm`,
+and `wingLoadingGramsPerDm2`. Only CG may be negative. Missing fields mean
+unavailable. Optional `balance` stores `sourceKey` (64 lowercase hexadecimal
+SHA-256 characters), `leadingEdgeMm`, three `volumesMm3` and three `[x,z]`
+`centersMm`, ordered foam, plywood, carbon fiber. Volumes are nonnegative.
+No individual component geometry or breakdown is serialized. The reader validates
+numbers and array sizes; the GUI recomputes outline statistics and discards mass
+measurements whose source key no longer matches. Earlier projects omit this
+cache; earlier format-29 readers can ignore it safely. See ADR-0047.

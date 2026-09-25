@@ -16,8 +16,9 @@ entries identify each fuselage/wing/stabilizer/control solid and the servo tray.
 Multiple solids from one named component receive numeric suffixes.
 
 Assembly keeps formers and the servo tray as standalone inserts, separate from
-the fuselage body. Seat cuts affect only body pieces; inserts remain unchanged
-and are exported independently, never joined to the fuselage.
+the fuselage body. Cut Intersections subtracts the placed wing from formers;
+the servo tray remains unchanged. Both are exported independently, never joined
+to the fuselage. Undo Cuts restores the original former geometry for export.
 Each former retains its rotated local mid-plane alongside its finished geometry.
 This metadata is session-only and adds no fields to the project format. Opening a
 project saved in Export returns to Fuselage Side View in 2D without regeneration.

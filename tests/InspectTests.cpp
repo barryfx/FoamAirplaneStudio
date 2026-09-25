@@ -34,8 +34,8 @@ class InspectTest {
 public:
   static void run(const QString& capture) {
     MainWindow w;w.resize(1200,760);w.move(w.screen()->availableGeometry().topLeft()+QPoint{10,10});w.show();QApplication::processEvents();
-    CHECK(w.workspaceToolBar_->actions().back()->text()=="Inspect");
-    w.workspaceToolBar_->actions().back()->trigger();QApplication::processEvents();
+    CHECK(w.workspaceToolBar_->actions()[6]->text()=="Inspect");
+    w.workspaceToolBar_->actions()[6]->trigger();QApplication::processEvents();
     CHECK(w.inspectPanel_->isVisible());CHECK(w.graphicsTabs_->currentIndex()==1);CHECK(!w.graphicsTabs_->isTabEnabled(0));
     CHECK(w.inspectPanel_->visibleShapes().empty());CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_);
     // Individual generated caches can be inspected without a complete Assembly.
@@ -61,7 +61,7 @@ public:
     sample.inserts.push_back({"Former 1",box(20,-18,-18,2,36,36),gp_Pln{gp_Pnt{21,0,0},gp_Dir{1,0,0}},"Former/0"});
     sample.inserts.push_back({"Servo Tray",box(70,-15,-5,35,30,3),{},"Servo Tray"});
     w.assemblyOriginals_=sample;w.assemblyState_.positioned=true;w.assemblySourceFingerprint_=w.assemblyFingerprint();
-    w.updateWorkspaceAvailability();w.workspaceToolBar_->actions()[8]->trigger();QApplication::processEvents();
+    w.updateWorkspaceAvailability();w.workspaceToolBar_->actions()[6]->trigger();QApplication::processEvents();
     const auto count=geometry::assemblyExportParts(sample).size();CHECK(count==6);
     CHECK(w.inspectPanel_->visibleShapes().size()==count);CHECK(w.viewport_->displayedShapes_.size()==count);
     CHECK(w.viewport_->property("assemblyReferencePages").toInt()==0);
@@ -91,7 +91,7 @@ public:
       auto* fuselageCheck=w.findChild<QCheckBox*>("inspectVisible1");fuselageCheck->click();
       QApplication::processEvents();CHECK(w.screen()->grabWindow(w.winId()).save(capture+"-hidden.png"));fuselageCheck->click();
     }
-    w.workspaceToolBar_->actions()[6]->trigger();QApplication::processEvents();
+    w.workspaceToolBar_->actions()[8]->trigger();QApplication::processEvents();
     CHECK(w.viewport_->displayedShapes_.size()>0);CHECK(!w.inspectPanel_->isVisible());
     w.findChild<QCheckBox*>("exportAll")->click();const auto selected=w.exportPanel_->selectedParts();
     CHECK(selected.size()==count);CHECK(selected[0].name=="Nose Former");
@@ -113,7 +113,7 @@ public:
     STEPControl_Reader reader;CHECK(reader.ReadFile(step.fileName().toStdString().c_str())==IFSelect_RetDone);CHECK(reader.TransferRoots()>0);
     geometry::writeComponentExports(selected,geometry::FormerExportFormat::Dxf,geometry::ComponentExportFormat::Stl,std::filesystem::path{output.path().toStdWString()},w.exportProjectName());
     CHECK(QFile::exists(output.filePath("Nose Former.dxf")));CHECK(QFile::exists(output.filePath("Main Wing.stl")));
-    w.workspaceToolBar_->actions()[8]->trigger();CHECK(w.findChild<QLineEdit*>("inspectName0")->text()=="Nose Former");
+    w.workspaceToolBar_->actions()[6]->trigger();CHECK(w.findChild<QLineEdit*>("inspectName0")->text()=="Nose Former");
     CHECK(w.openProjectFile(project,error));CHECK(!w.projectModified());CHECK(w.inspectPanel_->names().value(wingId)=="Main Wing");
     CHECK(!w.assemblyPrepareJob_&&!w.modelJob_&&!w.fuselageJob_);CHECK(!w.exportAssemblyParts());
     w.resetProject();CHECK(w.inspectPanel_->names().empty());CHECK(w.exportProjectName()=="Untitled");
@@ -124,7 +124,7 @@ public:
     wingProject.stations.lines={{{0,0,0,{10,10}},{0,2,1,{10,40}},LineAlignment::Vertical,0},
         {{0,0,1,{110,10}},{0,2,0,{110,40}},LineAlignment::Vertical,0}};
     wingProject.airfoils.entries.push_back({"NACA",domain::AirfoilProfile::nacaSymmetric(.12),{},{}});
-    w.restoreProject(wingProject);w.workspaceToolBar_->actions()[8]->trigger();CHECK(w.assemblyPrepareJob_);waitForModel(w);
+    w.restoreProject(wingProject);w.workspaceToolBar_->actions()[6]->trigger();CHECK(w.assemblyPrepareJob_);waitForModel(w);
     CHECK(!w.wingShape_.IsNull());CHECK(w.builtWingFingerprint_==w.wingFingerprint());
     CHECK(w.inspectPanel_->visibleShapes().size()>0);CHECK(w.fuselageShape_.IsNull());
     const auto firstWing=w.wingShape_;w.updateInspect();CHECK(!w.assemblyPrepareJob_);CHECK(w.wingShape_.IsSame(firstWing));
@@ -137,7 +137,7 @@ public:
     CHECK(w.findChild<QLineEdit*>("inspectName0")->text()=="Renamed generated wing");
     CHECK(w.inspectPanel_->isVisible()&&!w.graphicsTabs_->isTabEnabled(0));
     w.resetProject();
-    auto json=encodeProject(document);CHECK(json["version"]==28);json["version"]=26;json.remove("componentNames");
+    auto json=encodeProject(document);CHECK(json["version"]==29);json["version"]=26;json.remove("componentNames");
     auto ui=json["ui"].toObject();ui["workspace"]=0;json["ui"]=ui;
     CHECK(decodeProject(json).componentNames.empty());
     auto invalid=encodeProject(document);invalid["componentNames"]=QJsonObject{{"Wing/solid/0","../escape"}};

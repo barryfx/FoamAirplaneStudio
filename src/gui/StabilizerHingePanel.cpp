@@ -14,9 +14,11 @@ StabilizerHingePanel::StabilizerHingePanel(SketchEditor& editor,bool horizontal,
   auto* text=new QLabel{QString{"Draw connected straight line segments across the %1 outline to separate the %2. "
     "Start and end on or beyond the outline boundary (the open root edge also counts). "
     "Click Draw Hinge Line, then click each corner. Escape finishes; with drawing off, drag points or select a segment and press Delete. "
-    "The longest segment defines the hinge and receives the bevel on the trailing-edge side only. "
+    "%3 The other connected segments remain square cuts; two-segment hinges are supported. "
     "Tape Hinge Cut leaves upper-surface contact with a 45-degree gap below. Standard Hinge Cut leaves mid-thickness contact with 45-degree gaps above and below."}
-    .arg(horizontal?"horizontal stabilizer":"vertical stabilizer",horizontal?"elevator":"rudder"),this};
+    .arg(horizontal?"horizontal stabilizer":"vertical stabilizer",horizontal?"elevator":"rudder",
+      horizontal?"The longest segment receives the bevel on the trailing-edge side only.":
+      "The segment closest to the fin's vertical span direction receives the bevel on the trailing-edge side only."),this};
   text->setWordWrap(true);layout->addWidget(text);
   tape_=new QRadioButton{"Tape Hinge Cut",this};standard_=new QRadioButton{"Standard Hinge Cut",this};
   auto* group=new QButtonGroup{this};group->setExclusive(true);group->addButton(tape_);group->addButton(standard_);

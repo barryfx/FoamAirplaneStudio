@@ -1,5 +1,7 @@
 #include "geometry/SparCut.h"
 #include "gui/ProjectDocument.h"
+#include "gui/WingCalibration.h"
+#include "gui/SketchBoundary.h"
 #include "geometry/FuselageSolidBuilder.h"
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepGProp.hxx>
@@ -21,6 +23,8 @@
 #include <thread>
 #include <stdexcept>
 #include <cmath>
+#include <condition_variable>
+#include <mutex>
 using namespace designrc;
 #define CHECK(c) do{if(!(c))throw std::runtime_error(std::string{#c}+" line "+std::to_string(__LINE__));}while(false)
 std::vector<TopoDS_Solid> bodies(const TopoDS_Shape& shape) {
@@ -34,13 +38,46 @@ int main(int argc,char** argv) {
     if(argc<2)throw std::runtime_error("Specify a .foam benchmark fixture.");
       QString error;auto project=gui::readProject(QString::fromLocal8Bit(argv[1]),error);
       if(!project)throw std::runtime_error(error.toStdString());
+      std::optional<double> length;
+      if(!project->reference.toScale) {
+        const auto side=gui::closedSketchBoundary(project->fuselage.layers.at(1));
+        CHECK(side);
+        double left=side->front().x(),right=left;
+        for(auto point:*side){left=std::min(left,point.x());right=std::max(right,point.x());}
+        CHECK(project->reference.wingspanMm);
+        length=(right-left)*gui::wingCalibration(project->wing.layers,project->stations.lines,
+            project->reference.wingspanMm).scale;
+      }
       geometry::FuselageSolidInput input{project->fuselage.layers,project->fuselageStations.lines,project->fuselageProfiles.layers,
-        project->reference.toScale?std::nullopt:project->reference.fuselageLengthMm,
+        length,
         project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles,project->formers.rotationDegrees,project->fuselageHoles.layers};
+      input.mirrorConstruction=!qEnvironmentVariableIsSet("FOAM_BENCH_FULL_SYMMETRIC");
+      std::cout<<"Mirrored construction: "<<input.mirrorConstruction<<std::endl;
       const bool parallel=!qEnvironmentVariableIsSet("FOAM_BENCH_SERIAL");
       std::cout<<"Fuselage parallel mode: "<<parallel<<std::endl;
       const auto start=std::chrono::steady_clock::now();std::stop_source stop;
-      const auto shape=geometry::buildFuselageModel(input,[&](const char* p){std::cout<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"s "<<p<<std::endl;},{stop.get_token(),parallel}).shape;
+      const auto cancelStage=qgetenv("FOAM_BENCH_CANCEL_STAGE").toStdString();
+      const int cancelDelay=qEnvironmentVariableIntValue("FOAM_BENCH_CANCEL_DELAY_MS");
+      std::jthread canceller;std::chrono::steady_clock::time_point requested{};
+      TopoDS_Shape shape;
+      try {
+        shape=geometry::buildFuselageModel(input,[&](const char* p) {
+          std::cout<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<"s "<<p<<std::endl;
+          if(!cancelStage.empty()&&!canceller.joinable()&&std::string{p}.find(cancelStage)!=std::string::npos)
+            canceller=std::jthread{[&](std::stop_token done) {
+              std::mutex mutex;std::condition_variable_any wake;std::unique_lock lock{mutex};
+              wake.wait_for(lock,done,std::chrono::milliseconds{std::max(0,cancelDelay)},[]{return false;});
+              if(!done.stop_requested()){requested=std::chrono::steady_clock::now();stop.request_stop();}
+            }};
+        },{stop.get_token(),parallel}).shape;
+      } catch(const geometry::ProcessingCancelled&) {
+        if(cancelStage.empty())throw;
+        if(canceller.joinable())canceller.join();
+        CHECK(stop.stop_requested());
+        std::cout<<"Cancellation acknowledged after "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-requested).count()<<" seconds; no result published."<<std::endl;
+        return 0;
+      }
+      CHECK(cancelStage.empty());
       std::cout<<"Build seconds: "<<std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count()<<std::endl;
 
       Bnd_Box box;BRepBndLib::AddOptimal(shape,box,false,false);double a,b,c,d,e,f;box.Get(a,b,c,d,e,f);
