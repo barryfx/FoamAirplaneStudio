@@ -109,3 +109,6 @@ Half-fuselage timing and geometry parity: [validation](baseline/fuselage-speedup
 - `adr/0046-carbon-fiber-spar-mass.md` describes automatic spar material accounting and tube dimensions.
 
 - `architecture/airplane-statistics.md` and `adr/0047-persistent-airplane-statistics.md` describe shared summaries, Wing Loading and persistent measurement validity.
+
+Dependency license texts, component coverage and compatibility notes are in
+[the license collection](../licenses/README.md).

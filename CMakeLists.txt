@@ -247,10 +247,10 @@ if(WIN32)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_CURRENT_SOURCE_DIR}/resources/help" "$<TARGET_FILE_DIR:designrc>/help"
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-      "${CMAKE_CURRENT_SOURCE_DIR}/resources/licenses" "$<TARGET_FILE_DIR:designrc>/licenses"
+      "${CMAKE_CURRENT_SOURCE_DIR}/licenses" "$<TARGET_FILE_DIR:designrc>/licenses"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
-      "$<TARGET_FILE_DIR:designrc>/licenses/DESIGNRC-GPL-3.0.txt"
+      "$<TARGET_FILE_DIR:designrc>/licenses/GPL-3.0.txt"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${CMAKE_CURRENT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
       "$<TARGET_FILE_DIR:designrc>/licenses/THIRD_PARTY_NOTICES.md"

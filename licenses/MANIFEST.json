@@ -1,0 +1,457 @@
+[
+  {
+    "file": "GPL-3.0.txt",
+    "source": "repository LICENSE",
+    "sha256": "0ae0485a5bd37a63e63603596417e4eb0e653334fa6c7f932ca3a0e85d4af227"
+  },
+  {
+    "file": "FREETYPE-FTL.txt",
+    "source": "repository resources/licenses/FREETYPE-FTL.txt",
+    "sha256": "21878c9be611eecf3f936301e277f77719c14316a5132c0877c4d0dc54e5470c"
+  },
+  {
+    "file": "FREETYPE-LICENSE.txt",
+    "source": "repository resources/licenses/FREETYPE-LICENSE.txt",
+    "sha256": "d91ddbd45278a6e3e6ec46abfb46baf81e14cd0e3afa5d5450390a8935d71e6f"
+  },
+  {
+    "file": "ICU-LICENSE.txt",
+    "source": "repository resources/licenses/ICU-LICENSE.txt",
+    "sha256": "ca3377cf03eb05c9b9dfaca03a2dfb744ac4edcc7088c945baad6144cc81f0f5"
+  },
+  {
+    "file": "OCCT-LGPL-2.1.txt",
+    "source": "repository resources/licenses/OCCT-LGPL-2.1.txt",
+    "sha256": "b673293d21e887eaa9b971696b33f0f9141839900c65c83e560afa469d291ba6"
+  },
+  {
+    "file": "OCCT-LGPL-EXCEPTION.txt",
+    "source": "repository resources/licenses/OCCT-LGPL-EXCEPTION.txt",
+    "sha256": "0496cacd0971f871c255ef38c78166e6c34fe1bfde00ab2b868a477f1e27c4f5"
+  },
+  {
+    "file": "QT-LGPL-3.0.txt",
+    "source": "repository resources/licenses/QT-LGPL-3.0.txt",
+    "sha256": "0cd45bd892ef8ad24ca01620062a41b4061a985dd0bbd789006537d55c9e59a7"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-tika-mimetypes.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-tika-mimetypes.html",
+    "sha256": "d7a584301eecb4fc0a111831268d821cb9bcd239503a23b961c088383c1d9459",
+    "source_sha256": "08dcb1567ced69f52156776d824ec8099aa93965faec9b236707d30579190e59"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-blake2.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-blake2.html",
+    "sha256": "1d2d8dd1981a8e124f49b68da7b5db61c9fb2e8f4237dd0ade2267e2a55f2ba5",
+    "source_sha256": "63115742319f03ea4dd52509977cda298052fb4f49d209bf6f18be95ba5143e0"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-zlib.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-zlib.html",
+    "sha256": "1a226a7fc23160b63818d826531fccd985858ef3586964fdb55179d37c5546d1",
+    "source_sha256": "4b9dd53430fd483913ccd65f2acfeae2d9d1757fa94a64e28b6cb576f08bf44c"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-easing.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-easing.html",
+    "sha256": "527eb0a4a399202e519bcaad7e40e46fecc26c9ca35309b3e8d5c5a4b172bfdc",
+    "source_sha256": "6815b51d229184f7474f008b35dd00c36e637eeaca06256343929f480f69820f"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-doubleconversion.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-doubleconversion.html",
+    "sha256": "16200fab631b373f3c51eadbbc505bdb96c6993f48c6042713f7d655baacf886",
+    "source_sha256": "b44317b5e60bd2cd42eb31f9f858a30ac2745e66353836d9cc2436f4f4a8d866"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-md4.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-md4.html",
+    "sha256": "72a2ba6f2a19fc422aaa1fe4fa1443e029145c7afd5ec981e66c3b82314b50d4",
+    "source_sha256": "007e82e38bea3ed9482b6940b35df614b3bb6863a81652406cf31c6ecc59ed66"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-md5.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-md5.html",
+    "sha256": "fd6aeec165343b357d88db04154ad47e6df3e043cbcdb66dc1e12db031055998",
+    "source_sha256": "51a90c2525fbbd0aad93c9643759a96dc6c415fae9cec16f391db4168c77756e"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-pcre2-sljit.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-pcre2-sljit.html",
+    "sha256": "054b978491b7fa05309033f0a2217e24cd9002d60b5df8d3bdf930db05c8d516",
+    "source_sha256": "95367a63d343cbd32c4402f26b98c3f668f154876623e2bba1f12566c18933de"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-pcre2.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-pcre2.html",
+    "sha256": "03ae5bee64bcbab4ff4745790ac307ee9315c74749cf9884f3d7925dce4735ac",
+    "source_sha256": "3a23710aeeb0fece92da5eb37df13cd87e9397d9267b69bddb87532d07edd391"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-qeventdispatcher-cf.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-qeventdispatcher-cf.html",
+    "sha256": "9f1edbf3aa41e1027f2fb41ef0f986f924e32d8ba639b061abfb173760ec591d",
+    "source_sha256": "d63cf17650a33dd163fda68fd461ab7780c5ccd104c6f56f910efd1b6fc4a84b"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-sha1.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-sha1.html",
+    "sha256": "0e64566ab097aebe094f1df610f82c8914a60c844bd77d17e31de985f0e30d97",
+    "source_sha256": "ee578af729d5efb601e227bb4430c360920b0530efa027b267a2bf2cbffcc706"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-sha3-keccak.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-sha3-keccak.html",
+    "sha256": "c497222ac4686ea8572d41851cb4d20d41720852b7729e296273cd867c6755f5",
+    "source_sha256": "a148aa97cac56938567a9fef6a923dd7b659e2b41bce8b29f3c344a9e83dcc84"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-sha3-endian.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-sha3-endian.html",
+    "sha256": "7c4040a8b96091d44393af25fb4d01a91e90fb3b191b4321f001d7bb19e0ae18",
+    "source_sha256": "867f8835bbe8fb7ae212500bf985a1b3c701e65a2e589578627349263821a434"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-rfc6234.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-rfc6234.html",
+    "sha256": "2adebb4318a1352ec1bafc756f0293d96eb028bb0108bc37f9a17415442b56e0",
+    "source_sha256": "41479d4fad97a8971add14ed3715b86cc2bae5da1d23e314a007fd8ec495f603"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-siphash.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-siphash.html",
+    "sha256": "ca67534a9debc714d9e508632ef5a49e3b0e28b093bcc9fbbe3439ea6ebf9a8e",
+    "source_sha256": "83d72bcd5afff7ad54de9bff20b5f87e793949cbb0ca45d3c740583b7d7e5baf"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-tinycbor.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-tinycbor.html",
+    "sha256": "586a655ee20fa4bf9e7e4582cf711f968e76a3e161a8f55c34514ba2535da6d5",
+    "source_sha256": "f78cb86e4bd97772ef1b844095dee76d438991c4732f6a64a9b12cd0eb33db4c"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-unicode-character-database.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-unicode-character-database.html",
+    "sha256": "3e759e59e982462d961b71e30eecbc7f9049c50caa01b4f155e4e0f25e064900",
+    "source_sha256": "1bcdf2aaa174b886821013e32647e425aedcb1b0dae2cc43c0061ac4a8688ee8"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-unicode-cldr.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-unicode-cldr.html",
+    "sha256": "d948d674cc5505d37d9d429b4ceb7e39c47145893c36006e4160ba969e4ccda0",
+    "source_sha256": "789983bd996fb7fc16eae1d8fa003c4f9092e1468e209aec3725bdb65031058f"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-forkfd.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-forkfd.html",
+    "sha256": "155f4dbf9ceb6e3a91caf18f450b80f7e455bbb64dfec447bae172325c642e5a",
+    "source_sha256": "49fab68ef8d88964a94affc8d35965cd2105d1102c35393483479da03be45821"
+  },
+  {
+    "file": "qt/qt-core/qtcore-attribution-tlexpected.txt",
+    "source": "Qt 6.11.1 installed documentation: qtcore/qtcore-attribution-tlexpected.html",
+    "sha256": "e3b178349e6df42b1246449714774007211324266fe3b7fa11bf3698745e51a7",
+    "source_sha256": "fc345f9544f42cbd34e7f77c388d5d2e73385db96dd855c375c94a003e1fb408"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-aglfn.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-aglfn.html",
+    "sha256": "23797eb7244bd56e201059924202d4a97d911d4ed0b6930fd01cfeeef2a44f5c",
+    "source_sha256": "419fb32b1242fade6bbc23787090cbb742b1d1b3ba6fc63d9f8ab73f718e491f"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-grayraster.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-grayraster.html",
+    "sha256": "98949b12ff0244b5a263749a76d652bf7e6e70df8a92060e2a4f8549ac1573a2",
+    "source_sha256": "a904262ef8da60c1b105ae14233f1cb783a70f77599dad43c1a4b168882257ae"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-cocoa-platform-plugin.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-cocoa-platform-plugin.html",
+    "sha256": "9f1edbf3aa41e1027f2fb41ef0f986f924e32d8ba639b061abfb173760ec591d",
+    "source_sha256": "fa9ba4fc8d82d75f016bef3e6f313bbdb925d11f20685c3d954a63c10cca71e3"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-d3d12memoryallocator.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-d3d12memoryallocator.html",
+    "sha256": "75897dbdc8f075034a42469dae1b0dfc5f0c55314923e02a6c2862ee30cd7d77",
+    "source_sha256": "21626b00e3a3c513a7426a1633dabdbf7446bb4c7cfb69a1ef203ae404247d39"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-dejayvu.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-dejayvu.html",
+    "sha256": "2b8358bcbc1ecd6d2c607a80c52f96427dc0bba44d064d04c7a3d0d7675a984a",
+    "source_sha256": "405db499505f5711ced4c1589116563fb82cd55081238e8b4d3637a269e1e800"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-emoji-segmenter.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-emoji-segmenter.html",
+    "sha256": "74b7181df378c3b14c96297a449be9a81ccc068ca0fc542194d812b5bcfbcf13",
+    "source_sha256": "3500be5f3ced65262159f7bba4a41efdff3a2d3a4ff418d25373e21d0af848f1"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-freetype-bdf.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-freetype-bdf.html",
+    "sha256": "9f3ceb847a231c14b37092c678c2960a6c126797c9b1fa0c55d41bf3b6d7c42f",
+    "source_sha256": "3df0aedd45315a5272430ac2c0111c19e746e61930c70ca5e9d9b4caecf956be"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-freetype-pcf.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-freetype-pcf.html",
+    "sha256": "d3f664ad6b085b75ee261c262fb47664d4ecda922501293097370d9b24f150e7",
+    "source_sha256": "f41680629abe26a76106e623e677b174643c8688798a946ea74e0e30d27e9d11"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-freetype-zlib.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-freetype-zlib.html",
+    "sha256": "4ce85d2a42b1ea5356d0f929b90311975770d7ab6e85ef47c5fce235430a3ecb",
+    "source_sha256": "de78a4adf17736326bea83e2616f45dceb607ab3e4c4b66a18d3b099ffe0189e"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-freetype.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-freetype.html",
+    "sha256": "98a33a4d0fa6fe4fa2432a1d4021b30e69ffe7dbd352a8f888437e94435c6024",
+    "source_sha256": "1f8c0b6af5d8d6fabad3c0d431cb0b41ad916d6a990b695b2114ed17abd7add8"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-harfbuzz-ng.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-harfbuzz-ng.html",
+    "sha256": "526cc8dd162837cbad7d1ad5e967d194fccd3cb48ef138906e29ca443638cd6c",
+    "source_sha256": "2f64538186613e0edf80af2ff83c425e75733cc85264b7ec610f037949760baf"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-libjpeg.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-libjpeg.html",
+    "sha256": "28bd12348364bd0bdf91705f42daa47b66b1ea87d6958c07ee1dcb217817df86",
+    "source_sha256": "b4a9d942beffbe11f63c105f842ab4738b9bf7cbe3f9c954ef5d1faf21bc8dcf"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-libpng.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-libpng.html",
+    "sha256": "59dc4d41ea0a054ff3f28b8308897e208bad6f023873c6c3739941e59b117751",
+    "source_sha256": "4bc68e0ddb281039bc14dba8e75b489c5ef27bcb19fc99a53abcee19229db7b7"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-md4c.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-md4c.html",
+    "sha256": "551d0c3c81b9b12fb5a37e808701f6b7db2bea2ebd6f64ab63c84bce70afbf76",
+    "source_sha256": "2d9174261a9971e9906204f8645499de9e463c84b2b9705abb528973ba6a6634"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-rhi-miniengine-d3d12-mipmap.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-rhi-miniengine-d3d12-mipmap.html",
+    "sha256": "8d61f3f41e74779219c2fe4d2632468f437aecaa439fd7cf01f53cc3acea4564",
+    "source_sha256": "0f2350bbd1f08223695c7bf1ca1f2aea1725cedd0c08bf9a174e428754ff787b"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-android-native-style.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-android-native-style.html",
+    "sha256": "c7f7014d962325727dc0aa1a7fdc40ebfd7ec3dc6b630909cd0436743626449e",
+    "source_sha256": "5e013c2fcf2ff0a57ff7caf55cd8a891f17840dc868b045a6488f0efa44ef56e"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-opengl-es2-headers.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-opengl-es2-headers.html",
+    "sha256": "15a3bd7be3681cbd4ef98f51dcac9ad79227ba6f0546fabaa740a5169fd5e431",
+    "source_sha256": "b8e16b302765980b877e5831743fd8a664950ea108e9f39cf6f7f6b1c2570671"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-opengl-headers.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-opengl-headers.html",
+    "sha256": "15a3bd7be3681cbd4ef98f51dcac9ad79227ba6f0546fabaa740a5169fd5e431",
+    "source_sha256": "a18ada81ea6d64ebc9ff0dd865e2d7d57703e14ed3a2284fb537d09437870db9"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-pixman.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-pixman.html",
+    "sha256": "01e07ae4f8af07285b86a0f06e0a730dcd8646625c3fd5e0012885915efb84e6",
+    "source_sha256": "1209363a9ea3b1280e6c6b49c79cf970327b5c13eee3f07a13015255301c40eb"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-smooth-scaling-algorithm.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-smooth-scaling-algorithm.html",
+    "sha256": "039fe0bacdae833ab4f9707da141d7d9e6b111df9777488d0a8eab155390e096",
+    "source_sha256": "11c09e504cdd423424e922711836adf91135061c0b43fe7b69f2c46c862d682a"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-vulkan-xml-spec.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-vulkan-xml-spec.html",
+    "sha256": "cb1cca40dbfb2268b0bf45bf2e68916759c9bf2068fe9a2acfe54defaeebd18e",
+    "source_sha256": "9c64363ab0b93c7900b185bb22c06e88a36cbeaa9cc18f36c0a761b1d02f5528"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-vulkanmemoryallocator.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-vulkanmemoryallocator.html",
+    "sha256": "72e6b061aed62c9e4758f725236fa89e3d43c1308c7a6e8a5e231d0ce3c5f366",
+    "source_sha256": "6f63e6e5f8f65e6f10048e750fef3db79dd6ba7a72b0599a4c5c9172ba540747"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-webgradients.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-webgradients.html",
+    "sha256": "b1635eea7016aec03f859240c1b6cef20680dce6dc6783b3add164c58cf88793",
+    "source_sha256": "6df3bb49e9125d2a7fe337ff2e878322a22ec0afe9dd0ff399ebe2eeaafb53a5"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-wintab.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-wintab.html",
+    "sha256": "f66a05d39d121341fd2558920fafb434021156669ae9d778d39d6ac146d5cd91",
+    "source_sha256": "8922926f67857ad9e97dd06da256a7e6ee4599cd50ad7e7d518cfdf951d45b8b"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-xserverhelper.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-xserverhelper.html",
+    "sha256": "6af74ee3a38344fe29f0cff6edd6a25707f796d6dd140c02b3fb3c85368c1cde",
+    "source_sha256": "f3dd5d7cccfbf6f27cae1d5025bd30c670aae2c4ee50974e68c2371ad744b390"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-xcb-xinput.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-xcb-xinput.html",
+    "sha256": "d271cd501fe8699749bba04c756a45cfea94880b4ee7559ddc121f4269d3afc0",
+    "source_sha256": "4d66e3faf1396c10fb55ae3fac28ac3105c34928b0329112a2cfa54dbade3aa2"
+  },
+  {
+    "file": "qt/qt-gui/qtgui-attribution-icc-srgb-color-profile.txt",
+    "source": "Qt 6.11.1 installed documentation: qtgui/qtgui-attribution-icc-srgb-color-profile.html",
+    "sha256": "9dbf400a6646caf575ffaf837ec07e57af4dd61e2d277a01fa258c206805860e",
+    "source_sha256": "08ea936af191c7236e18f90bddb542c0dd5a98b90b942e91c0fcea17c61e9aab"
+  },
+  {
+    "file": "qt/qt-network/qtnetwork-attribution-psl-data.txt",
+    "source": "Qt 6.11.1 installed documentation: qtnetwork/qtnetwork-attribution-psl-data.html",
+    "sha256": "58de028199539f22e50a736adf32974e9697742c14668615828cd8d2a658332e",
+    "source_sha256": "753523f78330f270f9df9bcffef3cdf35601835342d96a2e9219f636bd508c08"
+  },
+  {
+    "file": "qt/qt-network/qtnetwork-attribution-libpsl.txt",
+    "source": "Qt 6.11.1 installed documentation: qtnetwork/qtnetwork-attribution-libpsl.html",
+    "sha256": "9fe2a8705db7c6c1bd61a1b28632548b06c1d0c6c5b55a91fc83a763ebbee14a",
+    "source_sha256": "90b90ca0457cb458c384acc6b8076879d2346adde121de5f29c4dc34e8bd27cb"
+  },
+  {
+    "file": "qt/qt-svg/qtsvg-attribution-xsvg.txt",
+    "source": "Qt 6.11.1 installed documentation: qtsvg/qtsvg-attribution-xsvg.html",
+    "sha256": "eb778bfdf5e61ceda249df2a56fe5516f96a6465d0c5d9b9042a9a58c7ce3e23",
+    "source_sha256": "dfbc74f6da685f1b24ed093f2ebe48bf392b935689ad440c6fb31e787b4e604d"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-abseil.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-abseil.html",
+    "sha256": "6671cc184a8d093f33c8b3738a8ec38acd903bdcf0f2f7db00bcf87dd11ce2a4",
+    "source_sha256": "ec4fea3227a97863ad74a6d38ddf68b745b076a3f5f94a93cde4e0dd7af162ca"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-freetype.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-freetype.html",
+    "sha256": "555cbb9ac21963329e2e3dd825b35e0fb50d34a3b58c7114543540afd5254108",
+    "source_sha256": "84c6dfc14500f998952a22253d2807d70556febcf78a1a4f9e319a4a9d16ac3f"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-pdfium.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-pdfium.html",
+    "sha256": "30e9c217ab744db08788eed3043d2979f953d37826b2c5feda050f22b31915dd",
+    "source_sha256": "56fd2c88f625f20bdcca34c4bf45bee0468d007725d3cc1fa9c4b9281098afe1"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-the-chromium-project.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-the-chromium-project.html",
+    "sha256": "430d8ad6e86b17c454b483942cde009655931b0d063e401c3bb815f4c7bd999e",
+    "source_sha256": "71b6fba0cc512ad0585471d77dd79203741efa13a09a89d8527f93d13f288039"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-fast-float.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-fast-float.html",
+    "sha256": "28ff9ad6cf6c5a88b56215ffde9061d45bf0ec899a773f0044e75714f4ff8951",
+    "source_sha256": "448ad7a0b1a87464f0d8b5158837d4a8628019d660b903b03f8037300fa02d89"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-icu.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-icu.html",
+    "sha256": "92fc4740127bded1fe2ba6ee2ce906f84edd4f93e449f02a33ddd0b3dcf82f0c",
+    "source_sha256": "76a4f4b3da2df5eee36413159f6d18f48d1de17a6a0e4e9bf04d88ce60902091"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-libjpeg-turbo.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-libjpeg-turbo.html",
+    "sha256": "af735bf1c8fdd14037d5434384cb66fb8affdaa7eb845591c848ff866935fa7b",
+    "source_sha256": "1ebe2d366162adf1b5b87097fb1bca1883662677a1f9815463bb877718f76dd1"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-libpng.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-libpng.html",
+    "sha256": "1f704d2a760e907b1ffb4f41b5c583c8ab781dbcd715fbb1b1306d8961d46241",
+    "source_sha256": "3f103f54e3539cd8776b73bdd10e2611ffa89a7f7415680a16266e14a026bdb9"
+  },
+  {
+    "file": "qt/qt-pdf/qtpdf-3rdparty-zlib.txt",
+    "source": "Qt PDF 6.11.1 documentation archive: qtpdf/qtpdf-3rdparty-zlib.html",
+    "sha256": "a3aa03a414eedf54a5be3d3b76be93ce7d97703566dab904cb8685c50e2b806b",
+    "source_sha256": "fdb3eed347f84fb3ba33758a5a8e47ab6d5e0e1d6f627991f2b25b0321b902ec"
+  },
+  {
+    "file": "graphics/qt-attribution-llvmpipe.txt",
+    "source": "Qt 6.11.1 installed documentation: qtdoc/qt-attribution-llvmpipe.html",
+    "sha256": "b65f20cbad68276b43bb799bf8de82c28b38e88e403fb76f963fa5307cec0745",
+    "source_sha256": "90bfc23b050bfaef3ad83da13b2bce97aff925a294877b88769144c5c0df8447"
+  },
+  {
+    "file": "graphics/qt-attribution-llvm.txt",
+    "source": "Qt 6.11.1 installed documentation: qtdoc/qt-attribution-llvm.html",
+    "sha256": "954569b423922f656551da3fa0f528fa84e527bbf0ecfe432969a22449304cab",
+    "source_sha256": "dbcb858c0dbba6d0f69a11f6ae31eb6afe73d71e76bf68155d679812b1db0a72"
+  },
+  {
+    "file": "qt-sbom/qtbase-6.11.1.spdx",
+    "source": "Qt 6.11.1 installed SBOM: qtbase-6.11.1.spdx",
+    "sha256": "c8ceace4efa14d933d09d8a58a279992be257d1c8e889152ae972346f07be5e3"
+  },
+  {
+    "file": "qt-sbom/qtpdf-6.11.1.spdx",
+    "source": "Qt 6.11.1 installed SBOM: qtpdf-6.11.1.spdx",
+    "sha256": "308e2cdbcee28f0d54f04d02bc7021a644cc176eadf512c852157725e8b63d60"
+  },
+  {
+    "file": "qt-sbom/qtsvg-6.11.1.spdx",
+    "source": "Qt 6.11.1 installed SBOM: qtsvg-6.11.1.spdx",
+    "sha256": "b292276cdb85be91e78a8fb43a40795676e71af051e12df62293d5968bfbcb2a"
+  },
+  {
+    "file": "qt-pdf-source.txt",
+    "source": "Official Qt 6.11.1 archive URL and verified download checksums",
+    "sha256": "7fee93101211c8c9442140f30430225800d96d1282732c18d87072e373bc7690"
+  },
+  {
+    "file": "graphics/dxc/LICENSE-LLVM.txt",
+    "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-LLVM.txt",
+    "sha256": "729615317e28dd03907e46f0fc3b5e88f7853cee61d1a1471d2749335516b46f",
+    "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
+  },
+  {
+    "file": "graphics/dxc/LICENSE-MIT.txt",
+    "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-MIT.txt",
+    "sha256": "903df5512f7d02609fed0c780a9b704f5a3eeb6e4d84ebe42a29845c81899a3c",
+    "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
+  },
+  {
+    "file": "graphics/dxc/LICENSE-MS.txt",
+    "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-MS.txt",
+    "sha256": "734f72f239fe7b07b4c7203f294c1a7ce27095687278bab7e56d630d7c672963",
+    "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
+  },
+  {
+    "file": "graphics/dxc/LICENSE.txt",
+    "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: inc/hlsl/LICENSE.txt",
+    "sha256": "f47b94fc51b04f4354a6c6f41fb84b0bd22a8ebfcde9f93c1b4d9abd7f6d14c2",
+    "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
+  },
+  {
+    "file": "microsoft/windows-sdk-10.0.26100.0/sdk_license.rtf",
+    "source": "Installed Windows SDK 10.0.26100.0 Licenses/sdk_license.rtf",
+    "sha256": "0f4a26ac9dc50066f8a1bfeaaf3f092d1b9e4791df5487b9f3c31e7c3dc4d7f5"
+  },
+  {
+    "file": "microsoft/windows-sdk-10.0.26100.0/sdk_third_party_notices.rtf",
+    "source": "Installed Windows SDK 10.0.26100.0 Licenses/sdk_third_party_notices.rtf",
+    "sha256": "ebb6640a8246b39b70322c5cec9aad7a71e86ea7b86c9c604d3a7f3ff1b30e89"
+  }
+]

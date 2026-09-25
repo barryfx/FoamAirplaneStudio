@@ -11,9 +11,13 @@ The current Windows build deploys Qt, OCCT and FreeType. Linux package details
 below are retained historical dependency notices; current Linux release packaging
 has not been validated. No dependency sources were modified.
 
+The complete collected license texts and component notices are in
+[`licenses/`](licenses/README.md), with a component index, source provenance and
+SHA-256 checksums. The Windows build deploys that folder beside the executable.
+
 ## Qt 6
 
-FoamAirplaneStudio uses Qt Core, GUI, Widgets, OpenGL support, and platform runtime plugins. Windows releases
+FoamAirplaneStudio uses Qt Core, GUI, Widgets, Network, SVG, OpenGL support, and platform runtime plugins. Windows releases
 bundle Qt 6.11.1. Historical Ubuntu 24.04 packaging bundled Qt 6.4.2 from Ubuntu's `qt6-base` package. Qt is
 Copyright (C) The Qt Company Ltd. and other contributors. The Qt components used by FoamAirplaneStudio are
 distributed under the GNU Lesser General Public License version 3 (`LGPL-3.0-only`). FoamAirplaneStudio does
@@ -23,7 +27,7 @@ not modify Qt.
 - Windows QtBase source: https://code.qt.io/cgit/qt/qtbase.git/tag/?h=v6.11.1
 - Ubuntu QtBase source package: https://packages.ubuntu.com/source/noble/qt6-base
 - License: `licenses/QT-LGPL-3.0.txt`
-- GNU GPL version 3 incorporated by the LGPL: `LICENSE` in the source repository (also included with deployed license notices)
+- GNU GPL version 3 incorporated by the LGPL: `licenses/GPL-3.0.txt` (identical to the source repository `LICENSE`)
 
 Qt contains third-party components under their own licenses. The exact components deployed with a
 release are documented by Qt's generated SBOM. The build copies the QtBase and QtSvg SPDX documents
@@ -88,3 +92,21 @@ Source and attribution references:
 
 The matching Windows add-on was obtained from Qt's official repository:
 https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtpdf/6111/msvc2022_64/
+
+## Embedded Qt dependencies and license choices
+
+The component index in `licenses/COMPONENTS.md` includes compression/image codecs
+(zlib, libpng, libjpeg-turbo), HarfBuzz, PCRE2/SLJIT, TinyCBOR, double-conversion,
+MD4C, Unicode data, hashing implementations, graphics helpers and XSVG.
+Qt Network's Public Suffix List is MPL-2.0. Qt PDF includes Abseil, FreeType,
+PDFium, Chromium support code, fast_float, ICU, libjpeg-turbo, libpng and zlib.
+Their complete upstream notices are retained under `licenses/qt/`.
+
+Use Qt's LGPL-3.0 option and FreeType's FTL option, including the embedded Qt
+rasterizer. FreeType's GPL-2.0-only alternative is not selected. The application
+remains GPL-3.0-only; third-party components retain their own terms.
+
+Mesa and LLVM notices are under `licenses/graphics/`. Microsoft graphics binaries
+have separate terms; SDK and DXC reference terms are under `licenses/microsoft/`
+and `licenses/graphics/dxc/`. See the license-folder README for the exact inspected
+SDK matches and the remaining provenance check for the older D3DCompiler DLL.

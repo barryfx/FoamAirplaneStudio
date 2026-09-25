@@ -1,0 +1,3 @@
+https://download.qt.io/online/qtsdkrepository/windows_x86/extensions/qtpdf/6111/src_doc_examples/extensions.qtpdf.6111.doc/6.11.1-0-202605090527qtpdf-documentation.zip
+SHA1 997675a5456cb1c739b4b58e8aeafc40ea541120
+SHA256 44b0d7f34e8bb8545db6728de0482b439387bc85f76d284631e54f8f0d97d650

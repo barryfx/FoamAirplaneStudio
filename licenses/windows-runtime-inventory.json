@@ -1,0 +1,298 @@
+{
+  "configuration": "Windows Debug",
+  "date": "2026-09-25",
+  "binaries": [
+    {
+      "file": "D3Dcompiler_47.dll",
+      "sha256": "e994847e01a6f1e4cbdc5a864616ac262f67ee4f14db194984661a8d927ab7f4"
+    },
+    {
+      "file": "dxcompiler.dll",
+      "sha256": "78b5e21a91707b4a567ef281a519c52a45b709561202f54c5ad79c5a315847ed"
+    },
+    {
+      "file": "dxil.dll",
+      "sha256": "77e039c905030a641e53658a008b74e90635a5ea9b6b79eabd0f2003bdfca59a"
+    },
+    {
+      "file": "freetype.dll",
+      "sha256": "637621e4ae51b496b8a86f9b053050d5af2ba999ea0680bbfe3d5df91f976c75"
+    },
+    {
+      "file": "generic/qtuiotouchplugind.dll",
+      "sha256": "c11300e5f102706bcfd5d392f078273a7d0618c01add8895491c4dddd6d32924"
+    },
+    {
+      "file": "iconengines/qsvgicond.dll",
+      "sha256": "cb0e81fbfcc25a7e7b9ebc02f9576540e7c0c551f9ebd5baabae1f171a23cc32"
+    },
+    {
+      "file": "imageformats/qgifd.dll",
+      "sha256": "0e9c7029091fe1e15bcb60dce4c4d05b7bb263fc29e00f6a83635fee37e6b82c"
+    },
+    {
+      "file": "imageformats/qicod.dll",
+      "sha256": "0f18852ea0bd5df515f4d996f5464d439cc42042d8db2e16747507de5b10af13"
+    },
+    {
+      "file": "imageformats/qjpegd.dll",
+      "sha256": "06841e812e52b5cc6f25a7e387bd33a59737f993d95c005d6604d402a68a82a5"
+    },
+    {
+      "file": "imageformats/qpdfd.dll",
+      "sha256": "793e0ec13f2b2a0f10f46ecf3ab7a1729513502ede895acc114934c237fffad2"
+    },
+    {
+      "file": "imageformats/qsvgd.dll",
+      "sha256": "11add8435f14b5b6e53a791c458492f6559b663c3ff4cfc61caf20205f46d899"
+    },
+    {
+      "file": "networkinformation/qnetworklistmanagerd.dll",
+      "sha256": "fc189f794e6b6aa331d8ddece3f2e8a5667cd18984dae96717ad730c04541976"
+    },
+    {
+      "file": "opengl32sw.dll",
+      "sha256": "b04de4541863bc7d8879040a78889c4849c1b1da2784c4630f734c146c2998ce"
+    },
+    {
+      "file": "platforms/qwindowsd.dll",
+      "sha256": "ca92a980b6bce23d485a2a9e0a54d3de77719b9e3b60a302a2c47a9df3736a10"
+    },
+    {
+      "file": "Qt6Cored.dll",
+      "sha256": "81601506e0453ebf5677409d24b705449a5f835f88401608186df55f77f60124"
+    },
+    {
+      "file": "Qt6Guid.dll",
+      "sha256": "c78f44486805c88696f5663a22c866ccd74cf1f59d578b6c0ee05ac22bc1e5f5"
+    },
+    {
+      "file": "Qt6Networkd.dll",
+      "sha256": "9cf80c7b7a612b3e40ad8279e82dfac3e6ba1a5a0ba317bb7dc93d5e72d2b1c5"
+    },
+    {
+      "file": "Qt6Pdfd.dll",
+      "sha256": "8abe64ef5f3dde590cadf998da5195c7a3033f3a28218bcf926386f9209b0a55"
+    },
+    {
+      "file": "Qt6Svgd.dll",
+      "sha256": "096676af4471b2697d6cb2cc424909826418e6947c86561d87c7b0dd4d36f253"
+    },
+    {
+      "file": "Qt6Widgetsd.dll",
+      "sha256": "cedd440a5fd50aa7155708431e792d25af70a11870c0801209594ab65636e0f5"
+    },
+    {
+      "file": "styles/qmodernwindowsstyled.dll",
+      "sha256": "34f58c82c2dab899ec0a2269d4f27462d187f782a6136e7753929c67db26da05"
+    },
+    {
+      "file": "TKBin.dll",
+      "sha256": "8a8c06f2572acb5b20a6ef8be45fdcf2233349a6efd0efc651f8490892d0f6e0"
+    },
+    {
+      "file": "TKBinL.dll",
+      "sha256": "f1c54fb6033c163a32df42482b58c44f49827bc64a2ece0df19f227465d35e8c"
+    },
+    {
+      "file": "TKBinTObj.dll",
+      "sha256": "33ebe3f612d8afd9dcab05a1a3096e689b7958ee1d726a37b7f70b7bedf1c5bf"
+    },
+    {
+      "file": "TKBinXCAF.dll",
+      "sha256": "3abde272b10a6da4d4708ab3185d4ff7c4bdce322591873e807f7a5af228ae63"
+    },
+    {
+      "file": "TKBO.dll",
+      "sha256": "d71bf403599817dc3545784397dc320d24f72a3b57dcabdf57cdf2d46305c30f"
+    },
+    {
+      "file": "TKBool.dll",
+      "sha256": "73cee4a40523795b4a4db502bf660cd012cd216221b7aef92d58cfae153734bf"
+    },
+    {
+      "file": "TKBRep.dll",
+      "sha256": "7faa484e7e4ad541fa9d3dedd0eab96757e0a4dacc205fb17b2f1f2d3618b877"
+    },
+    {
+      "file": "TKCAF.dll",
+      "sha256": "c7a2e153737c3a0084ed53dbc22083bfd742447735177031b993915a9c3be895"
+    },
+    {
+      "file": "TKCDF.dll",
+      "sha256": "bdda881330985a5834af9fbf128addf8e4a90c76fd7db6a016bdd50353a57cf9"
+    },
+    {
+      "file": "TKDE.dll",
+      "sha256": "158dac9669725f99d0be66649d1c0401557bbd8c633b60cb75445ae0fefbbd1d"
+    },
+    {
+      "file": "TKDECascade.dll",
+      "sha256": "ac36ffaf7e2af4c5b0ed8bcf06f62386de94b3877bc98425619e7bbd91af9218"
+    },
+    {
+      "file": "TKDEIGES.dll",
+      "sha256": "3ca3f6adff2845934b47b884c196f3cd154f981c3fb356b457bc4e1fad65a006"
+    },
+    {
+      "file": "TKDEOBJ.dll",
+      "sha256": "5b6950115063143103afa683fc2972df87f414920825a30affe0f9c4559a743e"
+    },
+    {
+      "file": "TKDEPLY.dll",
+      "sha256": "cf64dd78ef1b98f6ef1c9c99a19b42151428464573c57020db769200c574ef94"
+    },
+    {
+      "file": "TKDESTEP.dll",
+      "sha256": "a91e07a26711b2b68e69f2f3e84eef2833382da83e3d94f1da1037cc2225f4e6"
+    },
+    {
+      "file": "TKDESTL.dll",
+      "sha256": "4b74971856ac1c77f44349591bb1fd93a4fa54729c347717aa6bd2d95dcbf4fd"
+    },
+    {
+      "file": "TKDEVRML.dll",
+      "sha256": "063b486006d816639d0a8b66584990ec6e6ce661e89498f7a5441527661394a2"
+    },
+    {
+      "file": "TKernel.dll",
+      "sha256": "965af7dc946bf7d151c581f4c6a7897b331ec6cb3f1844ae93060c7e90956d14"
+    },
+    {
+      "file": "TKExpress.dll",
+      "sha256": "5d0aec9751540576cab4226c53c7913ead5936beaef0e4a2c9e5b1b9ea2a0712"
+    },
+    {
+      "file": "TKFeat.dll",
+      "sha256": "549207573fb8765748fee76092a68d639bd62dcc74124ff1f99e036f72bae66b"
+    },
+    {
+      "file": "TKFillet.dll",
+      "sha256": "a1d87899937b31ff435c912044bced8f112913765777c4462c9c827a6fae5683"
+    },
+    {
+      "file": "TKG2d.dll",
+      "sha256": "1a2af5a43f21a80e5fa66c9f78375eae78467c8abd16ae6050136550933a26ad"
+    },
+    {
+      "file": "TKG3d.dll",
+      "sha256": "f93dc5fe313e369c649e70ed69dd880b863b70b2d4a8d8ff1270c312f3a273ce"
+    },
+    {
+      "file": "TKGeomAlgo.dll",
+      "sha256": "a91a306c3e0f7134e3f6f0e868cf31173075a028f1bba0c865a4692ab908fbdb"
+    },
+    {
+      "file": "TKGeomBase.dll",
+      "sha256": "78c3e427e7632cb51bd8dafd2a59ebf8ca781756fb9cd46b8e623273ead9614e"
+    },
+    {
+      "file": "TKHelix.dll",
+      "sha256": "49eb0e33fb8f46cf12de04682b5b571a6d1d96f7b3bc01977d4fc6370246e09d"
+    },
+    {
+      "file": "TKHLR.dll",
+      "sha256": "9c86865d1fb15f16ebd41645e456bbd4b46ed285eba54ab08070db3b089b74f2"
+    },
+    {
+      "file": "TKLCAF.dll",
+      "sha256": "26ba715e9147df9bd89b2bb59d1a0313947edce50916f9aac4275d08c44d5eb6"
+    },
+    {
+      "file": "TKMath.dll",
+      "sha256": "d77bcfa269cd78aa896396feb6383b8aaea75b15dc861eecf06695e0ab844914"
+    },
+    {
+      "file": "TKMesh.dll",
+      "sha256": "881872a3201930e9a1aa6585dc8f818a50a946e26fdcf894efd69e9b39b65d8e"
+    },
+    {
+      "file": "TKMeshVS.dll",
+      "sha256": "2712a4309c2e2585e23eda8fdb808351a06bcf2e19bacfd0789fb1cf2707e983"
+    },
+    {
+      "file": "TKOffset.dll",
+      "sha256": "721d5495ccde1a204e2d68969b76162b5c1ddbbf2de8604255d001d89d7332b0"
+    },
+    {
+      "file": "TKOpenGl.dll",
+      "sha256": "762733dd5cfff4d9486c59ebfa7ab735ea8aa0bf9d006bd72f55891757e3e1ff"
+    },
+    {
+      "file": "TKPrim.dll",
+      "sha256": "c6fb2c5eb45dbe7b3bab247b9817c18e553c2107354bf8b06f6b5d904d2bfeea"
+    },
+    {
+      "file": "TKRWMesh.dll",
+      "sha256": "2471d50e7fc8b850f7af05cd4aefb4f55def27512ab5c2a797ca895448d7a54e"
+    },
+    {
+      "file": "TKService.dll",
+      "sha256": "0ee2c9fbee66eb69983283717c29ab7b2197515555eb79dd22ecd8673bcf3641"
+    },
+    {
+      "file": "TKShHealing.dll",
+      "sha256": "8c744822070957716d832af5d6e161d7a7ed24dace05b03ccbe42017cd1e8687"
+    },
+    {
+      "file": "TKStd.dll",
+      "sha256": "7af46c0964191733c2280aa608329a16ddb6c55187631032b05cd179de2bc824"
+    },
+    {
+      "file": "TKStdL.dll",
+      "sha256": "5befd294c168299f62ff7c7d1ece2b093b6136b4e61741376c804af0e23c238e"
+    },
+    {
+      "file": "TKTObj.dll",
+      "sha256": "eff35e0811c73727fe9b6914b02288de53eb3b278a2fe8fd48cb909384671b26"
+    },
+    {
+      "file": "TKTopAlgo.dll",
+      "sha256": "efb387250f7333bdeb08f0f11381ec07ec2b86520ae2634cb9a37be68aec8f45"
+    },
+    {
+      "file": "TKV3d.dll",
+      "sha256": "92bc0b70c8e2b4d7b51ab810560f6bdb8bc5a3c2f9223089bb6fdd2bd752e0c0"
+    },
+    {
+      "file": "TKVCAF.dll",
+      "sha256": "cfb69de5216f05dc505d490ef74d61b9b509c8b5e35fd9a49e487e531e0f9ab3"
+    },
+    {
+      "file": "TKXCAF.dll",
+      "sha256": "359f61b8718e54536bbe8c81cb792176a8ea8e0c45869e906388bfb5fd0c87e0"
+    },
+    {
+      "file": "TKXMesh.dll",
+      "sha256": "e01029264ed1b31880a383b383d2a3342d1356bb047bc5c8eb5a6874bec4d7ee"
+    },
+    {
+      "file": "TKXml.dll",
+      "sha256": "5ddf4a26d500af744152bb2fcea62650c4a024a4f876d663a36c14e0e37294d6"
+    },
+    {
+      "file": "TKXmlL.dll",
+      "sha256": "9de5555efa467af0c866e06790e8b97ca8215838eff18925e6391b6d651d7b14"
+    },
+    {
+      "file": "TKXmlTObj.dll",
+      "sha256": "acbba8e80c45a7d31ba1bfb92e32e9a38019c3340249a6ece2efa7130659b62a"
+    },
+    {
+      "file": "TKXmlXCAF.dll",
+      "sha256": "c0bd27457994af228f5dbee18e9895b463d1d7536e3a5aee9b6b64271ec42203"
+    },
+    {
+      "file": "TKXSBase.dll",
+      "sha256": "d0ba6ec07895cb5290aba1cc8bdfb24261a85ec0094e91f44ae51e1d3e19144a"
+    },
+    {
+      "file": "tls/qcertonlybackendd.dll",
+      "sha256": "0d72d40d575d1f05ef917b9f04ba5a4b02d33bd95d482bef70c496b97b868f61"
+    },
+    {
+      "file": "tls/qschannelbackendd.dll",
+      "sha256": "5d846610d6ee722a616242395a61e77bd3bfaee5b02a7197964107107aca3b48"
+    }
+  ]
+}

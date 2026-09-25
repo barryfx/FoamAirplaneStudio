@@ -1,0 +1,1006 @@
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: qtpdf-6.11.1
+DocumentNamespace: https://qt.io/spdxdocs/qtpdf-eb0793c+HEAD-host-windows-amd64-target-windows-msvc-amd64-b66df238-6c92-5dea-9c73-f26ca3a6ed73
+Creator: Organization: TheQtCompany
+Creator: Tool: Qt Build System
+CreatorComment: <text>This SPDX document was created from CMake 3.30.5, using the qt
+build system from https://code.qt.io/cgit/qt/qtbase.git/tree/cmake/QtPublicSbomHelpers.cmake</text>
+Created: 2026-05-08T10:03:11Z
+ExternalDocumentRef: DocumentRef-qtbase-14f2e7e421b1 https://qt.io/spdxdocs/qtbase-59c81a3c+HEAD-host-windows-amd64-target-windows-msvc-amd64-cdf728dd-8a62-585b-b927-fcede1404274 SHA1: 795da5186af00425c907e61e965823c5d810b2b0
+ExternalDocumentRef: DocumentRef-qtdeclarative-ec0f8f1cd151 https://qt.io/spdxdocs/qtdeclarative-a02bed44+HEAD-host-windows-amd64-target-windows-msvc-amd64-766bd7ed-bf39-5726-b655-6fea2c851193 SHA1: c737da851f81c9ffa56d5aa8e0006fda53a08bfa
+ExternalDocumentRef: DocumentRef-qtwebengine-chromium-pdf-17e1d299e5f2 https://qt.io/spdxdocs/qtwebengine-chromium-pdf-eb0793c+HEAD SHA1: bc928aa81fd70203b488493955e59d04bd206b78
+
+PackageName: qtpdf
+SPDXID: SPDXRef-Package-qtpdf-17e1d299e5f2
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf@eb0793c+HEAD
+PackageVersion: eb0793c+HEAD
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf@eb0793c+HEAD
+PackageSupplier: Organization: TheQtCompany
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: Copyright (C) The Qt Company Ltd. and other contributors.
+PackageHomePage: https://qt.io
+PackageComment: <text>Built by CMake 3.30.5 with RelWithDebInfo;Debug configuration for Windows (AMD64)
+qtpdf was configured with:
+    qt-configure-module <sources>/qtpdf -- -DFFMPEG_DIR=C:\FFmpeg-n7.1.3\build\msvc\installed -DQT_DEPLOY_FFMPEG=TRUE -DFEATURE_clangcpp=OFF -DINPUT_headersclean=ON -DFEATURE_webengine_system_libxml=OFF -DFEATURE_webengine_system_libtiff=OFF -DFEATURE_webengine_precompiled_headers=OFF -DCMAKE_MAKE_PROGRAM=C:\Utils\Ninja\ninja.exe -DQT_INSTALL_CONFIG_INFO_FILES=ON -DQT_GENERATE_SBOM=ON -DQT_GENERATE_SOURCE_SBOM=ON -DQT_SBOM_VERIFY_SPDX_V2=ON -DQT_SBOM_REQUIRE_GENERATE_SPDX_V2_JSON=ON -DQT_SBOM_REQUIRE_VERIFY_SPDX_V2=ON -DQT_SBOM_VERIFY_CYDX_V1_6=ON -DQT_SBOM_REQUIRE_GENERATE_CYDX_V1_6=ON -DQT_SBOM_REQUIRE_VERIFY_CYDX_V1_6=ON -DQT_SBOM_PYTHON_INTERP=C:\Python310_64\python.exe -DQT_SBOM_PYTHON_APPS_PATH=C:\Python310_64\Scripts -DQT_LINT_SOURCE_SBOM=ON -DQT_INTERNAL_SBOM_DEFAULT_CHECKS=ON -DQT_INTERNAL_SBOM_AUDIT=ON -DQT_INTERNAL_SBOM_AUDIT_NO_ERROR=ON -DQT_BUILD_TESTS=OFF -DCMAKE_AUTOGEN_VERBOSE=ON -DCMAKE_MESSAGE_LOG_LEVEL=STATUS -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DBUILD_WITH_PCH=OFF
+</text>
+FilesAnalyzed: false
+BuiltDate: 2026-05-08T10:03:11Z
+Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-qtpdf-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-build-tool-CMake-17e1d299e5f2 BUILD_DEPENDENCY_OF SPDXRef-Package-qtpdf-17e1d299e5f2
+RelationshipComment: <text>SPDXRef-Package-qtpdf-17e1d299e5f2 is built using CMake version 3.30.5</text>
+Relationship: SPDXRef-Package-qtpdf-build-tool-CMake-generator-Ninja-Multi-Config-17e1d299e5f2 BUILD_DEPENDENCY_OF SPDXRef-Package-qtpdf-17e1d299e5f2
+RelationshipComment: <text>SPDXRef-Package-qtpdf-17e1d299e5f2 is built using generator CMAKE_GENERATOR: 'Ninja Multi-Config' and CMAKE_MAKE_PROGRAM: 'ninja.exe' version '1.10.2'</text>
+Relationship: SPDXRef-Package-qtpdf-build-tool-Compiler-MSVC-17e1d299e5f2 BUILD_DEPENDENCY_OF SPDXRef-Package-qtpdf-17e1d299e5f2
+RelationshipComment: <text>SPDXRef-Package-qtpdf-17e1d299e5f2 is built by compiler: 'MSVC' version: '19.39.33520.0' frontend variant: 'MSVC'</text>
+Relationship: SPDXRef-Package-qtpdf-build-tool-Linker-MSVC-17e1d299e5f2 BUILD_DEPENDENCY_OF SPDXRef-Package-qtpdf-17e1d299e5f2
+RelationshipComment: <text>SPDXRef-Package-qtpdf-17e1d299e5f2 is built by linker 'MSVC' version '14.39.33520.0' frontend variant: 'MSVC'</text>
+
+PackageName: QPdfPlugin
+SPDXID: SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageVersion: 6.11.1
+PackageSupplier: Organization: TheQtCompany
+PackageLicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+PackageLicenseDeclared: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+ExternalRef: PACKAGE-MANAGER purl pkg:github/qt/qtpdf@eb0793c?library_name=QPdfPlugin#src/pdf/plugins/imageformats/pdf
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf-QPdfPlugin@eb0793c?vcs_url=https://code.qt.io/qt/qtpdf.git@eb0793c&library_name=QPdfPlugin#src/pdf/plugins/imageformats/pdf
+PackageCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+PrimaryPackagePurpose: LIBRARY
+PackageComment: <text>
+CMake target name: QPdfPlugin
+</text>
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qt:6.11.1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+PackageVerificationCode: d540dbf42eae3b0537b09d12998504966e62b3a0
+FilesAnalyzed: true
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-PlatformPluginInternal-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2 DEPENDS_ON SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2
+
+FileName: ./plugins/imageformats/qpdf.dll
+SPDXID: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 9dba21b1a4dd63b931f68e5cd2ff2409bd37fdae
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/main.cpp
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/qpdfiohandler.cpp
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/qpdfiohandler_p.h
+
+FileName: ./plugins/imageformats/qpdfd.dll
+SPDXID: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 1baa20276ae13320661d2246f8bb8add833e584a
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-QPdfPlugin-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/main.cpp
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/qpdfiohandler.cpp
+Relationship: SPDXRef-PackagedFile-qt-plugin-QPdfPlugin-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/plugins/imageformats/pdf/qpdfiohandler_p.h
+
+PackageName: Pdf
+SPDXID: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageVersion: 6.11.1
+PackageSupplier: Organization: TheQtCompany
+PackageLicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+PackageLicenseDeclared: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+ExternalRef: PACKAGE-MANAGER purl pkg:github/qt/qtpdf@eb0793c?library_name=Pdf#src/pdf
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf-Pdf@eb0793c?vcs_url=https://code.qt.io/qt/qtpdf.git@eb0793c&library_name=Pdf#src/pdf
+PackageCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+PrimaryPackagePurpose: LIBRARY
+PackageComment: <text>
+Note: This package was marked as not listing all of its consumed 3rd party dependencies.
+Thus the licensing and copyright information might be incomplete.
+CMake target name: Pdf
+CMake exported target name: Qt6::Pdf
+Contained in CMake package: Qt6Pdf
+</text>
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qt:6.11.1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+PackageVerificationCode: f90db5e872fad64ad3de5a3eda4dddf8cb660632
+FilesAnalyzed: true
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Core-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Network-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-PlatformModuleInternal-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Gui-14f2e7e421b1
+
+FileName: ./bin/Qt6Pdf.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: ba580fe0e1d72bf1ad4d37fffcda9ae0800b6b2e
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/C:/Users/qt/work/qt/qtwebengine_build/src/pdf/Pdf_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/include/QtPdf/qtpdfexports.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocumentrenderoptions.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config_p.h
+
+FileName: ./bin/Qt6Pdfd.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: da113667f2aef92315046d5f5eb5d965a776c227
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/C:/Users/qt/work/qt/qtwebengine_build/src/pdf/Pdf_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/include/QtPdf/qtpdfexports.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocumentrenderoptions.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config_p.h
+
+FileName: ./lib/Qt6Pdf.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 3ba18817eadaa48d92f8dc81471f390bdd226bf4
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/C:/Users/qt/work/qt/qtwebengine_build/src/pdf/Pdf_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/include/QtPdf/qtpdfexports.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocumentrenderoptions.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config_p.h
+
+FileName: ./lib/Qt6Pdfd.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: b0a78c80dfdef7b9fe8702099e23419e5fdcedf3
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/C:/Users/qt/work/qt/qtwebengine_build/src/pdf/Pdf_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/include/QtPdf/qtpdfexports.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfbookmarkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfdocumentrenderoptions.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdffile_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflink_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagenavigator.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfpagerenderer.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdf/qtpdfglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config.h
+Relationship: SPDXRef-PackagedFile-qt-module-Pdf-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdf/qtpdf-config_p.h
+
+PackageName: PdfWidgets
+SPDXID: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageVersion: 6.11.1
+PackageSupplier: Organization: TheQtCompany
+PackageLicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+PackageLicenseDeclared: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+ExternalRef: PACKAGE-MANAGER purl pkg:github/qt/qtpdf@eb0793c?library_name=PdfWidgets#src/pdfwidgets
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf-PdfWidgets@eb0793c?vcs_url=https://code.qt.io/qt/qtpdf.git@eb0793c&library_name=PdfWidgets#src/pdfwidgets
+PackageCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+PrimaryPackagePurpose: LIBRARY
+PackageComment: <text>
+CMake target name: PdfWidgets
+CMake exported target name: Qt6::PdfWidgets
+Contained in CMake package: Qt6PdfWidgets
+</text>
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qt:6.11.1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+PackageVerificationCode: 13637acfd419b9379f748a32284425d95256dbf0
+FilesAnalyzed: true
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Widgets-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-PlatformModuleInternal-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Core-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Gui-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 DEPENDS_ON SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2
+
+FileName: ./bin/Qt6PdfWidgets.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 9191069b1f3eb223cabc999ed15f3c7e6277398f
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/C:/Users/qt/work/qt/qtwebengine_build/src/pdfwidgets/PdfWidgets_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qtpdfwidgetsglobal.h
+
+FileName: ./bin/Qt6PdfWidgetsd.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 31649d071ebf0f5ae2cc9c03156eadf21c2b7647
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/C:/Users/qt/work/qt/qtwebengine_build/src/pdfwidgets/PdfWidgets_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qtpdfwidgetsglobal.h
+
+FileName: ./lib/Qt6PdfWidgets.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 9bd4eb3e99f555a43908d99c52abcbfafc8fa558
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/C:/Users/qt/work/qt/qtwebengine_build/src/pdfwidgets/PdfWidgets_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qtpdfwidgetsglobal.h
+
+FileName: ./lib/Qt6PdfWidgetsd.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 3ef4de5b73e89ca96d5e1ec3a81a37c15f8821f2
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfWidgets-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/C:/Users/qt/work/qt/qtwebengine_build/src/pdfwidgets/PdfWidgets_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfpageselector_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qpdfview_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfWidgets-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfwidgets/qtpdfwidgetsglobal.h
+
+PackageName: PdfQuick
+SPDXID: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageVersion: 6.11.1
+PackageSupplier: Organization: TheQtCompany
+PackageLicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+PackageLicenseDeclared: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+ExternalRef: PACKAGE-MANAGER purl pkg:github/qt/qtpdf@eb0793c?library_name=PdfQuick#src/pdfquick
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf-PdfQuick@eb0793c?vcs_url=https://code.qt.io/qt/qtpdf.git@eb0793c&library_name=PdfQuick#src/pdfquick
+PackageCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+PrimaryPackagePurpose: LIBRARY
+PackageComment: <text>
+CMake target name: PdfQuick
+CMake exported target name: Qt6::PdfQuick
+Contained in CMake package: Qt6PdfQuick
+</text>
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qt:6.11.1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+PackageVerificationCode: 72003f7a8f8cfb1e0a05e23eaad75126a71a83bb
+FilesAnalyzed: true
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON DocumentRef-qtdeclarative-ec0f8f1cd151:SPDXRef-Package-qtdeclarative-qt-module-Quick-ec0f8f1cd151
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-PlatformModuleInternal-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Core-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-Gui-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON DocumentRef-qtdeclarative-ec0f8f1cd151:SPDXRef-Package-qtdeclarative-qt-module-Qml-ec0f8f1cd151
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 DEPENDS_ON SPDXRef-Package-qtpdf-qt-module-Pdf-17e1d299e5f2
+
+FileName: ./bin/Qt6PdfQuick.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: a55e009caad56bab83e377aa91c257d8e1999a65
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/C:/Users/qt/work/qt/qtwebengine_build/src/pdfquick/PdfQuick_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qtpdfquickglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/pdfquick_qmltyperegistrations.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_qmake_QtQuick_Pdf.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Material/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_qmlcache_loader.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Material/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Universal/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Universal/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfLinkDelegate.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfLinkDelegate_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfMultiPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfMultiPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfScrollablePageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfScrollablePageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_PdfQuick_raw_qml_0.cpp
+
+FileName: ./bin/Qt6PdfQuickd.dll
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 3d2e33f9eccd91d4c33475f6f9914999c54b1466
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/C:/Users/qt/work/qt/qtwebengine_build/src/pdfquick/PdfQuick_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qtpdfquickglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/pdfquick_qmltyperegistrations.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_qmake_QtQuick_Pdf.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Material/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_qmlcache_loader.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Material/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Universal/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Universal/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfLinkDelegate.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfLinkDelegate_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfMultiPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfMultiPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfScrollablePageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfScrollablePageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_PdfQuick_raw_qml_0.cpp
+
+FileName: ./lib/Qt6PdfQuick.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 178b8c0389388bc7e11654f46934cbf53ebbdf93
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/C:/Users/qt/work/qt/qtwebengine_build/src/pdfquick/PdfQuick_resource-RelWithDebInfo.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qtpdfquickglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/pdfquick_qmltyperegistrations.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_qmake_QtQuick_Pdf.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Material/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_qmlcache_loader.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Material/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Universal/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Universal/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfLinkDelegate.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfLinkDelegate_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfMultiPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfMultiPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfScrollablePageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfScrollablePageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_PdfQuick_raw_qml_0.cpp
+
+FileName: ./lib/Qt6PdfQuickd.lib
+SPDXID: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 553e45bf28de90d540ec3621cc6bf7f14e9f4276
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/C:/Users/qt/work/qt/qtwebengine_build/src/pdfquick/PdfQuick_resource-Debug.rc
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfbookmarkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfdocument_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdflinkmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpagenavigator_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfpageimage_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfsearchmodel_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qquickpdfselection_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/qtpdfquickglobal_p.h
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/pdfquick_qmltyperegistrations.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_qmake_QtQuick_Pdf.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Material/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_qmlcache_loader.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Material/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/+Universal/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_+Universal/PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfLinkDelegate.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfLinkDelegate_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfMultiPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfMultiPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfPageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfPageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfScrollablePageView.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfScrollablePageView_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /src_dir/qtpdf/src/pdfquick/PdfStyle.qml
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.rcc/qmlcache/PdfQuick_PdfStyle_qml.cpp
+Relationship: SPDXRef-PackagedFile-qt-module-PdfQuick-ImportLibrary-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/.qt/rcc/qrc_PdfQuick_raw_qml_0.cpp
+
+PackageName: PdfQuickplugin
+SPDXID: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2
+PackageDownloadLocation: git://code.qt.io/qt/qtpdf.git@eb0793cc4b76e93cf669f586fd68c76019f40ec9
+PackageVersion: 6.11.1
+PackageSupplier: Organization: TheQtCompany
+PackageLicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+PackageLicenseDeclared: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+ExternalRef: PACKAGE-MANAGER purl pkg:github/qt/qtpdf@eb0793c?library_name=PdfQuickplugin#src/pdfquick
+ExternalRef: PACKAGE-MANAGER purl pkg:generic/TheQtCompany/qtpdf-PdfQuickplugin@eb0793c?vcs_url=https://code.qt.io/qt/qtpdf.git@eb0793c&library_name=PdfQuickplugin#src/pdfquick
+PackageCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+PrimaryPackagePurpose: LIBRARY
+PackageComment: <text>
+CMake target name: PdfQuickplugin
+</text>
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qt:6.11.1:*:*:*:*:*:*:*
+ExternalRef: SECURITY cpe23Type cpe:2.3:a:qt:qtpdf:6.11.1:*:*:*:*:*:*:*
+PackageVerificationCode: 0c7faaecc456cc407f498ee8c9aea07239d91e37
+FilesAnalyzed: true
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2 DEPENDS_ON DocumentRef-qtbase-14f2e7e421b1:SPDXRef-Package-qtbase-qt-module-PlatformPluginInternal-14f2e7e421b1
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2 DEPENDS_ON DocumentRef-qtdeclarative-ec0f8f1cd151:SPDXRef-Package-qtdeclarative-qt-module-Qml-ec0f8f1cd151
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2 DEPENDS_ON SPDXRef-Package-qtpdf-qt-module-PdfQuick-17e1d299e5f2
+
+FileName: ./qml/QtQuick/Pdf/pdfquickplugin.dll
+SPDXID: SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-RelWithDebInfo-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 7addd9b1b1df96b8372f3fbf0112500bb2d56c11
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-RelWithDebInfo-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-RelWithDebInfo-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/PdfQuickplugin_QtQuick_PdfPlugin.cpp
+
+FileName: ./qml/QtQuick/Pdf/pdfquickplugind.dll
+SPDXID: SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-Debug-17e1d299e5f2
+FileType: BINARY
+FileChecksum: SHA1: 3d1d7df3cf7b611138625f5347ca0cdb6eb52299
+LicenseConcluded: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+FileCopyrightText: <text>Copyright (C) The Qt Company Ltd. and other contributors.</text>
+LicenseInfoInFile: NOASSERTION
+Relationship: SPDXRef-Package-qtpdf-qt-plugin-PdfQuickplugin-17e1d299e5f2 CONTAINS SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-Debug-17e1d299e5f2
+Relationship: SPDXRef-PackagedFile-qt-plugin-PdfQuickplugin-Debug-17e1d299e5f2 GENERATED_FROM NOASSERTION
+RelationshipComment: /build_dir/qtpdf/src/pdfquick/PdfQuickplugin_QtQuick_PdfPlugin.cpp
+
+PackageName: CMake
+SPDXID: SPDXRef-Package-qtpdf-build-tool-CMake-17e1d299e5f2
+PackageDownloadLocation: NOASSERTION
+PackageVersion: 3.30.5
+PackageSupplier: Person: Anonymous
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PrimaryPackagePurpose: OTHER
+PackageComment: <text>
+CMake target name: qtpdfSbomBuildToolCMake
+</text>
+FilesAnalyzed: false
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-build-tool-CMake-17e1d299e5f2
+
+PackageName: CMake generator Ninja Multi-Config
+SPDXID: SPDXRef-Package-qtpdf-build-tool-CMake-generator-Ninja-Multi-Config-17e1d299e5f2
+PackageDownloadLocation: NOASSERTION
+PackageVersion: 1.10.2
+PackageSupplier: Person: Anonymous
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PrimaryPackagePurpose: OTHER
+PackageComment: <text>
+CMake target name: qtpdfSbomBuildToolCMakeGenerator
+</text>
+FilesAnalyzed: false
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-build-tool-CMake-generator-Ninja-Multi-Config-17e1d299e5f2
+
+PackageName: Compiler MSVC
+SPDXID: SPDXRef-Package-qtpdf-build-tool-Compiler-MSVC-17e1d299e5f2
+PackageDownloadLocation: NOASSERTION
+PackageVersion: 19.39.33520.0
+PackageSupplier: Person: Anonymous
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PackageSummary: <text>The compiler as identified by CMake, running on 'Windows' (AMD64)</text>
+PrimaryPackagePurpose: OTHER
+PackageComment: <text>
+CMake target name: qtpdfSbomBuildToolCompiler
+</text>
+FilesAnalyzed: false
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-build-tool-Compiler-MSVC-17e1d299e5f2
+
+PackageName: Linker MSVC
+SPDXID: SPDXRef-Package-qtpdf-build-tool-Linker-MSVC-17e1d299e5f2
+PackageDownloadLocation: NOASSERTION
+PackageVersion: 14.39.33520.0
+PackageSupplier: Person: Anonymous
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PrimaryPackagePurpose: OTHER
+PackageComment: <text>
+CMake target name: qtpdfSbomBuildToolLinker
+</text>
+FilesAnalyzed: false
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 CONTAINS SPDXRef-Package-qtpdf-build-tool-Linker-MSVC-17e1d299e5f2
+
+LicenseID: LicenseRef-Qt-Commercial
+ExtractedText: <text>Licensees holding valid commercial Qt licenses may use this software in
+accordance with the the terms contained in a written agreement between
+you and The Qt Company. Alternatively, the terms and conditions that were
+accepted by the licensee when buying and/or downloading the
+software do apply.
+
+For the latest licensing terms and conditions, see https://www.qt.io/terms-conditions.
+For further information use the contact form at https://www.qt.io/contact-us.
+</text>
+
+LicenseID: LicenseRef-Tango-Icons-Public-Domain
+ExtractedText: <text>The icons in this repository are herefore released into the Public Domain.
+</text>
+Relationship: SPDXRef-Package-qtpdf-17e1d299e5f2 DEPENDS_ON DocumentRef-qtwebengine-chromium-pdf-17e1d299e5f2:SPDXRef-QtWebEngine-Chromium-Pdf-Internal-Components
