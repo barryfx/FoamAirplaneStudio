@@ -76,6 +76,16 @@ void WeightBalancePanel::setFoam(std::optional<FoamMassProperties> foam,std::opt
   foam_=foam;leadingEdge_=leadingEdge;unavailable_=std::move(message);updateResults();
 }
 void WeightBalancePanel::setWingArea(std::optional<double> mm2) { if(wingAreaMm2_!=mm2){wingAreaMm2_=mm2;updateResults();} }
+void WeightBalancePanel::setCgHeightLine(std::optional<QLineF> line) {cgHeightLine_=line;view_.viewport()->update();}
+std::optional<QPointF> WeightBalancePanel::cgScenePosition() const {
+  if(!foam_||!leadingEdge_||!cgHeightLine_||transform_.scale<=0||std::abs(cgHeightLine_->dx())<1e-8)return {};
+  const auto mass=calculateBalance(state_,*foam_);if(mass.grams<=0)return {};
+  // The marker's horizontal position is the same physical CG used in the
+  // numerical LE-relative result. Its height is a visual wing datum, not CG Z.
+  const double x=mass.centerMm.x();
+  const double z=cgHeightLine_->y1()+(x-cgHeightLine_->x1())*cgHeightLine_->dy()/cgHeightLine_->dx();
+  return QPointF{transform_.left+x/transform_.scale,transform_.verticalOrigin-z/transform_.scale};
+}
 int WeightBalancePanel::selected() const {return parts_->currentIndex();}
 QPointF WeightBalancePanel::sceneToModel(QPointF point) const {
   return {(point.x()-transform_.left)*transform_.scale,(transform_.verticalOrigin-point.y())*transform_.scale};
@@ -155,7 +165,7 @@ void WeightBalancePanel::updateResults() {
   breakdown_->resizeRowsToContents();
   const auto result=calculateBalance(state_,foam_.value_or(FoamMassProperties{}));
   QString text;
-  if(!foam_)text=QString{"Parts weight: %1 g (%2 oz)\nTotal weight: unavailable\nCenter of mass: unavailable\n%3"}.arg(result.grams,0,'f',2).arg(result.grams/gramsPerOunce,0,'f',2).arg(unavailable_);
+  if(!foam_)text=QString{"Parts weight: %1 g (%2 oz)\nTotal weight: unavailable\nCenter of Gravity: unavailable\n%3"}.arg(result.grams,0,'f',2).arg(result.grams/gramsPerOunce,0,'f',2).arg(unavailable_);
   else {
     text=QString{"Total weight: %1 g (%2 oz)\nFoam: %3 g"}.arg(result.grams,0,'f',2).arg(result.grams/gramsPerOunce,0,'f',2).arg(foam_->volumeMm3*state_.densityKgM3*1e-6,0,'f',2);
     text+=QString{" | Aero Plywood: %1 g"}.arg(foam_->plywoodVolumeMm3*state_.plywoodDensityKgM3*1e-6,0,'f',2);
@@ -167,8 +177,8 @@ void WeightBalancePanel::updateResults() {
     }
     if(leadingEdge_&&result.grams>0) {
       const double distance=(result.centerMm.x()-*leadingEdge_)/(units_==ProjectUnits::Inches?25.4:1.);
-      text+=QString{"\nCenter of mass: %1%2 %3 from wing root LE"}.arg(distance>=0?"+":"").arg(distance,0,'f',3).arg(units_==ProjectUnits::Inches?"in":"mm");
-    } else text+="\nCenter of mass: unavailable — define the wing root datum.";
+      text+=QString{"\nCenter of Gravity: %1%2 %3 from wing root LE"}.arg(distance>=0?"+":"").arg(distance,0,'f',3).arg(units_==ProjectUnits::Inches?"in":"mm");
+    } else text+="\nCenter of Gravity: unavailable — define the wing root datum.";
     text+="\n(+ toward tail; − toward nose)";
   }
   results_->setText(text);if(resultsChanged)resultsChanged(text);view_.viewport()->update();
@@ -183,6 +193,13 @@ void WeightBalancePanel::paint(QPainter& painter) const {
     const QFontMetricsF metrics{painter.font()};const auto text=state_.parts[i].name;
     QRectF label=metrics.boundingRect(text).adjusted(-4,-2,4,2);label.moveCenter(center);
     painter.fillRect(label,QColor{255,255,255,220});painter.setPen(Qt::black);painter.drawText(label,Qt::AlignCenter,text);painter.restore();
+  }
+  if(const auto position=cgScenePosition();position&&!cgSymbol_.isNull()) {
+    const auto center=painter.worldTransform().map(*position);
+    painter.save();painter.resetTransform();painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    // Constant logical-pixel size keeps the marker small and legible at any zoom.
+    painter.drawPixmap(QRectF{center-QPointF{14,14},QSizeF{28,28}},cgSymbol_,cgSymbol_.rect());
+    painter.restore();
   }
   painter.restore();
 }

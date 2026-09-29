@@ -20,6 +20,12 @@ namespace designrc::gui {
 ReferencePanel::ReferencePanel(QWidget* parent) : QWidget{parent} {
   auto* layout = new QVBoxLayout{this};
   layout->setContentsMargins(0, 0, 0, 0);
+  auto* description=new QLabel{
+      "Load plans or drawings in PDF or PNG format to sketch over. Select Specify Dimensions and enter "
+      "a Wingspan to set the model scale. You can continue tracing the plans; the 3D model automatically "
+      "scales to the new wingspan. Use Reference Image Scale instead uses the reference image's physical "
+      "dimensions as the scale for the airplane.",this};
+  description->setObjectName("referenceInstructions");description->setWordWrap(true);layout->addWidget(description);
   auto* load = new QPushButton{"Load Image", this};
   load->setObjectName("loadReferenceImage");
   layout->addWidget(load);
@@ -30,7 +36,7 @@ ReferencePanel::ReferencePanel(QWidget* parent) : QWidget{parent} {
   path_->setTextInteractionFlags(Qt::TextSelectableByMouse);
   layout->addWidget(path_);
   auto* group = new QButtonGroup{this};
-  toScale_ = new QRadioButton{"User Reference Image Scale", this};
+  toScale_ = new QRadioButton{"Use Reference Image Scale", this};
   toScale_->setObjectName("referenceToScale");
   specify_ = new QRadioButton{"Specify Dimensions", this};
   specify_->setObjectName("specifyDimensions");

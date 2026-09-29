@@ -77,21 +77,26 @@ Authoritative compatibility references:
 Microsoft graphics/runtime binaries are not relicensed under the application's
 GPL. The installed Windows SDK 10.0.26100.0 license and third-party notices are
 included verbatim under `microsoft/windows-sdk-10.0.26100.0/`.
-The deployed `dxcompiler.dll` and `dxil.dll` (1.8.2502.11) are byte-identical to
+In the original Debug inventory, `dxcompiler.dll` and `dxil.dll` (1.8.2502.11) are byte-identical to
 that SDK's x64 bin copies. They are **not** identical to GitHub DXC v1.8.2502
 binaries: the latter's MIT/LLVM/Microsoft/HLSL license texts are supplemental
 references in `graphics/dxc/`, not proof of the exact SDK binaries' licensing.
 
-The deployed `D3Dcompiler_47.dll` reports 6.3.9600.16384 and comes from Qt's runtime
+The original Debug inventory's `D3Dcompiler_47.dll` reports 6.3.9600.16384 and comes from Qt's runtime
 deployment. It did not match the installed Windows 10 SDK copies. Its original
 Windows 8.1-era distribution/license provenance remains to be confirmed before
 publishing an installer. The SDK reference terms do not establish that match.
 Microsoft's distribution restrictions require a separate review; do not treat
 this open-source compatibility assessment as clearance for all Windows DLLs.
 
-The current build is Debug and intended for local development. A release audit
-must inventory the actual Release binaries, Microsoft redistributables, plugins,
-source availability and version-matched notices. Linux/macOS releases need their
+The September 25 inventory above describes Debug development deployment. The
+current [Release installer](../docs/architecture/windows-installer.md) stages a
+fresh runtime without these optional D3D/DXC compiler DLLs, includes app-local
+MSVC redistributables and their supplied notices, and records the actual packaged
+file hashes. See [installer validation](../docs/baseline/windows-installer-validation.md)
+for license acceptance, hash verification and non-admin installation evidence.
+That validation does not certify corresponding-source delivery or legal clearance
+for public distribution. Linux/macOS releases need their
 own platform inventories. Do not infer licensing obligations from unused build
 tools or optional modules appearing in the full Qt SDK SBOM.
 

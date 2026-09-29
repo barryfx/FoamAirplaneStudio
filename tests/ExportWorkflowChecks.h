@@ -7,6 +7,7 @@
 #include <STEPControl_Reader.hxx>
 #include <TopExp_Explorer.hxx>
 #include <QCheckBox>
+#include <QStatusBar>
 #include <QRadioButton>
 #include <QDir>
 #include <QElapsedTimer>
@@ -64,14 +65,21 @@ public:
     CHECK(trays==1); // Wing seats modify formers, but never the servo tray.
     CHECK(volume(w.exportAssemblyParts()->fuselage)<volume(sample.fuselage));
     CHECK(volume(w.fuselageModel_.formers[0])==volume(aft));
+    w.balanceMassCache_.reset();w.balanceMassSources_.clear();w.statistics_.balance.reset();
+    int balanceCalculations=0;
+    QObject::connect(w.statusBar(),&QStatusBar::messageChanged,&w,[&](const QString& message){
+      if(message.startsWith("Calculating Weight and Balance"))++balanceCalculations;
+    });
     w.workspaceToolBar_->actions()[8]->trigger();QApplication::processEvents();
+    CHECK(balanceCalculations==0&&!w.balanceMassCache_);
     CHECK(w.exportPanel_->isVisible()&&!w.graphicsTabs_->isTabEnabled(0));
+    CHECK(!w.exportPanel_->findChild<QLabel*>("airplaneStatistics"));
     CHECK(w.findChild<QRadioButton*>("formersStep")->isChecked());
     CHECK(w.exportPanel_->formerFormat()==geometry::FormerExportFormat::Step);
     CHECK(!w.findChild<QRadioButton*>("formersDxf")->isChecked());
     CHECK(w.componentToolBar_->isHidden());
-    auto* exportButton=w.findChild<QPushButton*>("exportComponents");CHECK(!exportButton->isEnabled());
-    auto* allBox=w.findChild<QCheckBox*>("exportAll");allBox->click();
+    auto* exportButton=w.findChild<QPushButton*>("exportComponents");CHECK(exportButton->isEnabled());
+    auto* allBox=w.findChild<QCheckBox*>("exportAll");CHECK(allBox->isChecked());
     CHECK(w.exportPanel_->selectedParts().size()==catalog.size()&&exportButton->isEnabled());
     w.findChild<QCheckBox*>("exportPart0")->click();CHECK(!allBox->isChecked());
     CHECK(w.exportPanel_->selectedParts().size()==catalog.size()-1);
@@ -102,6 +110,21 @@ public:
     CHECK(QFile::exists(outputs.path()+"/Untitled.step"));
     CHECK(QFile::exists(outputs.path()+"/Former 1.dxf")&&QFile::exists(outputs.path()+"/Former 2.dxf"));
     CHECK(QDir{outputs.path()}.entryList(QDir::Files).size()==3);
+    // SVG is exclusive with the other former formats and exports through the
+    // same real folder dialog, preserving the current selection.
+    w.findChild<QRadioButton*>("formersSvg")->click();
+    CHECK(w.exportPanel_->formerFormat()==geometry::FormerExportFormat::Svg);
+    CHECK(!w.findChild<QRadioButton*>("formersDxf")->isChecked());
+    CHECK(!w.findChild<QRadioButton*>("formersStep")->isChecked());
+    CHECK(!w.findChild<QRadioButton*>("formersStl")->isChecked());
+    allBox->click();w.findChild<QCheckBox*>("exportPart0")->click();w.findChild<QCheckBox*>("exportPart1")->click();
+    accepted=false;accept.start(10);w.exportComponents();accept.stop();
+    CHECK(accepted&&exportError.isEmpty());
+    for(const auto& name:{"Former 1.svg","Former 2.svg"}) {
+      QFile svg{outputs.path()+"/"+name};CHECK(svg.open(QIODevice::ReadOnly));
+      const auto content=svg.readAll();CHECK(content.contains("<svg")&&content.contains("mm")&&content.contains("<polygon"));
+    }
+    allBox->click();CHECK(allBox->isChecked());
     FileSelectionDialog remembered{&w,"componentExportDirectory","Export Components",QFileDialog::Directory};
     CHECK(remembered.directory().absolutePath()==QDir{outputs.path()}.absolutePath());
     QFile stepFile{outputs.path()+"/Untitled.step"};CHECK(stepFile.open(QIODevice::ReadOnly));
@@ -189,7 +212,7 @@ public:
     cancel.start(10);w.exportComponents();cancel.stop();
     QString error;CHECK(w.saveProjectFile(outputs.path()+"/export.foam",error));
     QApplication::processEvents();
-    if(auto* screen=w.screen())CHECK(screen->grabWindow(w.winId()).save(evidence+"/export-panel.png"));
+    CHECK(w.grab().save(evidence+"/export-panel.png"));
     // Saved Export mode opens in 2D without rebuilding or enabling stale exports.
     CHECK(w.openProjectFile(outputs.path()+"/export.foam",error));CHECK(w.graphicsTabs_->currentIndex()==0);
     CHECK(!w.workspaceToolBar_->actions()[8]->isEnabled()&&!w.property("modelProcessing").toBool());

@@ -1,6 +1,6 @@
 # Baseline and current application shell
 
-Updated: 2026-09-25
+Updated: 2026-09-29
 
 The original baseline was copied read-only from DesignRC commit
 8e8bcac9e9783d35915d76d296bc45282301c2f9. The original file hashes remain in
@@ -27,7 +27,7 @@ Ailerons/Flaps adds selectable rectangles, hinge relief and end clearance
 (control-surfaces.md). Spars adds surface grooves and mid-plane splits with
 alignment tabs (spars.md). Lightening adds accessible hollow main-wing bays,
 uniform crossmembers and protected alignment supports (lightening.md).
-Generation runs as cancellable background jobs with bounded panel concurrency and mirrored display-mesh reuse (regeneration.md and ADR-0018). Fuselage supplies Top/Side closed-outline editing (fuselage-outlines.md). Fuselage Profile Stations places vertical Side View sections (fuselage-stations.md). Edit Profiles attaches cross-sections to stations and generates a separate cached fuselage solid (fuselage-profiles.md). Thicken supplies saved per-station walls and geometry-driven end closure (fuselage-thickness.md). Cut splits the body along persistent Top/Side paths (fuselage-cuts.md). Servo Tray adds a separate inner tray and integrated side ledges (servo-tray.md). Formers adds full/partial-height cavity-fitted inserts and 4 x 3 mm retaining rails on both inner sides (formers.md). The largest post-cut fuselage body splits into left/right halves with four mating alignment pins; other cut-outs stay whole (fuselage-cuts.md). Stabilizers provide Outline, Airfoil and independent solid generation. Stabilizer Cut supports closed material-removal shapes. Assembly provides positioning and reversible mating cuts (assembly.md); Export provides former STEP/DXF/STL and component STEP/STL from Assembly (export.md).
+Generation runs as cancellable background jobs with bounded panel concurrency and mirrored display-mesh reuse (regeneration.md and ADR-0018). Fuselage supplies Top/Side closed-outline editing (fuselage-outlines.md). Fuselage Profile Stations places vertical Side View sections (fuselage-stations.md). Edit Profiles attaches cross-sections to stations and generates a separate cached fuselage solid (fuselage-profiles.md). Thicken supplies saved per-station walls and explicit independent end closure (Nose Open/Tail Closed by default) (fuselage-thickness.md). Cut supports Top/Bottom/Left/Right paths, retaining cut-outs from through cuts or selected-wall interior cuts and rejecting parallel-wall interference (fuselage-cuts.md). Servo Tray adds a separate inner tray and integrated side ledges (servo-tray.md). Formers adds full/partial-height cavity-fitted inserts and 4 x 3 mm retaining rails on both inner sides (formers.md). The largest post-cut fuselage body splits into left/right halves with four mating alignment pins; other cut-outs stay whole (fuselage-cuts.md). Stabilizers provide Outline, Airfoil and independent solid generation. Stabilizer Cut supports closed material-removal shapes. Assembly provides positioning and reversible mating cuts (assembly.md); Export provides former STEP/DXF/SVG/STL and component STEP/STL from Assembly (export.md).
 
 Edit provides Undo/Redo (Ctrl+Z/Ctrl+Y) and Copy/Paste; View camera/fit commands,
 Help contains only About; the former Help entry was removed. About describes the
@@ -83,7 +83,7 @@ and Tape/Standard relief on the segment closest to vertical span for fins, or th
 Matching horizontal halves join across the centerline, leaving one solid without
 a hinge or separate fixed/elevator solids with one. Cut Shapes apply afterward
 and may create additional pieces (stabilizer-cuts.md, ADR-0031). Versions 19 and
-20 persist hinges and Cut Shapes respectively; current saves use version 29.
+20 persist hinges and Cut Shapes respectively; current saves use version 31.
 Only successfully published stabilizer results become cache entries. Assembly is enabled after complete component definitions; Export enables after successful current Assembly generation.
 
 Assembly preparation and cuts use independent background jobs and preserve source

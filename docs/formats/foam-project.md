@@ -1,4 +1,20 @@
-# FoamAirplaneStudio project format, version 29
+# FoamAirplaneStudio project format, version 31
+
+Version 31 expands `fuselageCuts.layers` to four entries: Top, Bottom, Left,
+Right. Active view indices use the same order. Versions 13–30 migrate layer 0
+to Top and layer 1 to Left; Bottom and Right start empty, and active Side becomes
+Left. Versions 1–12 initialize four empty layers. All saved end booleans remain
+unchanged; new projects default Nose Open and Tail Closed. Earlier readers reject
+version 31. The user-facing surface cut rule applies after migration too.
+
+Version 30 adds `fuselageNoseOpen` and `fuselageTailOpen`. Boolean values select
+ends independently; version-30 new projects defaulted to Closed. Versions 1–29 load with
+legacy automatic inference (represented internally and in headless round trips
+by null). The GUI resolves these legacy values from the existing stations once
+on load, displays the corresponding radio buttons, and saves explicit booleans.
+Subsequent station/outline changes do not silently toggle the selections. These
+settings are included in undo history and fuselage/assembly/mass cache keys.
+Older readers reject version 30 rather than silently changing the end geometry.
 
 Version 29 adds `insideDiameterMm` and `insideDiameterText` to each spar record,
 and `carbonFiberDensityKgM3` to `weightBalance`. Mid ID is finite, nonnegative
@@ -100,7 +116,7 @@ retain their rectangles/settings. `drawing` is -1 idle, 0 ailerons, or 1 flaps;
 `first` is an optional `[x,y]` first corner. Active drawing requires an enabled
 surface and Wing/Ailerons-Flaps mode. Malformed settings are rejected before Open
 mutates the current project. Version 1 still opens with both controls disabled;
-Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 29.
+Version 2 introduced these fields (ADR-0009); current Save/Save As writes version 31.
 
 Generated control surfaces use a fixed 1/16-inch (1.5875 mm) clearance at each
 spanwise rectangle end, on the moving body only. This is a generation rule, not
@@ -129,7 +145,7 @@ same fields/ranges as version 3. Length percentage is now relative to that panel
 `ui.sparPanel` stores the zero-based selected spar tab and is excluded from data
 and geometry fingerprints. It must reference an existing panel.
 Versions 1/2 initialize all panels disabled. Version 3 loads global spar settings
-into Panel 1, with others disabled. Current Save/Save As writes version 29; older
+into Panel 1, with others disabled. Current Save/Save As writes version 31; older
 applications reject it. Mid now uses 50% local thickness and a matching split
 surface (ADR-0012), also when regenerating migrated projects.
 
@@ -194,7 +210,7 @@ Start/stop text accepts zero. Unsupported types/ranges or inconsistent display
 text reject Open transactionally. Geometric range/pitch conflicts remain editable
 saved input and are reported during generation.
 
-Versions 1-7 initialize Lightening disabled. Current saves write version 29; older
+Versions 1-7 initialize Lightening disabled. Current saves write version 31; older
 apps reject it. No source file changes until Save. All project lifecycle paths
 preserve these settings; New resets defaults. Text participates in dirty checking
 but is omitted from the model fingerprint. The current Lightening toolbar mode
@@ -234,7 +250,7 @@ exist and cannot be shared by multiple stations. Moving, deleting or reordering
 other stations never changes a link. Delete Profile clears its slot and assignment;
 unreferenced slots can remain in the document. Versions 1-10 load empty profiles
 and unassigned stations. Generated solids, meshes, worker state and component
-fingerprints remain transient. Save writes version 29; earlier versions remain readable.
+fingerprints remain transient. Save writes version 31; earlier versions remain readable.
 Profile tool/selection/navigation state is excluded from dirty checks when no
 points are pending. Pending sketches remain attached through Save/Open.
 
@@ -246,8 +262,8 @@ to 10000 mm. An enabled thickening project requires a value at every station.
 Thickness stays on the station when it moves and is removed with the station.
 Profile deletion does not discard the station's thickness.
 Versions 1-11 migrate to disabled thickening and unset values, initialized only
-when Thicken is entered or a complete fuselage is generated. Existing files are upgraded only on Save. End closure
-is derived from outline/profile geometry, not a separate stored toggle.
+when Thicken is entered or a complete fuselage is generated. Existing files are upgraded only on Save. Before version 30, end closure
+was inferred from outline/profile geometry. Version 30 adds stored end choices.
 
 Fuselage thickness entry follows Reference units and accepts explicit mm/in.
 `thicknessMm` remains normalized to millimetres; display-unit changes require no
@@ -255,12 +271,13 @@ format revision and do not rescale saved thicknesses.
 
 ## Version 13: Top/Side fuselage cuts
 
-`fuselageCuts` uses the sketch schema with exactly two layers: Top then Side.
+Versions 13–30 used two `fuselageCuts` layers: Top then Side. Version 31
+uses four layers (Top, Bottom, Left, Right), migrating Side to Left.
 It persists points, Line/Spline curves, shared endpoint indices, active view,
 selected curve, tool, editing and pending points. Open and closed paths are
 accepted without outline-loop validation. Editing is valid only in Fuselage/Cut
 and 2D View; pending points require an active drawing tool and editing state.
-Versions 1-12 load empty cut layers. New saves write version 29. Generated cut
+Versions 1-12 load empty cut layers. New saves write version 31. Generated cut
 bodies remain transient. Invalid indices, layer counts or draft states reject Open.
 
 ## Version 14: Servo Tray placement
@@ -374,7 +391,7 @@ Translations and cut intent affect document dirty state, but not individual
 component generation fingerprints. Selected component is transient. Source edits
 clear derived cut intent/caches while retaining translations. Solids and meshes are not serialized. Entering Assembly after Open
 rebuilds components and reapplies requested cuts. Failed/cancelled cuts remain uncut.
-Applications supporting only earlier formats reject current version 29. Original files change only on Save.
+Applications supporting only earlier formats reject current version 31. Original files change only on Save.
 
 ## Retired model caches (version 22) and input-only saving (version 23)
 
@@ -389,8 +406,8 @@ All generated component, accessory, and original/cut Assembly geometry stays in
 memory for the current session. Saving does not clear those caches. Opening starts
 with empty caches and 2D selected; entering 3D or Assembly regenerates geometry
 from saved inputs and reapplies requested Assembly cuts. Saving an older file
-writes version 29 without its embedded models. Existing files remain unchanged
-until Save. Applications supporting only earlier formats reject current version 29.
+writes version 31 without its embedded models. Existing files remain unchanged
+until Save. Applications supporting only earlier formats reject current version 31.
 
 ## Former rotation (version 24)
 
@@ -401,7 +418,7 @@ Side View, negative counter-clockwise and positive clockwise. Width remains
 normal thickness. Positive-area overlap validation uses the rotated masks for
 former/former and former/tray pairs. Touching is allowed.
 
-Versions 1–23 initialize former angles to zero. New saves write version 29;
+Versions 1–23 initialize former angles to zero. New saves write version 31;
 older applications reject it rather than silently generating unrotated inserts.
 Version-22 model caches remain ignored, and generated models are never written.
 
@@ -411,7 +428,7 @@ Adds `fuselageHoles`, a SketchState with exactly four layers in Top, Bottom,
 Left, Right order. Each layer may contain multiple independent closed loops or
 unfinished drafts. Active layer, selected curve, tool, editing and pending points
 use the existing sketch representation. Versions 1-24 load four empty layers.
-Existing two-layer `fuselageCuts` remains unchanged; its connected paths are now
+In version 25 the existing two-layer `fuselageCuts` remained unchanged; its connected paths became
 managed individually by the shared Add/Delete controls.
 
 ## Version 26: Weight and Balance
@@ -446,7 +463,7 @@ Smoothed copies use the existing imported-profile representation with embedded
 normalized coordinates. Originals and station assignments remain unchanged.
 Preview strength is transient; no persistent field or version change is needed.
 
-## Optional airplane statistics cache (format 29)
+## Optional airplane statistics cache (format 30)
 
 `airplaneStatistics` stores nullable finite numeric fields `wingspanMm`,
 `wingAreaMm2`, `rootChordMm`, `aspectRatio`, `fuselageLengthMm`,

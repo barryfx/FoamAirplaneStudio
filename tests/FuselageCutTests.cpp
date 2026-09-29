@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/FuselageCutPanel.h"
 #include "geometry/FuselageCut.h"
@@ -37,6 +38,51 @@ SketchLayer rectangle(double x,double y,double w,double h){return {{{x,y},{x+w,y
 int count(const TopoDS_Shape& shape){int n=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++n;return n;}
 double volume(const TopoDS_Shape& shape){GProp_GProps mass;BRepGProp::VolumeProperties(shape,mass);return mass.Mass();}
 bool inside(const TopoDS_Shape& shape,double x,double y,double z){return BRepClass3d_SolidClassifier{shape,gp_Pnt{x,y,z},1e-7}.State()==TopAbs_IN;}
+void surfaceCutTests() {
+  const auto outer=BRepPrimAPI_MakeBox{gp_Pnt{0,-10,-10},100,20,20}.Shape();
+  const auto cavity=BRepPrimAPI_MakeBox{gp_Pnt{2,-8,-8},96,16,16}.Shape();
+  const auto shell=BRepAlgoAPI_Cut{outer,cavity}.Shape();
+  const std::vector<SketchLayer> outlines{rectangle(0,-10,100,20),rectangle(0,-10,100,20)};
+  const std::array<geometry::FuselageCutProjection,2> projections{{{0,1,0},{0,1,0}}};
+  for(int surface=0;surface<4;++surface) {
+    std::vector<SketchLayer> cuts(4);cuts[surface]=rectangle(20,-3,20,6);
+    auto result=geometry::cutFuselage(shell,cuts,projections,{},{},outlines,cavity);
+    CHECK(count(result)==2);CHECK(std::abs(volume(result)-volume(shell))<1e-5);
+    bool hatch=false;
+    for(TopExp_Explorer e{result,TopAbs_SOLID};e.More();e.Next()) {
+      CHECK(BRepCheck_Analyzer{e.Current()}.IsValid());GProp_GProps mass;BRepGProp::VolumeProperties(e.Current(),mass);
+      if(std::abs(mass.Mass()-240)<1e-5) {
+        hatch=true;const auto center=mass.CentreOfMass();
+        const double expected=(surface==0||surface==3)?9:-9;
+        CHECK(std::abs((surface<2?center.Z():center.Y())-expected)<1e-6);
+      }
+    }
+    CHECK(hatch); // The interior is retained as a separate component, not removed.
+    // Inside the drawn outline, but overlapping a side wall parallel to the
+    // cutting direction. Cover both signs and both transverse axes.
+    for(double edge:{-9.,7.}) {
+      cuts[surface]=rectangle(20,edge,20,2);
+      bool rejected=false;
+      try{geometry::cutFuselage(shell,cuts,projections,{},{},outlines,cavity);}
+      catch(const std::exception& e){const std::string message=e.what();rejected=message.find("overlaps a parallel wall")!=std::string::npos&&message.find("cut 1")!=std::string::npos;}
+      CHECK(rejected);
+    }
+    // Crossing cuts still pass through both opposing walls from any surface.
+    cuts[surface]={{{70,-15},{70,15}},{{SketchTool::Line,{0,1}}}};
+    result=geometry::cutFuselage(shell,cuts,projections,{},{},outlines,cavity);
+    CHECK(count(result)==2);CHECK(std::abs(volume(result)-volume(shell))<1e-5);
+  }
+  // An internal bridge lies entirely within the hatch perimeter: checking
+  // only the cutting sheet would miss this parallel-wall obstruction.
+  const auto pillar=BRepPrimAPI_MakeBox{gp_Pnt{28,-1,-10},4,2,20}.Shape();
+  const auto dividedCavity=BRepAlgoAPI_Cut{cavity,pillar}.Shape();
+  const auto dividedShell=BRepAlgoAPI_Cut{outer,dividedCavity}.Shape();
+  std::vector<SketchLayer> cuts(4);cuts[0]=rectangle(20,-3,20,6);
+  bool rejected=false;
+  try{geometry::cutFuselage(dividedShell,cuts,projections,{},{},outlines,dividedCavity);}
+  catch(const std::exception& e){rejected=std::string{e.what()}.find("overlaps a parallel wall")!=std::string::npos;}
+  CHECK(rejected);
+}
 void alignmentTests() {
   const auto outer=BRepPrimAPI_MakeBox{gp_Pnt{0,-20,-15},100,40,30}.Shape();
   auto shell=[&](double wall){return BRepAlgoAPI_Cut{outer,BRepPrimAPI_MakeBox{gp_Pnt{wall,-20+wall,-15+wall},100-2*wall,40-2*wall,30-2*wall}.Shape()}.Shape();};
@@ -128,6 +174,7 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamCutTests");QCoreApplication::setApplicationName("FoamCutTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
+    if(app.arguments().contains("--surface-only")){surfaceCutTests();return 0;}
     if(app.arguments().contains("--alignment-only")){alignmentTests();return 0;}
     geometryTests();
     ProjectDocument p;p.reference.wingspanMm=1000;p.reference.fuselageLengthMm=400;p.wingspanText="1000 mm";p.fuselageText="400 mm";
@@ -156,14 +203,22 @@ int main(int argc,char** argv) {
     line->click();click({820,140});click({820,220});line->click();click({820,180});CHECK(editor.selectedCurve()==2);key(Qt::Key_Delete);CHECK(editor.layers()[0].curves.size()==2);
     mouse(QEvent::MouseButtonPress,{400,140},Qt::LeftButton,Qt::LeftButton);mouse(QEvent::MouseMove,{395,140},Qt::NoButton,Qt::LeftButton);mouse(QEvent::MouseButtonRelease,{395,140},Qt::LeftButton,Qt::NoButton);
     CHECK(std::abs(editor.layers()[0].points[0].x()-395)<2);
-    window.findChild<QPushButton*>("fuselageCutSide")->click();CHECK(editor.activeLayer()==1);
+    CHECK(editor.layers().size()==4);
+    window.findChild<QPushButton*>("fuselageCutBottom")->click();CHECK(editor.activeLayer()==1);
+    window.findChild<QPushButton*>("fuselageCutRight")->click();CHECK(editor.activeLayer()==3);
+    window.findChild<QPushButton*>("fuselageCutLeft")->click();CHECK(editor.activeLayer()==2);
     spline->click();click({250,390});click({300,385});CHECK(editor.state().pending.size()==2);
     CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));
-    CHECK(editor.activeLayer()==1&&editor.state().pending.size()==2&&spline->isChecked());
+    CHECK(editor.activeLayer()==2&&editor.state().pending.size()==2&&spline->isChecked());
+    auto previous=encodeProject(window.projectDocument());previous["version"]=30;legacyCutViews(previous);
+    auto migrated=decodeProject(previous);CHECK(migrated.fuselageCuts.layers.size()==4&&migrated.fuselageCuts.active==2);
+    CHECK(migrated.fuselageCuts.pending==editor.state().pending);
+    CHECK(migrated.fuselageCuts.layers[0].points==editor.layers()[0].points);
+    CHECK(migrated.fuselageCuts.layers[1].curves.empty()&&migrated.fuselageCuts.layers[3].curves.empty());
     // Finish and delete this draft so the geometry test contains only the Top path.
-    key(Qt::Key_Escape);spline->click();const auto path=SketchEditor::fittedPath(editor.layers()[1].points,SketchTool::Spline);click(path.pointAtPercent(.5));key(Qt::Key_Delete);CHECK(editor.layers()[1].curves.empty());
+    key(Qt::Key_Escape);spline->click();const auto path=SketchEditor::fittedPath(editor.layers()[2].points,SketchTool::Spline);click(path.pointAtPercent(.5));key(Qt::Key_Delete);CHECK(editor.layers()[2].curves.empty());
     window.findChild<QPushButton*>("fuselageCutTop")->click();
-    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);
+    CHECK(window.saveProjectFile(file,error));auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==31);
     auto legacy=encoded;legacy["version"]=12;legacy.remove("fuselageCuts");CHECK(decodeProject(legacy).fuselageCuts.layers[0].curves.empty());
     auto bad=encoded;auto cuts=bad["fuselageCuts"].toObject();cuts["layers"]=QJsonArray{};bad["fuselageCuts"]=cuts;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[2]->trigger();CHECK(!editor.state().editing);CHECK(!window.projectModified());
@@ -177,6 +232,20 @@ int main(int argc,char** argv) {
     CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("fuselageBodyCount").toInt()==3);
     CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);const int revision=tabs->widget(1)->property("fuselageModelRevision").toInt();
     tabs->setCurrentIndex(0);tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelRevision").toInt()==revision);
+    // Regeneration must stop, clear the ready state and display the error.
+    CHECK(window.saveProjectFile(file,error)); // Save defaults initialized during generation.
+    auto interference=window.projectDocument();interference.fuselageThickening=true;
+    for(auto& station:interference.fuselageStations.lines)station.thicknessMm=5.;
+    interference.fuselageCuts.layers.assign(4,{});
+    interference.fuselageCuts.layers[0]=rectangle(380,150.05,20,10);
+    interference.fuselageCuts.pending.clear();
+    const auto blocked=dir.filePath("interference.foam");CHECK(writeProject(blocked,interference,error));
+    CHECK(window.openProjectFile(blocked,error));tabs->setCurrentIndex(1);waitForModel(window);
+    std::cerr<<"Interference regeneration status: "<<window.statusBar()->currentMessage().toStdString()<<std::endl;
+    CHECK(!window.property("modelProcessing").toBool());
+    CHECK(!tabs->widget(1)->property("fuselageModelReady").toBool());
+    CHECK(window.statusBar()->currentMessage().contains("overlaps a parallel wall"));
+    CHECK(window.statusBar()->currentMessage().contains("Top View cut 1"));
     std::cout<<"Cut UI: drawing, joins, editing, visibility, draft persistence, migration, body splitting and cache passed\n";
   }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}
 }

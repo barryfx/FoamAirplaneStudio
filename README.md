@@ -6,7 +6,7 @@ printing, plus outlines for laser cutting.
 
 ## Current progress
 
-As of September 25, 2026, Reference and Wing provide:
+As of September 29, 2026, Reference and Wing provide:
 
 - PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
 - Numbered panel outlines, reusable line/spline editing, curve-attached stations,
@@ -17,8 +17,8 @@ As of September 25, 2026, Reference and Wing provide:
   grooves, Mid holes, manufacturing splits and alignment features.
 - Optional lightening with accessible stepped pockets, uniform crossmembers,
   retained skins and protected alignment supports.
-- Portable version-29 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text, view state. Versions 1-28 remain readable.
+- Portable version-31 `.foam` projects preserving embedded references, design inputs,
+  drafts, mixed-unit text, view state. Versions 1-30 remain readable.
 - Cancellable background regeneration with bounded panel concurrency, panel progress,
   camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
   during generation; cancellation retains the previous display.
@@ -26,7 +26,7 @@ As of September 25, 2026, Reference and Wing provide:
 Fuselage unlocks after Wing airfoil assignment and provides Top/Side closed-outline
 editing with the reusable sketch editor. Two valid outlines enable Profile Stations;
 it places vertical Side View sections with one click. Edit Profiles attaches section sketches
-to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Cut splits solid or hollow bodies along saved Top/Side Line and Spline paths. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
+to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Outline has independent Nose/Tail Open or Closed choices, defaulting to Nose Open and Tail Closed. Cut supports Top, Bottom, Left and Right Line/Spline paths: boundary-crossing paths split through opposite walls; interior loops detach only the selected wall. Cut-outs remain separate components, and single-wall cuts that intersect a parallel wall stop generation with an error. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
 Formers adds movable, individually rotated full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
 
 Holes adds closed Line/Spline loops for Top, Bottom, Left or Right, cutting only
@@ -42,17 +42,17 @@ leaving two bodies. Closed Line/Spline Cut Shapes remove material through the
 thickness and can create additional bodies. Unchanged navigation reuses each
 component's successful model cache. Assembly provides side-view positioning,
 control-surface collision checks, reversible intersection cuts and separate export
-geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers former STEP/DXF/STL and component STEP/STL from the current Assembly
+geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers former STEP/DXF/SVG/STL and component STEP/STL from the current Assembly
 (see [Export](docs/architecture/export.md)). Project-wide Undo/Redo uses Ctrl+Z/Ctrl+Y; Assembly also includes Undo Cuts.
-SVG and tray DXF remain future work.
+Tray DXF remains future work.
 
 Fuselage generation uses the right profile half and reflects the completed body
 as a separate left part, with whole formers and tray. Former/rail work and mating
 hardware use bounded parallel workers; see the [benchmark and validation](docs/baseline/fuselage-speedup-validation.md).
 
-Weight and Balance adds named RC parts to Side View and calculates mass, CG and wing loading from current Assembly foam, Aero Plywood, carbon-fiber spars and entered parts. Default densities are 25.63, 680 and 1540 kg/m³ respectively. Mid spars default to 6 mm outside and 5 mm inside diameter, with mixed mm/in inputs. See [Weight and Balance](docs/architecture/weight-and-balance.md).
+Weight and Balance adds named RC parts to Side View and calculates mass, CG and wing loading from current Assembly foam, Aero Plywood, carbon-fiber spars and entered parts. A small CG symbol appears at the calculated longitudinal position, 20% above the root airfoil's lowest point through its maximum thickness. Default densities are 25.63, 680 and 1540 kg/m³ respectively. Mid spars default to 6 mm outside and 5 mm inside diameter, with mixed mm/in inputs. See [Weight and Balance](docs/architecture/weight-and-balance.md).
 
-Other data panels show available airplane dimensions, areas, aspect ratio, weight, wing loading and CG. These statistics are saved with the project and refreshed when their inputs change. See [airplane statistics](docs/architecture/airplane-statistics.md).
+Data panels other than Assembly, Export and Weight and Balance show available airplane dimensions, areas, aspect ratio, weight, wing loading and CG. Assembly movements and entering Export defer mass measurements. These statistics are saved with the project and refreshed when their inputs change. See [airplane statistics](docs/architecture/airplane-statistics.md).
 
 Wing Airfoils can smooth traced profiles while preserving a straight blunt trailing edge, and export normalized DAT files with at most 69 cosine-sampled points. Assembly rotates components about their root center in 0.5-degree steps and cuts formers for wing clearance.
 
@@ -89,6 +89,11 @@ cmake --build --preset windows-debug --parallel 4
 .\build\debug\Debug\foamairplanestudio.exe
 ```
 
+For Release deployment and the per-user Windows installer, see
+[Windows installer](docs/architecture/windows-installer.md). The installer defaults
+to `%LOCALAPPDATA%\Programs\FoamAirplaneStudio`, requires license acceptance,
+verifies installed license hashes, and offers an optional desktop shortcut.
+
 Internal CMake targets/options and namespaces retain designrc/DESIGNRC names.
 Application/settings identity is FoamAirplaneStudio. Linux presets are retained;
 current FoamAirplaneStudio Linux and macOS builds are not validated.
@@ -106,6 +111,11 @@ suites that generate those components internally. Unfiltered CTest includes them
 The available tests cover project lifecycle, editors, workflow, wing/control/spar/lightening
 geometry, background processing, mesh orientation and retained domain/export code.
 The legacy `designrc_geometry_tests` target is an explicitly skipped placeholder.
+
+Latest evidence: [Release/Debug test checks](docs/baseline/release-debug-test-checks.md),
+[four-surface cuts](docs/baseline/four-surface-cut-validation.md),
+[installer validation](docs/baseline/windows-installer-validation.md), and
+[September 29 documentation audit](docs/baseline/documentation-audit-2026-09-29.md).
 
 The September 19 [former rotation validation](docs/baseline/former-rotation-validation.md)
 records the full Debug build, 35 passing implemented tests after the workflow-test
@@ -128,4 +138,4 @@ excluded from Git. Small regression fixtures remain in `tests/fixtures`.
 
 Copyright (C) 2026 Barry Foust. GNU GPL version 3 only; see [LICENSE](LICENSE).
 Dependency notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
-`resources/licenses`.
+[the deployed license collection](licenses/README.md).

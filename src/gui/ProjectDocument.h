@@ -26,10 +26,11 @@ struct ProjectDocument {
   std::array<std::optional<domain::AirfoilProfile>, 2> stabilizerAirfoils;
   SketchState fuselage{std::vector<SketchLayer>(2)};
   SketchState fuselageProfiles;
-  SketchState fuselageCuts{std::vector<SketchLayer>(2)};
+  SketchState fuselageCuts{std::vector<SketchLayer>(4)};
   SketchState fuselageHoles{std::vector<SketchLayer>(4)};
   ServoTrayState servoTray;
   FormerState formers;
+  std::optional<bool> fuselageNoseOpen=true, fuselageTailOpen=false; // Null only for legacy automatic ends.
   bool fuselageThickening=false;
   int fuselageView=-1;
   StationState stations, fuselageStations;

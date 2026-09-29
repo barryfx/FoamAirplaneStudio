@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/FuselageProfilePanel.h"
 #include "gui/SketchBoundary.h"
@@ -170,7 +171,7 @@ int main(int argc,char** argv) {
     if(app.arguments().contains("--circle-only")) {
       auto* circle=window.findChild<QPushButton*>("fuselageProfileCircle");CHECK(circle&&circle->isVisible());
       CHECK(circle->mapToGlobal(QPoint{0,0}).y()>line->mapToGlobal(QPoint{0,line->height()}).y());
-      auto legacy=encodeProject(p);legacy["version"]=27;CHECK(decodeProject(legacy).fuselageProfiles.layers[0].curves.empty());
+      auto legacy=encodeProject(p);legacy["version"]=27;legacyCutViews(legacy);CHECK(decodeProject(legacy).fuselageProfiles.layers[0].curves.empty());
       circle->click();CHECK(circle->isChecked()&&!line->isChecked()&&!spline->isChecked());
       line->click();CHECK(line->isChecked()&&!circle->isChecked());
       spline->click();CHECK(spline->isChecked()&&!line->isChecked()&&!circle->isChecked());
@@ -196,11 +197,11 @@ int main(int argc,char** argv) {
       CHECK(std::abs(QLineF{layer.points[0],layer.points[1]}.length()-radius)<1e-7);
       drag(layer.points[1],layer.points[0]+QPointF{85,0});layer=sketch.layers()[slot];
       CHECK(std::abs(QLineF{layer.points[0],layer.points[1]}.length()-85)<2);
-      auto json=encodeProject(window.projectDocument());CHECK(json["version"]==29);
+      auto json=encodeProject(window.projectDocument());CHECK(json["version"]==31);
       CHECK(decodeProject(json).fuselageProfiles.layers[slot].points==layer.points);
       auto invalid=window.projectDocument();invalid.fuselageProfiles.layers[slot].points[1]=layer.points[0];
       bool rejected=false;try{decodeProject(encodeProject(invalid));}catch(const std::exception&){rejected=true;}CHECK(rejected);
-      auto oldCircle=json;oldCircle["version"]=27;rejected=false;
+      auto oldCircle=json;oldCircle["version"]=27;legacyCutViews(oldCircle);rejected=false;
       try{decodeProject(oldCircle);}catch(const std::exception&){rejected=true;}CHECK(rejected);
       invalid=window.projectDocument();invalid.fuselage.layers[0]=layer;rejected=false;
       try{decodeProject(encodeProject(invalid));}catch(const std::exception&){rejected=true;}CHECK(rejected);
@@ -241,7 +242,7 @@ int main(int argc,char** argv) {
     CHECK(sketch.state().pending.size()==2&&spline->isChecked()&&!window.projectModified());
     key(Qt::Key_Escape);window.findChild<QPushButton*>("deleteFuselageProfile")->click();
     CHECK(window.saveProjectFile(path,error));
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==31);
     auto old=encoded;old["version"]=10;old.remove("fuselageProfiles");CHECK(!decodeProject(old).fuselageStations.lines[0].profile);
     auto invalid=encoded;auto fs=invalid["fuselageStations"].toObject();auto records=fs["lines"].toArray();auto record=records[0].toObject();record["profile"]=100000;records[0]=record;fs["lines"]=records;invalid["fuselageStations"]=fs;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

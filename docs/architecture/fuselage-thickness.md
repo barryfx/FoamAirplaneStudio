@@ -42,19 +42,22 @@ stations. Additional section samples capture the transition. Inner loops use the
 same drawn-up landmark correspondence as the outer profiles. The sampled ruled
 loft approximates the smooth thickness law, without discrete thickness steps.
 
-Nose and tail follow the same rule independently. An end is open when the nearest
-profile lies at the corresponding registered outline endpoint. Model-only end
-registration makes an explicit straight end edge vertical when it is within 2
-degrees of vertical and its axial drift is at most 0.5 mm at the final model scale.
-The outermost station within 0.5 mm of such a plane is registered onto the plane
-and opens that end. Interior stations keep their positions. Curved, pointed and
-more strongly sloping ends retain the strict 1e-6 mm endpoint test. Both views
-use the corrected end midpoint for alignment, including reference/part placement.
-The drawing and saved project inputs are unchanged. See ADR-0044.
-An annular rim joins the outer and inner skins there. If the outlines extend past
-the outermost profile, that end stays closed: an axial end wall is retained and
-narrow tips remain solid. A station terminating an outline must leave room for
-its requested wall and opening, otherwise generation reports an error.
+Nose and tail are independently Open or Closed, selected in Fuselage > Outline.
+New projects default to Nose Open and Tail Closed. Loading older projects resolves the previous
+station-based rule once, then retains that choice explicitly. Open brings the
+cavity through the end; Closed retains the axial end-wall allowance. A pointed
+or undersized opening still reports that its wall thickness leaves no opening.
+
+For an explicit open straight slanted Side View end (less than 45 degrees from
+vertical), generation extends its boundary horizontally to a temporary vertical
+end plane, hollows the complete section, then trims both body and cavity to the
+original drawn plane. Former/tray fitting and retaining rails use that trimmed
+cavity. Profile stations stay perpendicular to the fuselage axis. The drawing
+and saved outline points are unchanged. See ADR-0048.
+
+Legacy automatic ends retain ADR-0044 registration: explicit end lines within
+2 degrees of vertical and 0.5 mm axial drift are registered; the nearest station
+within 0.5 mm opens that end. Other ends use the strict endpoint test.
 
 The right-half inner wall is lofted and subtracted from the right outer solid.
 The cavity reaches the end plane for an open end, leaving an annular half-rim;

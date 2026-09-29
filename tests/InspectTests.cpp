@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/InspectPanel.h"
 #include "gui/ReferencePanel.h"
@@ -38,6 +39,14 @@ public:
     w.workspaceToolBar_->actions()[6]->trigger();QApplication::processEvents();
     CHECK(w.inspectPanel_->isVisible());CHECK(w.graphicsTabs_->currentIndex()==1);CHECK(!w.graphicsTabs_->isTabEnabled(0));
     CHECK(w.inspectPanel_->visibleShapes().empty());CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_);
+    // A cached wing has a root datum for its Assembly rotation pivot even
+    // when the rest of the airplane has not been defined. Keep airfoils unassigned
+    // so this synthetic-cache fixture does not trigger wing generation.
+    auto fixture=w.projectDocument();fixture.reference.wingspanMm=200;fixture.wingspanText="200";
+    fixture.wing.layers[0]=rectangle(10,10,100,30);fixture.wing.layers[0].curves.pop_back();
+    fixture.stations.lines={{{0,0,0,{10,10}},{0,2,1,{10,40}},LineAlignment::Vertical,std::nullopt},
+        {{0,0,1,{110,10}},{0,2,0,{110,40}},LineAlignment::Vertical,std::nullopt}};
+    w.restoreProject(fixture);
     // Individual generated caches can be inspected without a complete Assembly.
     w.wingShape_=box(60,-80,10,40,160,8);w.builtWingFingerprint_=w.wingFingerprint();w.updateInspect(true);
     CHECK(w.inspectPanel_->visibleShapes().size()==1);CHECK(!w.exportAssemblyParts());
@@ -93,7 +102,7 @@ public:
     }
     w.workspaceToolBar_->actions()[8]->trigger();QApplication::processEvents();
     CHECK(w.viewport_->displayedShapes_.size()>0);CHECK(!w.inspectPanel_->isVisible());
-    w.findChild<QCheckBox*>("exportAll")->click();const auto selected=w.exportPanel_->selectedParts();
+    CHECK(w.findChild<QCheckBox*>("exportAll")->isChecked());const auto selected=w.exportPanel_->selectedParts();
     CHECK(selected.size()==count);CHECK(selected[0].name=="Nose Former");
     bool renamed=false;for(const auto& part:selected)if(part.id==wingId.toStdString()){CHECK(part.name=="Main Wing");renamed=true;}CHECK(renamed);
     const auto filenames=geometry::exportFileNames(selected,geometry::FormerExportFormat::Dxf,geometry::ComponentExportFormat::Stl,w.exportProjectName());
@@ -119,6 +128,7 @@ public:
     w.resetProject();CHECK(w.inspectPanel_->names().empty());CHECK(w.exportProjectName()=="Untitled");
     // Inspect uses the existing worker to refresh a changed Wing, without requiring
     // Fuselage or stabilizer definitions or running their generation suites.
+    if(QApplication::arguments().contains("--gui-only"))return;
     ProjectDocument wingProject;wingProject.reference.wingspanMm=200;wingProject.wingspanText="200";
     wingProject.wing.layers[0]=rectangle(10,10,100,30);wingProject.wing.layers[0].curves.pop_back();
     wingProject.stations.lines={{{0,0,0,{10,10}},{0,2,1,{10,40}},LineAlignment::Vertical,0},
@@ -137,7 +147,7 @@ public:
     CHECK(w.findChild<QLineEdit*>("inspectName0")->text()=="Renamed generated wing");
     CHECK(w.inspectPanel_->isVisible()&&!w.graphicsTabs_->isTabEnabled(0));
     w.resetProject();
-    auto json=encodeProject(document);CHECK(json["version"]==29);json["version"]=26;json.remove("componentNames");
+    auto json=encodeProject(document);CHECK(json["version"]==31);json["version"]=26;legacyCutViews(json);json.remove("componentNames");
     auto ui=json["ui"].toObject();ui["workspace"]=0;json["ui"]=ui;
     CHECK(decodeProject(json).componentNames.empty());
     auto invalid=encodeProject(document);invalid["componentNames"]=QJsonObject{{"Wing/solid/0","../escape"}};

@@ -253,6 +253,7 @@ void MainWindow::updateAssembly(bool inspect) {
       p.reference.toScale?std::nullopt:p.reference.wingspanMm,p.dihedralDegrees,p.controls.panels,p.spars,p.lightening};
   geometry::FuselageSolidInput fuselage{p.fuselage.layers,p.fuselageStations.lines,p.fuselageProfiles.layers,
       scaledFuselageLength(),p.fuselageThickening,p.fuselageCuts.layers,p.servoTray.rectangle,p.formers.rectangles,p.formers.rotationDegrees,p.fuselageHoles.layers};
+  fuselage.noseOpen=p.fuselageNoseOpen;fuselage.tailOpen=p.fuselageTailOpen;
   std::vector<geometry::StabilizerSolidInput> stabilizers;
   for(int i=0;i<2;++i)stabilizers.push_back({p.stabilizerOutlines[i].layers.front(),stabilizerAirfoilPanels_[i]->airfoil(),
       projectLengthScale(),i==0,p.stabilizerHinges[i].layers.front(),p.stabilizerHingeCuts[i],p.stabilizerCuts[i].layers});

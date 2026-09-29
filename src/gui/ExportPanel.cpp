@@ -14,8 +14,8 @@ ExportPanel::ExportPanel(QWidget* parent):QWidget{parent} {
   auto* text=new QLabel{"Choose a format for formers and for the other Assembly components. "
       "Check the parts to export, or use All to select or clear every part. "
       "Export Components asks for a folder and remembers it for next time. "
-      "STEP writes selected formers and components together in a STEP file named after the project; STL and DXF write one file per checked part. "
-      "Exports use the current Assembly, including its cuts. Former DXF uses a full-size mid-plane section, flattened in millimeters.",this};
+      "STEP writes selected formers and components together in a STEP file named after the project; STL, DXF and SVG write one file per checked part. "
+      "Exports use the current Assembly, including its cuts. Former DXF and SVG use a full-size mid-plane section, flattened in millimeters. All parts are selected initially.",this};
   text->setWordWrap(true);text->setObjectName("exportInstructions");layout->addWidget(text);
   const auto radios=[&](const char* first,const char* second,const char* id1,const char* id2) {
     auto* group=new QButtonGroup{this};
@@ -24,6 +24,8 @@ ExportPanel::ExportPanel(QWidget* parent):QWidget{parent} {
     a->setChecked(true);layout->addWidget(a);layout->addWidget(b);return a;
   };
   dxf_=radios("Formers DXF","Formers STL","formersDxf","formersStl");
+  formerSvg_=new QRadioButton{"Formers SVG",this};formerSvg_->setObjectName("formersSvg");
+  dxf_->group()->addButton(formerSvg_);layout->addWidget(formerSvg_);
   formerStep_=new QRadioButton{"Formers STEP",this};formerStep_->setObjectName("formersStep");
   dxf_->group()->addButton(formerStep_);layout->addWidget(formerStep_);
   formerStep_->setChecked(true);
@@ -45,6 +47,7 @@ void ExportPanel::setParts(std::vector<geometry::ExportPart> parts) {
   checks_.clear();parts_=std::move(parts);
   for(const auto& part:parts_) {
     auto* box=new QCheckBox{QString::fromStdString(part.name),this};
+    box->setChecked(true);
     box->setObjectName("exportPart"+QString::number(checks_.size()));list_->addWidget(box);checks_.push_back(box);
     connect(box,&QCheckBox::toggled,this,[this]{updateSelection();});
   }
@@ -61,6 +64,7 @@ std::vector<geometry::ExportPart> ExportPanel::selectedParts() const {
   return selected;
 }
 geometry::FormerExportFormat ExportPanel::formerFormat() const {
+  if(formerSvg_->isChecked())return geometry::FormerExportFormat::Svg;
   if(formerStep_->isChecked())return geometry::FormerExportFormat::Step;
   return dxf_->isChecked()?geometry::FormerExportFormat::Dxf:geometry::FormerExportFormat::Stl;
 }

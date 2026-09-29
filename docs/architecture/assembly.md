@@ -63,7 +63,7 @@ retain their original solids through placement and receive wing seats only in
 the derived cut snapshot; the servo tray retains its original solid throughout.
 Assembly never fuses inserts to the body. Cut formers are meshed on private copies.
 Each insert has a separate 3D presentation. Source-model edits invalidate derived cuts while
-retaining physical translations. New/Close resets placements and derived caches. Current format 29 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
+retaining physical translations. New/Close resets placements and derived caches. Current format 31 retains input-only saving introduced in version 23. It saves inputs and Assembly placements/cut intent; all geometry
 caches are session-only. Former rotation is included in Fuselage snapshots and
 cache invalidation. Version-22 embedded models are ignored on Open.
 

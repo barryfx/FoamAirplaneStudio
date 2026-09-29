@@ -1,6 +1,8 @@
 #include "gui/FuselageOutlinePanel.h"
 #include "gui/SketchBoundary.h"
 #include <QLabel>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -49,12 +51,14 @@ FuselageOutlinePanel::FuselageOutlinePanel(SketchEditor& editor, QWidget* parent
   layout->setContentsMargins(0,0,0,0);
   auto* description = new QLabel{
       "Trace one closed fuselage outline in Top View and one in Side View over the reference drawing. "
-      "Click a view to activate it; click it again to release it and enable the other view. "
+      "Click Top View or Side View to switch directly between the outlines; click the selected view again to release it. "
       "Choose Line for two-point segments or Spline for fitted curves. Escape finishes a spline; "
       "click its first point to close it. Tools stay on until clicked again. With both tools off, "
       "drag points to move them, or select a curve and press Delete. Nearby points snap together. "
       "Red endpoints still need a connection. Both outlines are checked when leaving Outline. "
-      "Two valid loops enable Profile Stations.", this};
+      "Two valid loops enable Profile Stations. Choose Open or Closed independently for the nose and tail. "
+      "Open removes the end wall when thickened and follows a straight slanted Side View end edge; "
+      "Closed retains a foam end wall. The traced outlines must remain closed loops.", this};
   description->setWordWrap(true); layout->addWidget(description);
   for (int i=0;i<2;++i) {
     views_[i]=new QPushButton{i==0?"Top View":"Side View",this};
@@ -76,12 +80,24 @@ FuselageOutlinePanel::FuselageOutlinePanel(SketchEditor& editor, QWidget* parent
       editor_.setEditing(active_&&view_>=0);syncControls();
     });
   }
+  for(int i=0;i<2;++i) {
+    auto* group=new QButtonGroup{this};
+    const QString end=i==0?"Nose":"Tail";
+    openEnds_[i]=new QRadioButton{"Fuselage "+end+" Open",this};
+    closedEnds_[i]=new QRadioButton{"Fuselage "+end+" Closed",this};
+    openEnds_[i]->setObjectName("fuselage"+end+"Open");
+    closedEnds_[i]->setObjectName("fuselage"+end+"Closed");
+    group->addButton(openEnds_[i]);group->addButton(closedEnds_[i]);
+    (i==0?openEnds_[i]:closedEnds_[i])->setChecked(true);
+    layout->addWidget(openEnds_[i]);layout->addWidget(closedEnds_[i]);
+    connect(openEnds_[i],&QRadioButton::toggled,this,[this]{if(endsChanged)endsChanged();});
+  }
   layout->addStretch();syncControls();
 }
 void FuselageOutlinePanel::syncControls() {
   for(int i=0;i<2;++i) {
     QSignalBlocker block{views_[i]};views_[i]->setChecked(view_==i);
-    views_[i]->setEnabled(view_<0||view_==i);tools_[i]->setVisible(view_==i);
+    views_[i]->setEnabled(true);tools_[i]->setVisible(view_==i);
     for(auto* button:tools_[i]->findChildren<QPushButton*>()) {
       QSignalBlocker guard{button};button->setChecked(button->property("sketchTool").toInt()==static_cast<int>(editor_.tool()));
     }
@@ -111,7 +127,16 @@ void FuselageOutlinePanel::setActive(bool active,bool warn) {
   }
 }
 void FuselageOutlinePanel::restoreControls(int view) {view_=view;syncControls();}
+bool FuselageOutlinePanel::noseOpen() const {return openEnds_[0]->isChecked();}
+bool FuselageOutlinePanel::tailOpen() const {return openEnds_[1]->isChecked();}
+void FuselageOutlinePanel::setEnds(bool nose,bool tail) {
+  for(int i=0;i<2;++i) {
+    QSignalBlocker block{openEnds_[i]};
+    ( (i==0?nose:tail)?openEnds_[i]:closedEnds_[i])->setChecked(true);
+  }
+}
 void FuselageOutlinePanel::reset() {
+  setEnds(true,false);
   editor_.setShowOpenEndpoints(false);
   active_=false;view_=-1;editor_.reset();editor_.setLayerCount(2);syncControls();
 }

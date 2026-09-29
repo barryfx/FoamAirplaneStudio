@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/FuselageOutlinePanel.h"
 #include "gui/SketchBoundary.h"
@@ -10,6 +11,7 @@
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QPainter>
 #include <QSettings>
 #include <QTabWidget>
@@ -38,7 +40,22 @@ int main(int argc,char** argv) {
   QCoreApplication::setOrganizationName("FoamFuselageTests");QCoreApplication::setApplicationName("FoamFuselageTests");
   QSettings::setDefaultFormat(QSettings::IniFormat);QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,dir.path());
   try {
-    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==29);
+    if(const auto path=qEnvironmentVariable("FOAM_ENDS_GUI_PROJECT");!path.isEmpty()) {
+      MainWindow preview;preview.resize(1200,900);preview.show();QString error;
+      CHECK(preview.openProjectFile(path,error));app.processEvents();
+      auto* panel=static_cast<FuselageOutlinePanel*>(preview.findChild<QWidget*>("fuselageOutlinePanel"));
+      CHECK(panel&&panel->isVisible()&&panel->noseOpen()&&!panel->tailOpen());
+      CHECK(preview.projectDocument().fuselageNoseOpen.value());
+      static_cast<PlanViewport*>(preview.findChild<QTabWidget*>("viewportTabs")->widget(0))->fitAll();app.processEvents();
+      CHECK(preview.grab().save(qEnvironmentVariable("FOAM_ENDS_GUI_CAPTURE")));
+      std::cout<<"Project end controls displayed correctly\n";return 0;
+    }
+    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==31);
+    CHECK(decodeProject(canonical).fuselageNoseOpen.value());
+    auto explicitEnds=canonical;explicitEnds["fuselageNoseOpen"]=true;explicitEnds["fuselageTailOpen"]=false;
+    CHECK(decodeProject(explicitEnds).fuselageNoseOpen.value());CHECK(!decodeProject(explicitEnds).fuselageTailOpen.value());
+    auto legacyEnds=canonical;legacyEnds["version"]=29;legacyCutViews(legacyEnds);legacyEnds.remove("fuselageNoseOpen");legacyEnds.remove("fuselageTailOpen");
+    CHECK(!decodeProject(legacyEnds).fuselageNoseOpen.has_value());
     auto legacy=canonical;legacy["version"]=8;legacy.remove("fuselageOutline");
     auto old=decodeProject(legacy);CHECK(old.fuselage.layers.size()==2 && old.fuselageView==-1);
     auto bad=canonical;auto f=bad["fuselageOutline"].toObject();f["layers"]=QJsonArray{};bad["fuselageOutline"]=f;
@@ -77,6 +94,20 @@ int main(int argc,char** argv) {
     MainWindow window;window.show();app.processEvents();CHECK(window.openProjectFile(filename,error));app.processEvents();
     auto* view=static_cast<PlanViewport*>(window.findChild<QTabWidget*>("viewportTabs")->widget(0));auto& editor=view->fuselageSketchEditor();
     auto* panel=static_cast<FuselageOutlinePanel*>(window.findChild<QWidget*>("fuselageOutlinePanel"));
+    auto* noseOpen=panel->findChild<QRadioButton*>("fuselageNoseOpen");
+    auto* noseClosed=panel->findChild<QRadioButton*>("fuselageNoseClosed");
+    auto* tailOpen=panel->findChild<QRadioButton*>("fuselageTailOpen");
+    auto* tailClosed=panel->findChild<QRadioButton*>("fuselageTailClosed");
+    CHECK(noseOpen&&noseClosed&&tailOpen&&tailClosed);
+    CHECK(noseOpen->isChecked()&&tailClosed->isChecked());
+    noseClosed->click();app.processEvents();CHECK(noseClosed->isChecked()&&!noseOpen->isChecked()&&tailClosed->isChecked());
+    window.findChild<QAction*>("editUndo")->trigger();CHECK(noseOpen->isChecked());
+    window.findChild<QAction*>("editRedo")->trigger();CHECK(noseClosed->isChecked());
+    noseOpen->click();
+    tailOpen->click();CHECK(noseOpen->isChecked()&&tailOpen->isChecked()&&!tailClosed->isChecked());
+    CHECK(window.saveProjectFile(filename,error));CHECK(window.openProjectFile(filename,error));
+    CHECK(panel->noseOpen()&&panel->tailOpen());
+    noseClosed->click();tailClosed->click();CHECK(window.saveProjectFile(filename,error));
     auto* top=window.findChild<QPushButton*>("fuselageTopView");auto* side=window.findChild<QPushButton*>("fuselageSideView");
     auto* tools=window.findChild<QToolBar*>("componentToolBar");auto* workspaces=window.findChild<QToolBar*>("workspaceToolBar");
     CHECK(panel->isVisible() && tools->actions()[0]->isChecked() && !tools->actions()[1]->isEnabled());
@@ -87,7 +118,9 @@ int main(int argc,char** argv) {
     auto key=[&](int k){QKeyEvent e{QEvent::KeyPress,k,Qt::NoModifier};QApplication::sendEvent(view,&e);};
     QString warning;
     auto expectWarning=[&]{warning.clear();QTimer::singleShot(0,[&]{auto* box=qobject_cast<QMessageBox*>(QApplication::activeModalWidget());if(!box)qFatal("Expected fuselage warning");warning=box->text();box->accept();});};
-    top->click();CHECK(top->isChecked()&&!side->isEnabled());CHECK(!window.projectModified());
+    top->click();CHECK(top->isChecked()&&side->isEnabled());
+    side->click();CHECK(side->isChecked()&&!top->isChecked()&&editor.activeLayer()==1);
+    top->click();CHECK(top->isChecked()&&!side->isChecked()&&editor.activeLayer()==0);CHECK(!window.projectModified());
     button("Line")->click();CHECK(editor.tool()==SketchTool::Line);CHECK(!window.projectModified());
     const std::vector<QPointF> corners{{200,150},{600,150},{600,250},{200,250}};
     auto redEndpoint=[&](QPointF point) {
@@ -105,7 +138,7 @@ int main(int argc,char** argv) {
     for(auto point:corners)CHECK(!redEndpoint(point));
     CHECK(closedSketchBoundary(editor.layers()[0]) && !panel->outlinesDefined());CHECK(window.projectModified());
     CHECK(view->sketchEditor().layers()[0].points==p.wing.layers[0].points);
-    top->click();CHECK(!top->isChecked()&&side->isEnabled());side->click();CHECK(!top->isEnabled());
+    top->click();CHECK(!top->isChecked()&&side->isEnabled());side->click();CHECK(top->isEnabled());
     button("Spline")->click();click({200,350});click({400,300});click({600,350});click({400,400});click({200,350});
     CHECK(editor.layers()[1].curves.size()==1 && panel->outlinesDefined());
     CHECK(tools->actions()[1]->isEnabled() && tools->actions()[0]->isChecked());

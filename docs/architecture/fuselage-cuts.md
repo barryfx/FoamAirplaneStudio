@@ -1,56 +1,47 @@
 # Fuselage cuts
 
-Cut becomes available with the other secondary tools when every station has a
-closed profile. It opens the 2D view and shows instructions, Top/Side selectors
-and Add Cut, a path selector, Line/Spline tools and Delete Cut. Each connected
-path is separately selectable; Delete Cut removes its entire path. Add Cut
-finishes the previous drawing and begins a new path. These controls match Holes
-(fuselage-holes.md), which removes material through one chosen wall. Top is the initial cut view. A separate two-layer
-SketchEditor reuses endpoint snapping, connected Line/Spline drawing, point
-movement, selection and Delete. Escape finishes a spline. Closed paths are
-allowed but not required; multiple independent paths are supported. There is no
-closed-loop warning when leaving Cut. Switching views or leaving 2D finishes a
-pending segment using normal sketch behavior. All completed cut paths remain
-painted across 2D modes. They remap with the reference like other sketches.
+Cut becomes available when every station has a closed profile. Top, Bottom,
+Left and Right View selectors choose the target surface. Top/Bottom use the Top
+outline; Left/Right use the Side outline. Add Cut, the path selector, Line/Spline
+and Delete Cut retain their existing editing behavior. Switching surfaces finishes
+the current draft. All four layers remap with the reference image and support
+undo/redo and project persistence.
 
-Save/Open preserves both views, points, curves, active view/tool and unfinished
-sketches. Version 13 adds `fuselageCuts`; versions 1-12 load empty cut layers.
-Cut layers participate in the Fuselage model fingerprint, never the Wing one.
-Idle view/tool/selection changes are excluded from document dirty checks.
+A connected path that reaches or crosses its outline boundary creates a cutting
+sheet through the entire body, cutting both opposite walls. A path wholly inside
+the outline cuts only the selected wall: the inner cavity divides the sheet,
+and only faces connected to the selected exterior starting plane are retained.
+If the sheet cannot reach the cavity without reaching the opposite wall,
+generation reports an error rather than cutting the wrong side. Before splitting,
+the entire enclosed hatch footprint is extruded and divided by the cavity. If
+the selected exterior portion still reaches the far side, a parallel wall
+interferes with the hatch. This also detects a wall inside the loop that a
+perimeter-only check misses. Generation stops and the status message identifies
+the surface and cut number, asking the user to move or shrink the cut over the
+inner cavity. Invalid CAD isolation also stops generation. These checks use
+cancellable Boolean operations rather than sampled rays.
 
-Generation first creates the guided exterior and optional inward wall. Each cut
-path is then mapped from its source view using that view's existing longitudinal
-scale and nose alignment. Top View paths map to X/Y and extrude through the full
-Z bounds. Side View paths map to X/Z and extrude through the full Y bounds. The
-extrusion extends beyond all body bounds. Line edges remain analytic straight
-edges; splines use OCCT interpolation through the original sketch nodes, with the
-same periodic/open convention as the displayed sketch.
+Interior paths require a hollow fuselage and a closed loop to detach a piece.
+Open through-paths must reach both outline edges to separate a body. Branches,
+self-intersections, disconnected wires and paths that separate no body report
+the affected surface/path. Line edges remain analytic; splines use OCCT
+interpolation. The operation splits solids; it never subtracts hatch material.
+Both through-cuts and single-wall cuts retain every cut-out as a separate
+component at its original placement, with no kerf or material loss. Each split
+requires increased solid count, valid positive-volume solids and conservation
+of volume within max(0.001 mm3, one part per million).
 
-Connected nonbranching paths are reconstructed from shared endpoint indices,
-independent of curve creation order or direction. Each path forms an extruded
-cutting sheet for BRepAlgoAPI_Splitter. Open paths must reach/cross the exterior
-boundary at both ends; a finite interior slit alone cannot separate a solid.
-Closed paths can detach an enclosed portion. Branches, disconnected segment
-wires, failed splines and cuts that separate no body report an error naming the
-view and path. Already disconnected paths are handled as separate cuts.
+Format 31 stores Top/Bottom/Left/Right cut layers. Earlier two-view files map
+Top to Top and Side to Left, preserving points, active view and pending draft.
+Interior legacy paths now follow the selected-wall rule; boundary-crossing paths
+remain through-cuts. Geometry fingerprints include all four layers. The
+low-level two-layer geometry API remains available for legacy regression callers.
 
-All resulting solids are retained at their original placement in a compound;
-no kerf, clearance or removed material is introduced. Validation requires more
-solids after each cut, valid positive-volume bodies, and conservation of material
-volume within max(0.001 mm3, one part per million). A completed result reports the
-body count. There is no per-body repositioning editor in this change. Generation,
-cooperative cancellation, stale-result protection and caching remain within the
-independent Fuselage worker. No Wing geometry is regenerated by cut edits.
-
-The right fuselage half and its reflected left part are already separate before
-user cuts. Afterwards, pieces are grouped by shared mating-face area at Y=0.
-The group with the largest combined volume is the main body; this preserves
-selection even when an oblique Top cut makes different individual pieces largest
-on each side. Its two connected halves remain separate and are never joined.
-Other groups are joined only across their mating faces to retain whole hatches
-and other removable cut-outs. Tray/former inserts are appended whole afterwards.
-Equal-largest groups remain an error. The policy still assumes the main body is
-larger than a detached cut-out and has no manual main-body selector. See ADR-0045.
+The two main fuselage halves stay separate. Detached hatch pieces crossing their
+mating plane are joined into whole cut-out components; hatches belonging to one
+wall remain independent. Formers and trays are appended whole after these cuts.
+Cancellation, invalid-result checks and stale-result protection remain active.
+See ADR-0049 for the four-surface decision.
 
 ## Half alignment
 Complete model generation adds four mating alignment features to the retained

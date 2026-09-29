@@ -1,6 +1,7 @@
 #include "domain/DxfExporter.h"
 #include "geometry/Assembly.h"
 #include "gui/MainWindow.h"
+#include "LegacyProject.h"
 #include "gui/AirfoilPanel.h"
 #include "gui/PlanViewport.h"
 #include "WaitForModel.h"
@@ -97,10 +98,10 @@ public:
     CHECK(w.saveProjectFile(file,error));
     QFile input{file};CHECK(input.open(QIODevice::ReadOnly));
     const auto json=QJsonDocument::fromJson(input.readAll()).object();input.close();
-    CHECK(json["version"]==29&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
+    CHECK(json["version"]==31&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
     CHECK(!w.wingShape_.IsNull()&&w.assemblyCutParts_); // Save retains session caches.
     for(const QJsonValue obsolete:{QJsonValue{QJsonObject{{"wing",QJsonObject{{"fingerprint","bad"},{"shapes",QJsonArray{QJsonObject{{"brep","not compressed geometry"},{"sha256","bad"}}}}}}}},QJsonValue{"invalid legacy cache"},QJsonValue{}}) {
-      auto legacy=json;legacy["version"]=22;legacy["models"]=obsolete;
+      auto legacy=json;legacy["version"]=22;legacyCutViews(legacy);legacy["models"]=obsolete;
       legacy["ui"]=QJsonObject{legacy["ui"].toObject()};auto ui=legacy["ui"].toObject();ui["workspace"]=5;ui["viewport"]=1;legacy["ui"]=ui;
       QFile output{file};CHECK(output.open(QIODevice::WriteOnly));output.write(QJsonDocument{legacy}.toJson());output.close();
       CHECK(w.openProjectFile(file,error));QApplication::processEvents();
@@ -112,9 +113,9 @@ public:
       CHECK(w.assemblyState_.cuts&&w.assemblyState_.offsets[0]==QPointF(12,34));
       CHECK(!w.projectModified());if(!w.saveProjectFile(file,error))throw std::runtime_error(error.toStdString());
       CHECK(input.open(QIODevice::ReadOnly));const auto resaved=QJsonDocument::fromJson(input.readAll()).object();input.close();
-      CHECK(resaved["version"]==29&&!resaved.contains("models"));
+      CHECK(resaved["version"]==31&&!resaved.contains("models"));
     }
-    auto older=json;older["version"]=21;CHECK(decodeProject(older).assembly.cuts);
+    auto older=json;older["version"]=21;legacyCutViews(older);CHECK(decodeProject(older).assembly.cuts);
     auto invalid=json;invalid["assembly"]=false;bool rejected=false;
     try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     // Smoothing copies use normal project persistence/history, without model generation.
@@ -344,7 +345,7 @@ int main(int argc,char** argv) {
     CHECK(mapping.left==200&&mapping.verticalOrigin==225&&mapping.scale==.25);
     const auto physical=geometry::fuselageSideTransform(side,std::nullopt);CHECK(physical.scale==1.);
     auto doc=fixture();doc.assembly=geometry::initialAssemblyPlacement(p);doc.assembly.cuts=true;
-    auto json=encodeProject(doc);CHECK(json["version"]==29);CHECK(decodeProject(json).assembly.cuts);
+    auto json=encodeProject(doc);CHECK(json["version"]==31);CHECK(decodeProject(json).assembly.cuts);
     doc.assembly.rotationDegrees={.5,-1,179.5};json=encodeProject(doc);
     CHECK(decodeProject(json).assembly.rotationDegrees==doc.assembly.rotationDegrees);
     auto zeroAngles=json;auto oldAssembly=zeroAngles["assembly"].toObject();oldAssembly.remove("rotationDegrees");zeroAngles["assembly"]=oldAssembly;
@@ -353,7 +354,7 @@ int main(int argc,char** argv) {
       auto badAngles=json;auto assembly=badAngles["assembly"].toObject();assembly["rotationDegrees"]=angles;badAngles["assembly"]=assembly;
       bool rejected=false;try{decodeProject(badAngles);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     }
-    auto legacy=json;legacy["version"]=20;legacy.remove("assembly");CHECK(!decodeProject(legacy).assembly.positioned);
+    auto legacy=json;legacy["version"]=20;legacyCutViews(legacy);legacy.remove("assembly");CHECK(!decodeProject(legacy).assembly.positioned);
     auto invalid=json;auto state=invalid["assembly"].toObject();state["offsets"]=QJsonArray{};invalid["assembly"]=state;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     AssemblyWorkflowTest::run(argc>1?QString::fromLocal8Bit(argv[1]):settings.path());

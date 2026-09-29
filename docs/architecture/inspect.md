@@ -28,7 +28,7 @@ not by mutable display text. Unavailable component aliases are retained so norma
 regeneration can reuse them. Topology-changing edits that reorder or replace
 solids can change ordinal identity; inspect names after such edits (ADR-0041).
 
-The Export checklist, STEP part labels and individual DXF/STL filenames use these
+The Export checklist, STEP part labels and individual DXF/SVG/STL filenames use these
 names. Combined STEP output uses the saved project basename, or Untitled for an
 unsaved project. Project filename characters invalid on another platform are
 sanitized. Export rejects duplicate component names/filenames before writing.

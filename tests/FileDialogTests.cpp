@@ -3,10 +3,8 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QDir>
-#include <cassert>
+#include "TestCheck.h"
 #include <iostream>
-#undef assert
-#define assert(condition) do { if (!(condition)) { std::cerr << "Check failed at line " << __LINE__ << ": " << #condition << std::endl; return 1; } } while (false)
 using namespace designrc::gui;
 class TestDialog : public FileSelectionDialog {
 public:
@@ -20,61 +18,61 @@ int main(int argc, char** argv) {
   });
   QApplication app{argc, argv};
   app.setOrganizationName("FoamDialogTests"); app.setApplicationName("Isolated");
-  QTemporaryDir temporary; assert(temporary.isValid());
+  QTemporaryDir temporary; TEST_CHECK(temporary.isValid());
   QSettings::setDefaultFormat(QSettings::IniFormat);
   QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, temporary.path());
   QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, temporary.path());
-  const auto folder = temporary.filePath("artwork"); assert(QDir{}.mkpath(folder));
+  const auto folder = temporary.filePath("artwork"); TEST_CHECK(QDir{}.mkpath(folder));
   const auto file = QDir{folder}.filePath("reference.png");
-  { QFile output{file}; assert(output.open(QIODevice::WriteOnly)); output.write("fixture"); }
+  { QFile output{file}; TEST_CHECK(output.open(QIODevice::WriteOnly)); output.write("fixture"); }
   {
     TestDialog dialog{nullptr, "referenceImage", "Open"};
     dialog.setOption(QFileDialog::DontUseNativeDialog);
-    dialog.selectFile(file); dialog.accept(); assert(dialog.result() == QDialog::Accepted);
+    dialog.selectFile(file); dialog.accept(); TEST_CHECK(dialog.result() == QDialog::Accepted);
   }
   {
     TestDialog dialog{nullptr, "referenceImage", "Open"};
-    assert(dialog.directory().absolutePath() == folder);
-    assert(!dialog.selectedFiles().isEmpty());
-    assert(dialog.selectedFiles().front() == file);
+    TEST_CHECK(dialog.directory().absolutePath() == folder);
+    TEST_CHECK(!dialog.selectedFiles().isEmpty());
+    TEST_CHECK(dialog.selectedFiles().front() == file);
     dialog.selectFile(temporary.filePath("cancelled.png")); dialog.reject();
   }
   {
     TestDialog dialog{nullptr, "referenceImage", "Open"};
-    assert(!dialog.selectedFiles().isEmpty());
-    assert(dialog.selectedFiles().front() == file); // Cancellation preserves history.
+    TEST_CHECK(!dialog.selectedFiles().isEmpty());
+    TEST_CHECK(dialog.selectedFiles().front() == file); // Cancellation preserves history.
   }
   {
     TestDialog dialog{nullptr, "exportFolder", "Folder", QFileDialog::Directory};
     dialog.setOption(QFileDialog::DontUseNativeDialog);
-    assert(dialog.directory().absolutePath() == folder); // Shared first-use fallback.
+    TEST_CHECK(dialog.directory().absolutePath() == folder); // Shared first-use fallback.
     dialog.setDirectory(temporary.path()); dialog.selectFile(folder); dialog.accept();
-    assert(dialog.result() == QDialog::Accepted);
+    TEST_CHECK(dialog.result() == QDialog::Accepted);
   }
   {
     TestDialog dialog{nullptr, "exportFolder", "Folder", QFileDialog::Directory};
-    assert(dialog.directory().absolutePath() == folder);
+    TEST_CHECK(dialog.directory().absolutePath() == folder);
   }
   const auto outputPath = QDir{folder}.filePath("part.step");
   {
     TestDialog dialog{nullptr, "exportStep", "Save", QFileDialog::AnyFile, QFileDialog::AcceptSave};
     dialog.setOption(QFileDialog::DontUseNativeDialog);
-    dialog.selectFile(outputPath); dialog.accept(); assert(dialog.result() == QDialog::Accepted);
+    dialog.selectFile(outputPath); dialog.accept(); TEST_CHECK(dialog.result() == QDialog::Accepted);
   }
   {
     TestDialog dialog{nullptr, "exportStep", "Save", QFileDialog::AnyFile, QFileDialog::AcceptSave};
-    assert(!dialog.selectedFiles().isEmpty());
-    assert(dialog.selectedFiles().front() == outputPath);
+    TEST_CHECK(!dialog.selectedFiles().isEmpty());
+    TEST_CHECK(dialog.selectedFiles().front() == outputPath);
   }
-  assert(QFile::remove(file));
+  TEST_CHECK(QFile::remove(file));
   {
     TestDialog dialog{nullptr, "referenceImage", "Open"};
-    assert(dialog.directory().absolutePath() == folder);
+    TEST_CHECK(dialog.directory().absolutePath() == folder);
   }
-  assert(QDir{}.rmdir(folder));
+  TEST_CHECK(QDir{}.rmdir(folder));
   {
     TestDialog dialog{nullptr, "referenceImage", "Open"};
-    assert(dialog.directory().absolutePath() == temporary.path());
+    TEST_CHECK(dialog.directory().absolutePath() == temporary.path());
   }
   return 0;
 }

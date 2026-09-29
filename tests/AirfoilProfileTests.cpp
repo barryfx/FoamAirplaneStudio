@@ -3,7 +3,7 @@
 #include "domain/DxfExporter.h"
 #include "domain/WingStructure.h"
 
-#include <cassert>
+#include "TestCheck.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -20,27 +20,27 @@ int main() {
   using designrc::domain::AirfoilProfile;
 
   const auto panelAngles = designrc::domain::calculatePanelAssemblyAngles({10.0, 6.0, 4.0});
-  assert(panelAngles.size() == 3);
-  assert(std::abs(panelAngles[0].panelInclinationDegrees - 5.0) < 1.0e-9);
-  assert(std::abs(panelAngles[1].panelInclinationDegrees - 11.0) < 1.0e-9);
-  assert(std::abs(panelAngles[2].panelInclinationDegrees - 15.0) < 1.0e-9);
-  assert(std::abs(panelAngles[0].rootRibAngleDegrees - 5.0) < 1.0e-9);
-  assert(std::abs(panelAngles[0].intermediateRibAngleDegrees - 5.0) < 1.0e-9);
-  assert(std::abs(panelAngles[0].tipRibAngleDegrees - 8.0) < 1.0e-9);
-  assert(std::abs(panelAngles[1].rootRibAngleDegrees - 8.0) < 1.0e-9);
-  assert(std::abs(panelAngles[1].intermediateRibAngleDegrees - 11.0) < 1.0e-9);
-  assert(std::abs(panelAngles[1].tipRibAngleDegrees - 13.0) < 1.0e-9);
-  assert(std::abs(panelAngles[2].rootRibAngleDegrees - 13.0) < 1.0e-9);
-  assert(std::abs(panelAngles[2].intermediateRibAngleDegrees - 15.0) < 1.0e-9);
+  TEST_CHECK(panelAngles.size() == 3);
+  TEST_CHECK(std::abs(panelAngles[0].panelInclinationDegrees - 5.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[1].panelInclinationDegrees - 11.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[2].panelInclinationDegrees - 15.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[0].rootRibAngleDegrees - 5.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[0].intermediateRibAngleDegrees - 5.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[0].tipRibAngleDegrees - 8.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[1].rootRibAngleDegrees - 8.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[1].intermediateRibAngleDegrees - 11.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[1].tipRibAngleDegrees - 13.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[2].rootRibAngleDegrees - 13.0) < 1.0e-9);
+  TEST_CHECK(std::abs(panelAngles[2].intermediateRibAngleDegrees - 15.0) < 1.0e-9);
 
   const auto twistRanges = designrc::domain::calculatePanelTwistRanges({4.0, 3.0, -2.0});
-  assert(twistRanges.size() == 3);
-  assert(std::abs(twistRanges[0].rootTwistDegrees) < 1.0e-9);
-  assert(std::abs(twistRanges[0].tipTwistDegrees - 4.0) < 1.0e-9);
-  assert(std::abs(twistRanges[1].rootTwistDegrees - 4.0) < 1.0e-9);
-  assert(std::abs(twistRanges[1].tipTwistDegrees - 7.0) < 1.0e-9);
-  assert(std::abs(twistRanges[2].rootTwistDegrees - 7.0) < 1.0e-9);
-  assert(std::abs(twistRanges[2].tipTwistDegrees - 5.0) < 1.0e-9);
+  TEST_CHECK(twistRanges.size() == 3);
+  TEST_CHECK(std::abs(twistRanges[0].rootTwistDegrees) < 1.0e-9);
+  TEST_CHECK(std::abs(twistRanges[0].tipTwistDegrees - 4.0) < 1.0e-9);
+  TEST_CHECK(std::abs(twistRanges[1].rootTwistDegrees - 4.0) < 1.0e-9);
+  TEST_CHECK(std::abs(twistRanges[1].tipTwistDegrees - 7.0) < 1.0e-9);
+  TEST_CHECK(std::abs(twistRanges[2].rootTwistDegrees - 7.0) < 1.0e-9);
+  TEST_CHECK(std::abs(twistRanges[2].tipTwistDegrees - 5.0) < 1.0e-9);
 
   std::istringstream dat{
       "Test foil\n"
@@ -50,8 +50,8 @@ int main() {
       "0.5 -0.08\n"
       "1.0 0.0\n"};
   const auto imported = AirfoilProfile::fromDat(dat);
-  assert(imported.name() == "Test foil");
-  assert(imported.resampled(11).size() == 21);
+  TEST_CHECK(imported.name() == "Test foil");
+  TEST_CHECK(imported.resampled(11).size() == 21);
 
   const auto thick = AirfoilProfile::nacaSymmetric(0.18);
   const auto thin = AirfoilProfile::nacaSymmetric(0.08);
@@ -81,7 +81,7 @@ int main() {
       };
       for (auto point : rib.rib.profile.outline()) {
         point.x *= rib.rib.chord; point.y *= rib.rib.chord;
-        assert(height(point) >= untwistedRibBottom(rib.rib) - 1.0e-8);
+        TEST_CHECK(height(point) >= untwistedRibBottom(rib.rib) - 1.0e-8);
       }
       const auto drawing = makeStructuredRibPartDrawing(rib, "Tab rib");
       int feet = 0;
@@ -90,16 +90,16 @@ int main() {
         const auto a = path.points.front(), b = path.points.back();
         if (std::abs(height(a) - plane) > 1.0e-7 ||
             std::abs(height(b) - plane) > 1.0e-7) continue;
-        assert(std::abs(std::abs(a.x - b.x) - 25.4 * 3.0 / 16.0) < 1.0e-7);
+        TEST_CHECK(std::abs(std::abs(a.x - b.x) - 25.4 * 3.0 / 16.0) < 1.0e-7);
         const double center = (a.x + b.x) * 0.5 / rib.rib.chord;
-        assert(std::abs(center - 0.25) < 1.0e-7 || std::abs(center - 0.75) < 1.0e-7);
+        TEST_CHECK(std::abs(center - 0.25) < 1.0e-7 || std::abs(center - 0.75) < 1.0e-7);
         ++feet;
       }
-      assert(feet == 2);
+      TEST_CHECK(feet == 2);
     }
     const auto tipTranslation = ribTwistTranslation(tabRibs.back());
     const double tipAngle = twist * std::numbers::pi / 180.0;
-    assert(twist > 0.0 ? std::sin(tipAngle) * tabRibs.back().chord + tipTranslation.y > tipTranslation.y
+    TEST_CHECK(twist > 0.0 ? std::sin(tipAngle) * tabRibs.back().chord + tipTranslation.y > tipTranslation.y
                        : tipTranslation.y > std::sin(tipAngle) * tabRibs.back().chord + tipTranslation.y);
     tabStructure.bottomSpar = true;
     const auto shifted = applyWingStructure(tabRibs, tabStructure);
@@ -107,7 +107,7 @@ int main() {
       for (std::size_t i = 0; i + 1 < rib.outerOutline.size(); ++i) {
         const auto a = rib.outerOutline[i], b = rib.outerOutline[i + 1];
         if (std::abs(std::abs(b.x - a.x) - 25.4 * 3.0 / 16.0) > 1.0e-7) continue;
-        assert(std::max(a.x, b.x) <= 0.25 * rib.rib.chord - tabStructure.bottomSparWidth * 0.5 - 1.0 + 1.0e-7 ||
+        TEST_CHECK(std::max(a.x, b.x) <= 0.25 * rib.rib.chord - tabStructure.bottomSparWidth * 0.5 - 1.0 + 1.0e-7 ||
                std::min(a.x, b.x) >= 0.25 * rib.rib.chord + tabStructure.bottomSparWidth * 0.5 + 1.0 - 1.0e-7);
       }
     }
@@ -127,7 +127,7 @@ int main() {
       } catch (const std::invalid_argument& error) {
         collision = std::string{error.what()}.find("Build tab / bottom sheeting collision at rib 1") != std::string::npos;
       }
-      assert(collision);
+      TEST_CHECK(collision);
       sheetStructure.addBuildTabs = false;
       static_cast<void>(applyWingStructure(tabRibs, sheetStructure));
     }
@@ -150,13 +150,13 @@ int main() {
           if ((left + right) * 0.5 < 0.70 * rib.rib.chord) {
             const double expectedLeft = std::max(sheetEnd / 100.0 * rib.rib.chord,
                 0.25 * rib.rib.chord + sheetStructure.bottomSparWidth * 0.5) + 1.0;
-            assert(std::abs(left - expectedLeft) < 1.0e-7);
+            TEST_CHECK(std::abs(left - expectedLeft) < 1.0e-7);
           } else {
-            assert(std::abs((left + right) * 0.5 - 0.75 * rib.rib.chord) < 1.0e-7);
+            TEST_CHECK(std::abs((left + right) * 0.5 - 0.75 * rib.rib.chord) < 1.0e-7);
           }
           ++feet;
         }
-        assert(feet == 2);
+        TEST_CHECK(feet == 2);
       }
     }
     StructureParameters clearSheet;
@@ -173,7 +173,7 @@ int main() {
     const auto flatTabs = applyWingStructure(flat, tabStructure);
     tabStructure.addBuildTabs = false;
     const auto plain = applyWingStructure(flat, tabStructure);
-    assert(flatTabs.ribs.back().outerOutline.size() == plain.ribs.back().outerOutline.size());
+    TEST_CHECK(flatTabs.ribs.back().outerOutline.size() == plain.ribs.back().outerOutline.size());
   }
   {
     using namespace designrc::domain;
@@ -202,8 +202,8 @@ int main() {
           std::cos(angle - inclination) * untwistedRibBottom(rib));
     }
     const double rootPlane = std::cos(inclination) * untwistedRibBottom(ribs.front());
-    if (thickerMiddle) assert(expectedPlane < rootPlane - 1.0);
-    else assert(std::abs(expectedPlane - rootPlane) < 1.0e-7);
+    if (thickerMiddle) TEST_CHECK(expectedPlane < rootPlane - 1.0);
+    else TEST_CHECK(std::abs(expectedPlane - rootPlane) < 1.0e-7);
     std::vector<double> heights;
     for (const auto& rib : wing.ribs) {
       const double twist = rib.rib.twistDegrees * std::numbers::pi / 180.0;
@@ -221,8 +221,8 @@ int main() {
         }
       }
     }
-    assert(heights.size() == 12);
-    for (const auto height : heights) assert(std::abs(height - expectedPlane) < 1.0e-7);
+    TEST_CHECK(heights.size() == 12);
+    for (const auto height : heights) TEST_CHECK(std::abs(height - expectedPlane) < 1.0e-7);
     }
   }
   const auto middle = AirfoilProfile::interpolate(thick, thin, 0.5, 31);
@@ -255,46 +255,46 @@ int main() {
         const double right = std::max(segment.points[0].x, segment.points[1].x);
         if (right > 100.0 || std::abs(right - left - 25.4 * 3.0 / 16.0) > 1.0e-7) continue;
         const double center = spar.chordLocationPercent * 2.0;
-        if (forwardBlocked) assert(std::abs(left - (center + 6.0)) < 1.0e-7);
-        else assert(std::abs(right - (center - 6.0)) < 1.0e-7);
+        if (forwardBlocked) TEST_CHECK(std::abs(left - (center + 6.0)) < 1.0e-7);
+        else TEST_CHECK(std::abs(right - (center - 6.0)) < 1.0e-7);
         ++frontTabs;
       }
-      assert(frontTabs == 1);
+      TEST_CHECK(frontTabs == 1);
     }
   }
-  assert(middle.outline().size() == 61);
-  assert(std::abs(middle.outline().front().x - 1.0) < 1.0e-9);
+  TEST_CHECK(middle.outline().size() == 61);
+  TEST_CHECK(std::abs(middle.outline().front().x - 1.0) < 1.0e-9);
 
   designrc::domain::WingParameters parameters;
   parameters.ribCount = 7;
   const auto ribs = designrc::domain::generateRibs(parameters, thick, thin);
-  assert(ribs.size() == 7);
-  assert(std::abs(ribs.front().chord - parameters.rootChord) < 1.0e-9);
-  assert(std::abs(ribs.back().chord - parameters.tipChord) < 1.0e-9);
-  assert(std::abs(ribs.back().spanPosition - parameters.halfSpan) < 1.0e-9);
+  TEST_CHECK(ribs.size() == 7);
+  TEST_CHECK(std::abs(ribs.front().chord - parameters.rootChord) < 1.0e-9);
+  TEST_CHECK(std::abs(ribs.back().chord - parameters.tipChord) < 1.0e-9);
+  TEST_CHECK(std::abs(ribs.back().spanPosition - parameters.halfSpan) < 1.0e-9);
   designrc::domain::WingParameters constantPanel;
   constantPanel.rootChord = constantPanel.tipChord = 200.0;
   constantPanel.sweep = 0.0;
   const auto constantRibs = designrc::domain::generateRibs(constantPanel, thick, thick);
   for (const auto& rib : constantRibs) {
-    assert(std::abs(rib.chord - 200.0) < 1.0e-9);
-    assert(std::abs(rib.leadingEdgeOffset) < 1.0e-9);
+    TEST_CHECK(std::abs(rib.chord - 200.0) < 1.0e-9);
+    TEST_CHECK(std::abs(rib.leadingEdgeOffset) < 1.0e-9);
   }
-  assert(std::abs(constantRibs.front().profile.outline()[20].y -
+  TEST_CHECK(std::abs(constantRibs.front().profile.outline()[20].y -
                   constantRibs.back().profile.outline()[20].y) < 1.0e-9);
   parameters.tipTwistDegrees = 6.0;
   const auto twistedRibs = designrc::domain::generateRibs(parameters, thick, thin);
-  assert(std::abs(twistedRibs.front().twistDegrees) < 1.0e-9);
-  assert(std::abs(twistedRibs.back().twistDegrees - 6.0) < 1.0e-9);
+  TEST_CHECK(std::abs(twistedRibs.front().twistDegrees) < 1.0e-9);
+  TEST_CHECK(std::abs(twistedRibs.back().twistDegrees - 6.0) < 1.0e-9);
   parameters.rootTwistDegrees = twistRanges[1].rootTwistDegrees;
   parameters.tipTwistDegrees = twistRanges[1].tipTwistDegrees;
   const auto inheritedTwistRibs = designrc::domain::generateRibs(parameters, thick, thin);
-  assert(std::abs(inheritedTwistRibs.front().twistDegrees - 4.0) < 1.0e-9);
-  assert(std::abs(inheritedTwistRibs.back().twistDegrees - 7.0) < 1.0e-9);
-  assert(std::abs(inheritedTwistRibs[3].twistDegrees - 5.5) < 1.0e-9);
+  TEST_CHECK(std::abs(inheritedTwistRibs.front().twistDegrees - 4.0) < 1.0e-9);
+  TEST_CHECK(std::abs(inheritedTwistRibs.back().twistDegrees - 7.0) < 1.0e-9);
+  TEST_CHECK(std::abs(inheritedTwistRibs[3].twistDegrees - 5.5) < 1.0e-9);
   const auto metrics = designrc::domain::calculateWingMetrics(parameters);
-  assert(std::abs(metrics.fullSpan - parameters.halfSpan * 2.0) < 1.0e-9);
-  assert(std::abs(metrics.taperRatio - parameters.tipChord / parameters.rootChord) < 1.0e-9);
+  TEST_CHECK(std::abs(metrics.fullSpan - parameters.halfSpan * 2.0) < 1.0e-9);
+  TEST_CHECK(std::abs(metrics.taperRatio - parameters.tipChord / parameters.rootChord) < 1.0e-9);
 
   designrc::domain::StructureParameters structureParameters;
   structureParameters.topSpar = true;
@@ -305,25 +305,25 @@ int main() {
   structureParameters.turbulators = true;
   structureParameters.turbulatorCount = 3;
   const auto structured = designrc::domain::applyWingStructure(ribs, structureParameters);
-  assert(structured.ribs.size() == ribs.size());
-  assert(structured.members.size() == 7);
-  assert(structured.shearWebs.size() == ribs.size() - 1);
-  assert(structured.ribs.front().outerOutline.size() > ribs.front().profile.outline().size());
-  assert(std::any_of(structured.ribs.front().outlineSegments.begin(),
+  TEST_CHECK(structured.ribs.size() == ribs.size());
+  TEST_CHECK(structured.members.size() == 7);
+  TEST_CHECK(structured.shearWebs.size() == ribs.size() - 1);
+  TEST_CHECK(structured.ribs.front().outerOutline.size() > ribs.front().profile.outline().size());
+  TEST_CHECK(std::any_of(structured.ribs.front().outlineSegments.begin(),
       structured.ribs.front().outlineSegments.end(),
       [](const auto& segment) { return segment.spline; }));
-  assert(std::any_of(structured.ribs.front().outlineSegments.begin(),
+  TEST_CHECK(std::any_of(structured.ribs.front().outlineSegments.begin(),
       structured.ribs.front().outlineSegments.end(),
       [](const auto& segment) { return !segment.spline; }));
   bool foundSixtyPercentRearSpar = false;
   for (const auto& member : structured.members) {
     if (member.name != "Top 60% rear spar") continue;
-    assert(std::abs(member.centers.front().x - 0.60 * ribs.front().chord) < 1.0e-9);
-    assert(member.verticalLocation == 0);
-    assert(member.cutsSheeting);
+    TEST_CHECK(std::abs(member.centers.front().x - 0.60 * ribs.front().chord) < 1.0e-9);
+    TEST_CHECK(member.verticalLocation == 0);
+    TEST_CHECK(member.cutsSheeting);
     foundSixtyPercentRearSpar = true;
   }
-  assert(foundSixtyPercentRearSpar);
+  TEST_CHECK(foundSixtyPercentRearSpar);
   designrc::domain::StructureParameters ribLighteningParameters;
   ribLighteningParameters.wiringHoles = true;
   ribLighteningParameters.wiringHoleStartRib = 3;
@@ -349,10 +349,10 @@ int main() {
        ribIndex < ribLightenedWing.ribs.size(); ++ribIndex) {
     const auto& openings = ribLightenedWing.ribs[ribIndex].internalCutouts;
     if (ribIndex < 2 || ribIndex > 4) {
-      assert(openings.size() == originalOpeningCounts[ribIndex]);
+      TEST_CHECK(openings.size() == originalOpeningCounts[ribIndex]);
       continue;
     }
-    assert(openings.size() > originalOpeningCounts[ribIndex]);
+    TEST_CHECK(openings.size() > originalOpeningCounts[ribIndex]);
     double firstHoleEdge = std::numeric_limits<double>::max();
     double lastHoleEdge = std::numeric_limits<double>::lowest();
     for (std::size_t openingIndex = originalOpeningCounts[ribIndex];
@@ -376,24 +376,24 @@ int main() {
         (lastHoleEdge - firstHoleEdge) /
         ribLightenedWing.ribs[ribIndex].rib.chord);
   }
-  assert(lighteningRadii.size() >= 3);
+  TEST_CHECK(lighteningRadii.size() >= 3);
   const auto [smallestLighteningRadius, largestLighteningRadius] =
       std::minmax_element(lighteningRadii.begin(), lighteningRadii.end());
-  assert(*largestLighteningRadius - *smallestLighteningRadius > 0.25);
-  assert(chordwiseCoverage.size() == 3);
-  assert(std::all_of(
+  TEST_CHECK(*largestLighteningRadius - *smallestLighteningRadius > 0.25);
+  TEST_CHECK(chordwiseCoverage.size() == 3);
+  TEST_CHECK(std::all_of(
       chordwiseCoverage.begin(), chordwiseCoverage.end(),
       [](const double coverage) { return coverage > 0.50; }));
   const auto [smallestCoverage, largestCoverage] =
       std::minmax_element(
           chordwiseCoverage.begin(), chordwiseCoverage.end());
-  assert(*largestCoverage - *smallestCoverage < 0.15);
+  TEST_CHECK(*largestCoverage - *smallestCoverage < 0.15);
   const auto logicalProcessors = std::thread::hardware_concurrency();
   const std::size_t expectedMaximumWorkers = logicalProcessors > 2
       ? static_cast<std::size_t>(logicalProcessors - 2) : 1;
-  assert(designrc::domain::ribLighteningHoleWorkerCount(100) ==
+  TEST_CHECK(designrc::domain::ribLighteningHoleWorkerCount(100) ==
          std::min<std::size_t>(100, expectedMaximumWorkers));
-  assert(designrc::domain::ribLighteningHoleWorkerCount(100, 2) ==
+  TEST_CHECK(designrc::domain::ribLighteningHoleWorkerCount(100, 2) ==
          std::min<std::size_t>(2, expectedMaximumWorkers));
   designrc::domain::StructureParameters endpointSparParameters;
   endpointSparParameters.spars = {
@@ -401,12 +401,12 @@ int main() {
   const auto endpointSparWing = designrc::domain::applyWingStructure(
       constantRibs, endpointSparParameters);
   const auto& endpointCenters = endpointSparWing.members.front().centers;
-  assert(std::abs(endpointCenters.front().x - 40.0) < 1.0e-8);
-  assert(std::abs(endpointCenters.back().x - 120.0) < 1.0e-8);
+  TEST_CHECK(std::abs(endpointCenters.front().x - 40.0) < 1.0e-8);
+  TEST_CHECK(std::abs(endpointCenters.back().x - 120.0) < 1.0e-8);
   for (std::size_t i = 0; i < endpointCenters.size(); ++i) {
     const double along = static_cast<double>(i) /
         static_cast<double>(endpointCenters.size() - 1);
-    assert(std::abs(endpointCenters[i].x - (40.0 + 80.0 * along)) < 1.0e-8);
+    TEST_CHECK(std::abs(endpointCenters[i].x - (40.0 + 80.0 * along)) < 1.0e-8);
   }
   designrc::domain::StructureParameters multiSparParameters;
   multiSparParameters.spars = {
@@ -415,48 +415,48 @@ int main() {
       {65, 1, 1, 2, 5.0, 9.0, 6.0, 5.0, 6.0, 7.0, 1.5}};
   const auto multiSparWing = designrc::domain::applyWingStructure(
       ribs, multiSparParameters);
-  assert(multiSparWing.members.size() == 3);
-  assert(multiSparWing.members[0].name == "Spar 1");
-  assert(multiSparWing.members[0].kind == designrc::domain::SpanMemberKind::Rectangular);
-  assert(std::abs(multiSparWing.members[0].centers.front().x -
+  TEST_CHECK(multiSparWing.members.size() == 3);
+  TEST_CHECK(multiSparWing.members[0].name == "Spar 1");
+  TEST_CHECK(multiSparWing.members[0].kind == designrc::domain::SpanMemberKind::Rectangular);
+  TEST_CHECK(std::abs(multiSparWing.members[0].centers.front().x -
                   0.30 * ribs.front().chord) < 1.0e-9);
-  assert(multiSparWing.members[1].kind == designrc::domain::SpanMemberKind::Tube);
-  assert(multiSparWing.members[1].carbonFiber);
-  assert(std::abs(multiSparWing.members[1].innerDiameter - 5.0) < 1.0e-9);
-  assert(multiSparWing.members[2].kind == designrc::domain::SpanMemberKind::Rectangular);
-  assert(multiSparWing.members[2].carbonFiber);
-  assert(std::abs(multiSparWing.members[2].width - 7.0) < 1.0e-9);
-  assert(std::abs(multiSparWing.members[2].height - 1.5) < 1.0e-9);
+  TEST_CHECK(multiSparWing.members[1].kind == designrc::domain::SpanMemberKind::Tube);
+  TEST_CHECK(multiSparWing.members[1].carbonFiber);
+  TEST_CHECK(std::abs(multiSparWing.members[1].innerDiameter - 5.0) < 1.0e-9);
+  TEST_CHECK(multiSparWing.members[2].kind == designrc::domain::SpanMemberKind::Rectangular);
+  TEST_CHECK(multiSparWing.members[2].carbonFiber);
+  TEST_CHECK(std::abs(multiSparWing.members[2].width - 7.0) < 1.0e-9);
+  TEST_CHECK(std::abs(multiSparWing.members[2].height - 1.5) < 1.0e-9);
   for (const auto& rib : multiSparWing.ribs)
-    assert(rib.booleanHoles.size() == 1);
+    TEST_CHECK(rib.booleanHoles.size() == 1);
   const auto topSparMember = std::find_if(structured.members.begin(), structured.members.end(),
       [](const auto& member) { return member.name == "Top spar"; });
   const auto bottomSparMember = std::find_if(structured.members.begin(), structured.members.end(),
       [](const auto& member) { return member.name == "Bottom spar"; });
-  assert(topSparMember != structured.members.end());
-  assert(bottomSparMember != structured.members.end());
+  TEST_CHECK(topSparMember != structured.members.end());
+  TEST_CHECK(bottomSparMember != structured.members.end());
   for (const auto& web : structured.shearWebs) {
-    assert(web.name == "SW" + std::to_string(web.bayIndex));
-    assert(web.outline.size() == 4);
-    assert(web.stationCorners[2].y > web.stationCorners[1].y);
-    assert(web.stationCorners[3].y > web.stationCorners[0].y);
+    TEST_CHECK(web.name == "SW" + std::to_string(web.bayIndex));
+    TEST_CHECK(web.outline.size() == 4);
+    TEST_CHECK(web.stationCorners[2].y > web.stationCorners[1].y);
+    TEST_CHECK(web.stationCorners[3].y > web.stationCorners[0].y);
     const std::size_t outer = web.bayIndex;
     const std::size_t inner = outer - 1;
     const double ribCenterBay = std::hypot(
         ribs[outer].spanPosition - ribs[inner].spanPosition,
         ribs[outer].dihedralHeight - ribs[inner].dihedralHeight);
-    assert(web.outline[1].x > 0.0);
-    assert(web.outline[1].x < ribCenterBay);
-    assert(std::abs(web.stationCorners[0].y -
+    TEST_CHECK(web.outline[1].x > 0.0);
+    TEST_CHECK(web.outline[1].x < ribCenterBay);
+    TEST_CHECK(std::abs(web.stationCorners[0].y -
                     (bottomSparMember->centers[inner].y +
                      structureParameters.bottomSparHeight * 0.5)) < 1.0e-9);
-    assert(std::abs(web.stationCorners[1].y -
+    TEST_CHECK(std::abs(web.stationCorners[1].y -
                     (bottomSparMember->centers[outer].y +
                      structureParameters.bottomSparHeight * 0.5)) < 1.0e-9);
-    assert(std::abs(web.stationCorners[2].y -
+    TEST_CHECK(std::abs(web.stationCorners[2].y -
                     (topSparMember->centers[outer].y -
                      structureParameters.topSparHeight * 0.5)) < 1.0e-9);
-    assert(std::abs(web.stationCorners[3].y -
+    TEST_CHECK(std::abs(web.stationCorners[3].y -
                     (topSparMember->centers[inner].y -
                      structureParameters.topSparHeight * 0.5)) < 1.0e-9);
   }
@@ -484,8 +484,8 @@ int main() {
         outsideY = point.y;
       }
     }
-    assert(outsideX < 1.0e8);
-    assert(std::abs(boundarySurface - outsideY) < 0.5);
+    TEST_CHECK(outsideX < 1.0e8);
+    TEST_CHECK(std::abs(boundarySurface - outsideY) < 0.5);
   };
   checkNoSheetingSpike(true);
   checkNoSheetingSpike(false);
@@ -504,7 +504,7 @@ int main() {
       });
   // Only the recessed top and bottom endpoints should remain at the LE face.
   // Extra unrecessed endpoints become visible slivers when the rib is extruded.
-  assert(solidLeFacePointCount == 2);
+  TEST_CHECK(solidLeFacePointCount == 2);
 
   designrc::domain::WingParameters thinSparParameters;
   thinSparParameters.halfSpan = 200.0;
@@ -523,7 +523,7 @@ int main() {
     rejectedOverlappingSpars = std::string{error.what()}.find(
         "wood-spar notches overlap") != std::string::npos;
   }
-  assert(rejectedOverlappingSpars);
+  TEST_CHECK(rejectedOverlappingSpars);
 
   auto joinerRibs = ribs;
   const auto& r1 = ribs[0];
@@ -547,18 +547,18 @@ int main() {
   joinerParameters.joinerAxisAngleDegrees = 8.0;
   joinerParameters.joinerDihedralDegrees = 6.0;
   const auto joined = designrc::domain::applyWingStructure(joinerRibs, joinerParameters);
-  assert(joined.joiners.size() == 3);
-  assert(std::abs(joined.joiners[0].centers.front().x - 0.30 * joinerRibs.front().chord) < 1.0e-8);
-  assert(std::abs(joined.joiners[1].centers.front().x - 0.60 * joinerRibs.front().chord) < 1.0e-8);
-  assert(joined.ribs[0].booleanHoles.size() == 2 && joined.ribs[0].booleanCutouts.size() == 1);
-  assert(joined.ribs[1].booleanHoles.size() == 2 && joined.ribs[1].booleanCutouts.size() == 1);
-  assert(joined.ribs[2].booleanHoles.size() == 2);
-  assert(joined.joiners.back().rectangularProfiles.size() == 3);
+  TEST_CHECK(joined.joiners.size() == 3);
+  TEST_CHECK(std::abs(joined.joiners[0].centers.front().x - 0.30 * joinerRibs.front().chord) < 1.0e-8);
+  TEST_CHECK(std::abs(joined.joiners[1].centers.front().x - 0.60 * joinerRibs.front().chord) < 1.0e-8);
+  TEST_CHECK(joined.ribs[0].booleanHoles.size() == 2 && joined.ribs[0].booleanCutouts.size() == 1);
+  TEST_CHECK(joined.ribs[1].booleanHoles.size() == 2 && joined.ribs[1].booleanCutouts.size() == 1);
+  TEST_CHECK(joined.ribs[2].booleanHoles.size() == 2);
+  TEST_CHECK(joined.joiners.back().rectangularProfiles.size() == 3);
   for (const auto& web : joined.shearWebs)
-    assert(web.bayIndex > joined.joiners.back().stopRibIndex);
-  assert(joined.joiners.back().dxfOutline.size() == 6);
-  assert(joined.joiners.back().dxfOutline[0].y > joined.joiners.back().dxfOutline[1].y);
-  assert(joined.joiners.back().dxfOutline[5].y > joined.joiners.back().dxfOutline[4].y);
+    TEST_CHECK(web.bayIndex > joined.joiners.back().stopRibIndex);
+  TEST_CHECK(joined.joiners.back().dxfOutline.size() == 6);
+  TEST_CHECK(joined.joiners.back().dxfOutline[0].y > joined.joiners.back().dxfOutline[1].y);
+  TEST_CHECK(joined.joiners.back().dxfOutline[5].y > joined.joiners.back().dxfOutline[4].y);
   const double bottomLeftAngle = std::atan2(
       joined.joiners.back().dxfOutline[0].y - joined.joiners.back().dxfOutline[1].y,
       joined.joiners.back().dxfOutline[1].x - joined.joiners.back().dxfOutline[0].x);
@@ -571,10 +571,10 @@ int main() {
   const double topRightAngle = std::atan2(
       joined.joiners.back().dxfOutline[3].y - joined.joiners.back().dxfOutline[4].y,
       joined.joiners.back().dxfOutline[3].x - joined.joiners.back().dxfOutline[4].x);
-  assert(std::abs((bottomLeftAngle + bottomRightAngle) * 180.0 / std::numbers::pi - 6.0) < 1.0e-9);
-  assert(std::abs((topLeftAngle + topRightAngle) * 180.0 / std::numbers::pi - 6.0) < 1.0e-9);
+  TEST_CHECK(std::abs((bottomLeftAngle + bottomRightAngle) * 180.0 / std::numbers::pi - 6.0) < 1.0e-9);
+  TEST_CHECK(std::abs((topLeftAngle + topRightAngle) * 180.0 / std::numbers::pi - 6.0) < 1.0e-9);
   const double joinerTop = joined.joiners.back().rectangularProfiles.front()[2].y;
-  assert(std::any_of(joined.ribs.front().outerOutline.begin(),
+  TEST_CHECK(std::any_of(joined.ribs.front().outerOutline.begin(),
       joined.ribs.front().outerOutline.end(), [joinerTop](const auto& point) {
         return std::abs(point.y - joinerTop) < 1.0e-8;
       }));
@@ -589,21 +589,21 @@ int main() {
   sheetingParameters.teTopSheetThickness = 2.0;
   sheetingParameters.teTopSheetStopRib = 3;
   const auto sheeted = designrc::domain::applyWingStructure(ribs, sheetingParameters);
-  assert(sheeted.sheeting.size() == 2);
-  assert(sheeted.sheeting[0].profiles.size() == 3);
-  assert(sheeted.sheeting[1].profiles.size() == 3);
-  assert(std::abs(sheeted.sheeting[0].profiles.front()[47].x -
+  TEST_CHECK(sheeted.sheeting.size() == 2);
+  TEST_CHECK(sheeted.sheeting[0].profiles.size() == 3);
+  TEST_CHECK(sheeted.sheeting[1].profiles.size() == 3);
+  TEST_CHECK(std::abs(sheeted.sheeting[0].profiles.front()[47].x -
                   0.25 * ribs.front().chord) < 1.0e-8);
-  assert(std::abs(sheeted.sheeting[1].profiles.front().front().x -
+  TEST_CHECK(std::abs(sheeted.sheeting[1].profiles.front().front().x -
                   0.25 * ribs.front().chord) < 1.0e-8);
   const auto& leSheetStart = sheeted.sheeting[0].profiles.front().front();
   const auto& leCenter = sheeted.members[1].centers.front();
-  assert(std::hypot(leSheetStart.x - leCenter.x,
+  TEST_CHECK(std::hypot(leSheetStart.x - leCenter.x,
                     leSheetStart.y - leCenter.y) <
          sheetingParameters.leadingEdgeTubeOd * 0.5);
-  assert(sheeted.ribs.front().booleanHoles.empty());
-  assert(!sheeted.ribs.front().partOutline.empty());
-  assert(sheeted.ribs.front().holes.size() == 1);
+  TEST_CHECK(sheeted.ribs.front().booleanHoles.empty());
+  TEST_CHECK(!sheeted.ribs.front().partOutline.empty());
+  TEST_CHECK(sheeted.ribs.front().holes.size() == 1);
 
   auto turbulatorSheetingParameters = sheetingParameters;
   turbulatorSheetingParameters.teTopSheet = false;
@@ -613,9 +613,9 @@ int main() {
   turbulatorSheetingParameters.turbulatorHeight = 2.0;
   const auto turbulatorSheeted = designrc::domain::applyWingStructure(
       ribs, turbulatorSheetingParameters);
-  assert(turbulatorSheeted.sheeting.size() == 3);
+  TEST_CHECK(turbulatorSheeted.sheeting.size() == 3);
   for (const auto& strip : turbulatorSheeted.sheeting)
-    assert(strip.profiles.size() == 3);
+    TEST_CHECK(strip.profiles.size() == 3);
   const auto xBounds = [](const std::vector<designrc::domain::Point2>& profile) {
     const auto [minimum, maximum] = std::minmax_element(
         profile.begin(), profile.end(),
@@ -637,18 +637,18 @@ int main() {
         newSparSheeted.sheeting.end(), [&](const auto& part) {
           return part.name == name;
         });
-    assert(sheet != newSparSheeted.sheeting.end());
+    TEST_CHECK(sheet != newSparSheeted.sheeting.end());
     return xBounds(sheet->profiles.front());
   };
   const double topCenter = 0.35 * ribs.front().chord;
   const double bottomCenter = 0.40 * ribs.front().chord;
-  assert(std::abs(sheetBounds("Front top sheeting").second -
+  TEST_CHECK(std::abs(sheetBounds("Front top sheeting").second -
                   (topCenter - 4.0)) < 1.0e-8);
-  assert(std::abs(sheetBounds("Rear top sheeting").first -
+  TEST_CHECK(std::abs(sheetBounds("Rear top sheeting").first -
                   (topCenter + 4.0)) < 1.0e-8);
-  assert(std::abs(sheetBounds("Front bottom sheeting").second -
+  TEST_CHECK(std::abs(sheetBounds("Front bottom sheeting").second -
                   (bottomCenter - 5.0)) < 1.0e-8);
-  assert(std::abs(sheetBounds("Rear bottom sheeting").first -
+  TEST_CHECK(std::abs(sheetBounds("Rear bottom sheeting").first -
                   (bottomCenter + 5.0)) < 1.0e-8);
 
   auto manualFrontSheetingParameters = newSparSheetingParameters;
@@ -663,17 +663,17 @@ int main() {
         manualFrontSheeted.sheeting.end(), [&](const auto& part) {
           return part.name == name;
         });
-    assert(sheet != manualFrontSheeted.sheeting.end());
+    TEST_CHECK(sheet != manualFrontSheeted.sheeting.end());
     return xBounds(sheet->profiles.front());
   };
-  assert(std::abs(manualBounds("Front top sheeting").second -
+  TEST_CHECK(std::abs(manualBounds("Front top sheeting").second -
                   (topCenter + 4.0)) < 1.0e-8);
-  assert(std::abs(manualBounds("Front bottom sheeting").second -
+  TEST_CHECK(std::abs(manualBounds("Front bottom sheeting").second -
                   (bottomCenter + 5.0)) < 1.0e-8);
-  assert(std::abs(manualFrontSheeted.members[0].centers.front().y -
+  TEST_CHECK(std::abs(manualFrontSheeted.members[0].centers.front().y -
                   (newSparSheeted.members[0].centers.front().y -
                    manualFrontSheetingParameters.leTopSheetThickness)) < 1.0e-8);
-  assert(std::abs(manualFrontSheeted.members[1].centers.front().y -
+  TEST_CHECK(std::abs(manualFrontSheeted.members[1].centers.front().y -
                   (newSparSheeted.members[1].centers.front().y +
                    manualFrontSheetingParameters.leBottomSheetThickness)) < 1.0e-8);
 
@@ -684,8 +684,8 @@ int main() {
       buttedFrontAndRear.sheeting.end(), [](const auto& part) {
         return part.name == "Rear top sheeting";
       });
-  assert(buttedRear != buttedFrontAndRear.sheeting.end());
-  assert(std::abs(xBounds(buttedRear->profiles.front()).first -
+  TEST_CHECK(buttedRear != buttedFrontAndRear.sheeting.end());
+  TEST_CHECK(std::abs(xBounds(buttedRear->profiles.front()).first -
                   0.50 * ribs.front().chord) < 1.0e-8);
 
   designrc::domain::StructureParameters teSheetingParameters;
@@ -708,19 +708,19 @@ int main() {
       teSheeted.sheeting.end(), [](const auto& part) {
         return part.name == "Rear top sheeting";
       });
-  assert(topTeSheet != teSheeted.sheeting.end());
-  assert(rearTopSheet != teSheeted.sheeting.end());
+  TEST_CHECK(topTeSheet != teSheeted.sheeting.end());
+  TEST_CHECK(rearTopSheet != teSheeted.sheeting.end());
   const auto& topTeProfile = topTeSheet->profiles.front();
-  assert(topTeProfile.size() == 96);
-  assert(std::abs(xBounds(topTeProfile).first -
+  TEST_CHECK(topTeProfile.size() == 96);
+  TEST_CHECK(std::abs(xBounds(topTeProfile).first -
                   (ribs.front().chord - 30.0)) < 1.0e-8);
-  assert(std::abs(xBounds(rearTopSheet->profiles.front()).second -
+  TEST_CHECK(std::abs(xBounds(rearTopSheet->profiles.front()).second -
                   (ribs.front().chord - 30.0)) < 1.0e-8);
-  assert(std::abs((topTeProfile.front().y - topTeProfile.back().y) -
+  TEST_CHECK(std::abs((topTeProfile.front().y - topTeProfile.back().y) -
                   1.5875) < 1.0e-8);
-  assert(std::abs(xBounds(topTeSheet->profiles.back()).first -
+  TEST_CHECK(std::abs(xBounds(topTeSheet->profiles.back()).first -
                   (ribs.back().chord - 30.0)) < 1.0e-8);
-  assert(std::hypot(topTeProfile[47].x - topTeProfile[48].x,
+  TEST_CHECK(std::hypot(topTeProfile[47].x - topTeProfile[48].x,
                     topTeProfile[47].y - topTeProfile[48].y) < 1.0e-8);
 
   const auto hasSkinnyTrailingRibSliver = [](
@@ -766,10 +766,10 @@ int main() {
   untaperedTopOnlyParameters.topTeSheetingTaper = false;
   const auto untaperedTopOnly = designrc::domain::applyWingStructure(
       ribs, untaperedTopOnlyParameters);
-  assert(!hasSkinnyTrailingRibSliver(
+  TEST_CHECK(!hasSkinnyTrailingRibSliver(
       untaperedTopOnly, untaperedTopOnlyParameters.topTeSheetingWidth,
       0.25));
-  assert(ribsTerminateBeforeTrailingEdge(untaperedTopOnly));
+  TEST_CHECK(ribsTerminateBeforeTrailingEdge(untaperedTopOnly));
   auto untaperedBottomOnlyParameters = untaperedTopOnlyParameters;
   untaperedBottomOnlyParameters.topTeSheeting = false;
   untaperedBottomOnlyParameters.bottomTeSheeting = true;
@@ -778,10 +778,10 @@ int main() {
   untaperedBottomOnlyParameters.bottomTeSheetingTaper = false;
   const auto untaperedBottomOnly = designrc::domain::applyWingStructure(
       ribs, untaperedBottomOnlyParameters);
-  assert(!hasSkinnyTrailingRibSliver(
+  TEST_CHECK(!hasSkinnyTrailingRibSliver(
       untaperedBottomOnly, untaperedBottomOnlyParameters.bottomTeSheetingWidth,
       0.25));
-  assert(ribsTerminateBeforeTrailingEdge(untaperedBottomOnly));
+  TEST_CHECK(ribsTerminateBeforeTrailingEdge(untaperedBottomOnly));
   designrc::domain::WingParameters savedTeSheetingPanel;
   savedTeSheetingPanel.halfSpan = 698.5;
   savedTeSheetingPanel.rootChord = 254.0;
@@ -800,19 +800,19 @@ int main() {
   savedTopOnlyParameters.teBottomSheetStopRib = 2;
   const auto savedTopOnly = designrc::domain::applyWingStructure(
       savedTeSheetingRibs, savedTopOnlyParameters);
-  assert(!hasSkinnyTrailingRibSliver(
+  TEST_CHECK(!hasSkinnyTrailingRibSliver(
       savedTopOnly, savedTopOnlyParameters.topTeSheetingWidth,
       0.25));
-  assert(ribsTerminateBeforeTrailingEdge(savedTopOnly));
+  TEST_CHECK(ribsTerminateBeforeTrailingEdge(savedTopOnly));
   auto savedBottomOnlyParameters = savedTopOnlyParameters;
   savedBottomOnlyParameters.topTeSheeting = false;
   savedBottomOnlyParameters.bottomTeSheeting = true;
   const auto savedBottomOnly = designrc::domain::applyWingStructure(
       savedTeSheetingRibs, savedBottomOnlyParameters);
-  assert(!hasSkinnyTrailingRibSliver(
+  TEST_CHECK(!hasSkinnyTrailingRibSliver(
       savedBottomOnly, savedBottomOnlyParameters.bottomTeSheetingWidth,
       0.25));
-  assert(ribsTerminateBeforeTrailingEdge(savedBottomOnly));
+  TEST_CHECK(ribsTerminateBeforeTrailingEdge(savedBottomOnly));
 
   auto bothTeSheetingParameters = teSheetingParameters;
   bothTeSheetingParameters.teTopSheet = false;
@@ -824,19 +824,19 @@ int main() {
   bothTeSheetingParameters.bottomTeSheetingTaperStartLocationPercent = 50.0;
   const auto bothTeSheeted = designrc::domain::applyWingStructure(
       ribs, bothTeSheetingParameters);
-  assert(!hasSkinnyTrailingRibSliver(
+  TEST_CHECK(!hasSkinnyTrailingRibSliver(
       bothTeSheeted, std::max(
           bothTeSheetingParameters.topTeSheetingWidth,
           bothTeSheetingParameters.bottomTeSheetingWidth), 0.25));
-  assert(ribsTerminateBeforeTrailingEdge(bothTeSheeted));
+  TEST_CHECK(ribsTerminateBeforeTrailingEdge(bothTeSheeted));
   for (const auto& name : {"Top TE sheeting", "Bottom TE sheeting"}) {
     const auto sheet = std::find_if(bothTeSheeted.sheeting.begin(),
         bothTeSheeted.sheeting.end(), [&](const auto& part) {
           return part.name == name;
         });
-    assert(sheet != bothTeSheeted.sheeting.end());
+    TEST_CHECK(sheet != bothTeSheeted.sheeting.end());
     const auto& profile = sheet->profiles.front();
-    assert(std::hypot(profile[47].x - profile[48].x,
+    TEST_CHECK(std::hypot(profile[47].x - profile[48].x,
                       profile[47].y - profile[48].y) < 1.0e-8);
   }
   auto conflictingTeStock = teSheetingParameters;
@@ -847,11 +847,11 @@ int main() {
   } catch (const std::invalid_argument&) {
     rejectedConflictingTeStock = true;
   }
-  assert(rejectedConflictingTeStock);
+  TEST_CHECK(rejectedConflictingTeStock);
   for (std::size_t i = 0; i < 2; ++i) {
     const auto left = xBounds(turbulatorSheeted.sheeting[i].profiles.front());
     const auto right = xBounds(turbulatorSheeted.sheeting[i + 1].profiles.front());
-    assert(std::abs((right.first - left.second) -
+    TEST_CHECK(std::abs((right.first - left.second) -
         turbulatorSheetingParameters.turbulatorWidth) < 1.0e-8);
   }
 
@@ -867,7 +867,7 @@ int main() {
   controlSheetingParameters.controlSurfaceGap = 1.5;
   const auto controlSheeted = designrc::domain::applyWingStructure(
       ribs, controlSheetingParameters);
-  assert(controlSheeted.sheeting.size() == 1);
+  TEST_CHECK(controlSheeted.sheeting.size() == 1);
   const auto maximumProfileX = [](const std::vector<designrc::domain::Point2>& profile) {
     return std::max_element(profile.begin(), profile.end(),
         [](const auto& a, const auto& b) { return a.x < b.x; })->x;
@@ -877,26 +877,26 @@ int main() {
         controlSheetingParameters.aileronWidth -
         controlSheetingParameters.controlSurfaceGap -
         controlSheetingParameters.aileronHingePostWidth;
-    assert(std::abs(maximumProfileX(controlSheeted.sheeting.front().controlProfiles[boundary]) -
+    TEST_CHECK(std::abs(maximumProfileX(controlSheeted.sheeting.front().controlProfiles[boundary]) -
                     expectedHingeEdge) < 1.0e-8);
-    assert(maximumProfileX(controlSheeted.sheeting.front().profiles[boundary]) >
+    TEST_CHECK(maximumProfileX(controlSheeted.sheeting.front().profiles[boundary]) >
            expectedHingeEdge + controlSheetingParameters.aileronWidth);
-    assert(maximumProfileX(controlSheeted.sheeting.front().fullProfiles[boundary]) >
+    TEST_CHECK(maximumProfileX(controlSheeted.sheeting.front().fullProfiles[boundary]) >
            expectedHingeEdge + controlSheetingParameters.aileronWidth);
-    assert(maximumProfileX(controlSheeted.ribs[boundary].outerOutline) >
+    TEST_CHECK(maximumProfileX(controlSheeted.ribs[boundary].outerOutline) >
            expectedHingeEdge + controlSheetingParameters.aileronWidth);
   }
-  assert(!controlSheeted.sheeting.front().controlBays[0]);
-  assert(controlSheeted.sheeting.front().controlBays[1]);
-  assert(controlSheeted.sheeting.front().controlBays[2]);
-  assert(!controlSheeted.sheeting.front().controlBays[3]);
+  TEST_CHECK(!controlSheeted.sheeting.front().controlBays[0]);
+  TEST_CHECK(controlSheeted.sheeting.front().controlBays[1]);
+  TEST_CHECK(controlSheeted.sheeting.front().controlBays[2]);
+  TEST_CHECK(!controlSheeted.sheeting.front().controlBays[3]);
 
   designrc::domain::StructureParameters carbonParameters;
   carbonParameters.carbonSpar = 1;
   const auto carbonStructured = designrc::domain::applyWingStructure(ribs, carbonParameters);
-  assert(carbonStructured.members.size() == 1);
-  assert(carbonStructured.members.front().kind == designrc::domain::SpanMemberKind::Tube);
-  assert(carbonStructured.ribs.front().holes.size() == 1);
+  TEST_CHECK(carbonStructured.members.size() == 1);
+  TEST_CHECK(carbonStructured.members.front().kind == designrc::domain::SpanMemberKind::Tube);
+  TEST_CHECK(carbonStructured.ribs.front().holes.size() == 1);
 
   auto edgeParameters = structureParameters;
   edgeParameters.leadingEdgeType = 2;
@@ -906,10 +906,10 @@ int main() {
   edgeParameters.trailingEdgeWidth = 18.0;
   edgeParameters.trailingEdgeHeight = 50.0;
   const auto edged = designrc::domain::applyWingStructure(ribs, edgeParameters);
-  assert(edged.profiledMembers.size() == 2);
-  assert(std::abs(edged.profiledMembers.front().profiles.front().front().x -
+  TEST_CHECK(edged.profiledMembers.size() == 2);
+  TEST_CHECK(std::abs(edged.profiledMembers.front().profiles.front().front().x -
                   edgeParameters.leadingEdgeWidth) < 1.0e-9);
-  assert(std::abs(edged.profiledMembers.front().profiles.front().back().x -
+  TEST_CHECK(std::abs(edged.profiledMembers.front().profiles.front().back().x -
                   edgeParameters.leadingEdgeWidth) < 1.0e-9);
   const auto& leadingProfile = edged.profiledMembers.front().profiles.front();
   for (const auto endpoint : {leadingProfile.front(), leadingProfile.back()}) {
@@ -918,21 +918,21 @@ int main() {
         [endpoint](const auto& point) {
           return std::hypot(point.x - endpoint.x, point.y - endpoint.y) < 1.0e-8;
         });
-    assert(matchingRibCorner);
+    TEST_CHECK(matchingRibCorner);
   }
   const auto [minimumX, maximumX] = std::minmax_element(
       edged.ribs.front().outerOutline.begin(), edged.ribs.front().outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(std::abs(minimumX->x - edgeParameters.leadingEdgeWidth) < 1.0e-9);
-  assert(std::abs(maximumX->x - (ribs.front().chord - edgeParameters.trailingEdgeWidth)) < 1.0e-9);
+  TEST_CHECK(std::abs(minimumX->x - edgeParameters.leadingEdgeWidth) < 1.0e-9);
+  TEST_CHECK(std::abs(maximumX->x - (ribs.front().chord - edgeParameters.trailingEdgeWidth)) < 1.0e-9);
 
   designrc::domain::StructureParameters removedShapedStock;
   removedShapedStock.leadingEdgeType = 1;
   removedShapedStock.trailingEdgeType = 1;
   const auto withoutRemovedStock = designrc::domain::applyWingStructure(
       ribs, removedShapedStock);
-  assert(withoutRemovedStock.profiledMembers.empty());
-  assert(withoutRemovedStock.sheetStockParts.empty());
+  TEST_CHECK(withoutRemovedStock.profiledMembers.empty());
+  TEST_CHECK(withoutRemovedStock.sheetStockParts.empty());
 
   designrc::domain::StructureParameters insufficientLeHeight;
   insufficientLeHeight.leadingEdgeType = 2;
@@ -946,11 +946,11 @@ int main() {
   } catch (const designrc::domain::EdgeHeightError& error) {
     rejectedInsufficientLeHeight = std::string{error.what()}.find(
         "not smaller than the specified LE Height") != std::string::npos;
-    assert(error.edgeName() == "LE");
+    TEST_CHECK(error.edgeName() == "LE");
     reportedLeCutHeight = error.cutHeightMm();
   }
-  assert(rejectedInsufficientLeHeight);
-  assert(reportedLeCutHeight > insufficientLeHeight.leadingEdgeHeight);
+  TEST_CHECK(rejectedInsufficientLeHeight);
+  TEST_CHECK(reportedLeCutHeight > insufficientLeHeight.leadingEdgeHeight);
 
   designrc::domain::StructureParameters insufficientTeHeight;
   insufficientTeHeight.trailingEdgeType = 2;
@@ -964,28 +964,28 @@ int main() {
   } catch (const designrc::domain::EdgeHeightError& error) {
     rejectedInsufficientTeHeight = std::string{error.what()}.find(
         "not smaller than the specified TE Height") != std::string::npos;
-    assert(error.edgeName() == "TE");
+    TEST_CHECK(error.edgeName() == "TE");
     reportedTeCutHeight = error.cutHeightMm();
   }
-  assert(rejectedInsufficientTeHeight);
-  assert(reportedTeCutHeight > insufficientTeHeight.trailingEdgeHeight);
+  TEST_CHECK(rejectedInsufficientTeHeight);
+  TEST_CHECK(reportedTeCutHeight > insufficientTeHeight.trailingEdgeHeight);
 
   designrc::domain::StructureParameters leadingTubeParameters;
   leadingTubeParameters.leadingEdgeType = 3;
   const auto leadingTube = designrc::domain::applyWingStructure(ribs, leadingTubeParameters);
-  assert(leadingTube.ribs.front().holes.empty());
-  assert(leadingTube.ribs.front().booleanHoles.empty());
-  assert(leadingTube.members.size() == 1);
-  assert(leadingTube.members.front().kind == designrc::domain::SpanMemberKind::Tube);
-  assert(leadingTube.members.front().centers.front().x -
+  TEST_CHECK(leadingTube.ribs.front().holes.empty());
+  TEST_CHECK(leadingTube.ribs.front().booleanHoles.empty());
+  TEST_CHECK(leadingTube.members.size() == 1);
+  TEST_CHECK(leadingTube.members.front().kind == designrc::domain::SpanMemberKind::Tube);
+  TEST_CHECK(leadingTube.members.front().centers.front().x -
          leadingTubeParameters.leadingEdgeTubeOd * 0.5 < -0.09);
-  assert(!leadingTube.ribs.front().partOutline.empty());
+  TEST_CHECK(!leadingTube.ribs.front().partOutline.empty());
   const auto leadingTubeDrawing = designrc::domain::makeStructuredRibPartDrawing(
       leadingTube.ribs.front(), "Leading Tube Rib");
-  assert(std::none_of(leadingTubeDrawing.paths.begin(),
+  TEST_CHECK(std::none_of(leadingTubeDrawing.paths.begin(),
       leadingTubeDrawing.paths.end(),
       [](const auto& path) { return path.layer == "RIB_HOLES"; }));
-  assert(std::count_if(leadingTubeDrawing.paths.begin(),
+  TEST_CHECK(std::count_if(leadingTubeDrawing.paths.begin(),
       leadingTubeDrawing.paths.end(),
       [](const auto& path) {
         return path.layer == "RIB_OUTLINE" && path.spline;
@@ -1002,33 +1002,33 @@ int main() {
   controlParameters.aileronHingePostWidth = 6.0;
   controlParameters.controlSurfaceGap = 1.5;
   const auto controlled = designrc::domain::applyWingStructure(ribs, controlParameters);
-  assert(controlled.controlSurfaces.size() == 1);
-  assert(controlled.controlSurfaces.front().profiles.size() == 5);
-  assert(controlled.profiledMembers.front().activeRanges.size() == 2);
+  TEST_CHECK(controlled.controlSurfaces.size() == 1);
+  TEST_CHECK(controlled.controlSurfaces.front().profiles.size() == 5);
+  TEST_CHECK(controlled.profiledMembers.front().activeRanges.size() == 2);
   const auto boundaryMaximum = std::max_element(
       controlled.ribs[1].outerOutline.begin(), controlled.ribs[1].outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
   const auto intermediateMaximum = std::max_element(
       controlled.ribs[2].outerOutline.begin(), controlled.ribs[2].outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(std::abs(boundaryMaximum->x - (ribs[1].chord - 20.0)) < 1.0e-9);
-  assert(std::abs(intermediateMaximum->x -
+  TEST_CHECK(std::abs(boundaryMaximum->x - (ribs[1].chord - 20.0)) < 1.0e-9);
+  TEST_CHECK(std::abs(intermediateMaximum->x -
       (ribs[2].chord - 35.0 - 6.0 - 1.5)) < 1.0e-9);
 
   auto boundedControlParameters = controlParameters;
   boundedControlParameters.aileronStartRib = 1;
   boundedControlParameters.aileronStopRib = static_cast<int>(ribs.size());
   const auto boundedControl = designrc::domain::applyWingStructure(ribs, boundedControlParameters);
-  assert(boundedControl.controlSurfaces.size() == 1);
-  assert(boundedControl.controlSurfaces.front().startRibIndex == 1);
-  assert(boundedControl.controlSurfaces.front().stopRibIndex == ribs.size() - 1);
-  assert(boundedControl.controlSurfaces.front().cutStopRib);
-  assert(boundedControl.controlSurfaces.front().extendThroughStopRib);
+  TEST_CHECK(boundedControl.controlSurfaces.size() == 1);
+  TEST_CHECK(boundedControl.controlSurfaces.front().startRibIndex == 1);
+  TEST_CHECK(boundedControl.controlSurfaces.front().stopRibIndex == ribs.size() - 1);
+  TEST_CHECK(boundedControl.controlSurfaces.front().cutStopRib);
+  TEST_CHECK(boundedControl.controlSurfaces.front().extendThroughStopRib);
   const auto tipMaximum = std::max_element(
       boundedControl.ribs.back().outerOutline.begin(),
       boundedControl.ribs.back().outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(std::abs(tipMaximum->x -
+  TEST_CHECK(std::abs(tipMaximum->x -
       (ribs.back().chord - boundedControlParameters.aileronWidth -
        boundedControlParameters.aileronHingePostWidth -
        boundedControlParameters.controlSurfaceGap)) < 1.0e-9);
@@ -1042,17 +1042,17 @@ int main() {
   sharedControlParameters.aileronStopRib = static_cast<int>(ribs.size());
   const auto sharedControl = designrc::domain::applyWingStructure(
       ribs, sharedControlParameters);
-  assert(sharedControl.controlSurfaces.size() == 2);
+  TEST_CHECK(sharedControl.controlSurfaces.size() == 2);
   const auto& flap = sharedControl.controlSurfaces.front();
   const auto& aileron = sharedControl.controlSurfaces.back();
-  assert(flap.stopRibIndex == aileron.startRibIndex);
-  assert(flap.cutStopRib && flap.extendThroughStopRib);
-  assert(aileron.cutStartRib && aileron.cutStopRib);
+  TEST_CHECK(flap.stopRibIndex == aileron.startRibIndex);
+  TEST_CHECK(flap.cutStopRib && flap.extendThroughStopRib);
+  TEST_CHECK(aileron.cutStartRib && aileron.cutStopRib);
   const auto sharedRibMaximum = std::max_element(
       sharedControl.ribs[flap.stopRibIndex].outerOutline.begin(),
       sharedControl.ribs[flap.stopRibIndex].outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(sharedRibMaximum->x <
+  TEST_CHECK(sharedRibMaximum->x <
       ribs[flap.stopRibIndex].chord - sharedControlParameters.flapWidth);
 
   auto unequalSharedWidths = sharedControlParameters;
@@ -1065,7 +1065,7 @@ int main() {
     rejectedSharedWidths = std::string{error.what()}.find(
         "Width and Aileron Width must match") != std::string::npos;
   }
-  assert(rejectedSharedWidths);
+  TEST_CHECK(rejectedSharedWidths);
 
   auto invalidControlOrder = sharedControlParameters;
   invalidControlOrder.aileronStartRib = invalidControlOrder.flapStopRib - 1;
@@ -1077,7 +1077,7 @@ int main() {
     rejectedControlOrder = std::string{error.what()}.find(
         "Aileron Start Rib cannot be less") != std::string::npos;
   }
-  assert(rejectedControlOrder);
+  TEST_CHECK(rejectedControlOrder);
 
   designrc::domain::StructureParameters sheetTeParameters;
   sheetTeParameters.ribThickness = parameters.ribThickness;
@@ -1087,9 +1087,9 @@ int main() {
   sheetTeParameters.trailingEdgeSlotted = true;
   sheetTeParameters.trailingEdgeSlotDepth = 6.0;
   const auto sheetTe = designrc::domain::applyWingStructure(ribs, sheetTeParameters);
-  assert(sheetTe.sheetStockParts.size() == 1);
-  assert(sheetTe.sheetStockParts.front().outline.size() == ribs.size() * 4);
-  assert(sheetTe.sheetStockParts.front().slots.empty());
+  TEST_CHECK(sheetTe.sheetStockParts.size() == 1);
+  TEST_CHECK(sheetTe.sheetStockParts.front().outline.size() == ribs.size() * 4);
+  TEST_CHECK(sheetTe.sheetStockParts.front().slots.empty());
   const auto& openCornerStock = sheetTe.sheetStockParts.front();
   for (std::size_t ribIndex = 1; ribIndex + 1 < ribs.size(); ++ribIndex) {
     const double slotLeading = ribs[ribIndex].leadingEdgeOffset +
@@ -1099,13 +1099,13 @@ int main() {
         [slotLeading](const auto point) {
           return std::abs(point.x - slotLeading) < 1.0e-8;
         });
-    assert(mouthPoints >= 2);
+    TEST_CHECK(mouthPoints >= 2);
   }
-  assert(sheetTe.profiledMembers.front().slotProfiles.size() == ribs.size());
+  TEST_CHECK(sheetTe.profiledMembers.front().slotProfiles.size() == ribs.size());
   const auto sheetRibMaximum = std::max_element(
       sheetTe.ribs.front().outerOutline.begin(), sheetTe.ribs.front().outerOutline.end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(std::abs(sheetRibMaximum->x -
+  TEST_CHECK(std::abs(sheetRibMaximum->x -
       (ribs.front().chord - sheetTeParameters.trailingEdgeWidth +
        sheetTeParameters.trailingEdgeSlotDepth)) < 1.0e-9);
   auto slottedSheetingParameters = sheetTeParameters;
@@ -1113,39 +1113,39 @@ int main() {
   slottedSheetingParameters.teTopSheetStopRib = 2;
   const auto slottedSheeting = designrc::domain::applyWingStructure(
       ribs, slottedSheetingParameters);
-  assert(slottedSheeting.sheeting.size() == 1);
+  TEST_CHECK(slottedSheeting.sheeting.size() == 1);
   const double teInnerFace = ribs.front().chord -
       slottedSheetingParameters.trailingEdgeWidth;
   const auto sheetingMaximum = std::max_element(
       slottedSheeting.sheeting.front().profiles.front().begin(),
       slottedSheeting.sheeting.front().profiles.front().end(),
       [](const auto& a, const auto& b) { return a.x < b.x; });
-  assert(std::abs(sheetingMaximum->x - teInnerFace) < 1.0e-9);
+  TEST_CHECK(std::abs(sheetingMaximum->x - teInnerFace) < 1.0e-9);
 
   const auto path = std::filesystem::temp_directory_path() / "designrc_test_rib.dxf";
   designrc::domain::exportRibDxf(ribs.front(), path, "Test rib");
   std::ifstream dxf{path};
   const std::string contents{std::istreambuf_iterator<char>{dxf}, {}};
-  assert(contents.find("$HANDSEED") != std::string::npos);
-  assert(contents.find("FFFF") != std::string::npos);
-  assert(contents.find("SECTION\n  2\nCLASSES") != std::string::npos);
-  assert(contents.find("SECTION\n  2\nTABLES") != std::string::npos);
-  assert(contents.find("TABLE\n  2\nBLOCK_RECORD") != std::string::npos);
-  assert(contents.find("BLOCK_RECORD") != std::string::npos);
-  assert(contents.find("SECTION\n  2\nBLOCKS") != std::string::npos);
-  assert(contents.find("*Model_Space") != std::string::npos);
-  assert(contents.find("SECTION\n  2\nOBJECTS") != std::string::npos);
-  assert(contents.find("DICTIONARY") != std::string::npos);
-  assert(contents.find("SPLINE") != std::string::npos);
-  assert(contents.find("0\nSPLINE\n5\n") != std::string::npos);
-  assert(contents.find("330\n17\n100\nAcDbEntity\n8\nRIB_OUTLINE") !=
+  TEST_CHECK(contents.find("$HANDSEED") != std::string::npos);
+  TEST_CHECK(contents.find("FFFF") != std::string::npos);
+  TEST_CHECK(contents.find("SECTION\n  2\nCLASSES") != std::string::npos);
+  TEST_CHECK(contents.find("SECTION\n  2\nTABLES") != std::string::npos);
+  TEST_CHECK(contents.find("TABLE\n  2\nBLOCK_RECORD") != std::string::npos);
+  TEST_CHECK(contents.find("BLOCK_RECORD") != std::string::npos);
+  TEST_CHECK(contents.find("SECTION\n  2\nBLOCKS") != std::string::npos);
+  TEST_CHECK(contents.find("*Model_Space") != std::string::npos);
+  TEST_CHECK(contents.find("SECTION\n  2\nOBJECTS") != std::string::npos);
+  TEST_CHECK(contents.find("DICTIONARY") != std::string::npos);
+  TEST_CHECK(contents.find("SPLINE") != std::string::npos);
+  TEST_CHECK(contents.find("0\nSPLINE\n5\n") != std::string::npos);
+  TEST_CHECK(contents.find("330\n17\n100\nAcDbEntity\n8\nRIB_OUTLINE") !=
          std::string::npos);
-  assert(contents.find("100\nAcDbEntity\n8\nRIB_OUTLINE\n100\nAcDbSpline") !=
+  TEST_CHECK(contents.find("100\nAcDbEntity\n8\nRIB_OUTLINE\n100\nAcDbSpline") !=
          std::string::npos);
-  assert(contents.find("210\n0.0\n220\n0.0\n230\n1.0") != std::string::npos);
-  assert(contents.find("\nTEXT\n") == std::string::npos);
-  assert(contents.find("999\nPart label: Test rib") != std::string::npos);
-  assert(contents.find(
+  TEST_CHECK(contents.find("210\n0.0\n220\n0.0\n230\n1.0") != std::string::npos);
+  TEST_CHECK(contents.find("\nTEXT\n") == std::string::npos);
+  TEST_CHECK(contents.find("999\nPart label: Test rib") != std::string::npos);
+  TEST_CHECK(contents.find(
       "330\n17\n100\nAcDbEntity\n8\nANNOTATION\n100\nAcDbLine") !=
       std::string::npos);
   dxf.close();
@@ -1156,9 +1156,9 @@ int main() {
                                            "Structured rib");
   std::ifstream structuredDxf{structuredPath};
   const std::string structuredContents{std::istreambuf_iterator<char>{structuredDxf}, {}};
-  assert(structuredContents.find("RIB_HOLES") != std::string::npos);
-  assert(structuredContents.find("SPLINE") != std::string::npos);
-  assert(structuredContents.find("100\nAcDbPolyline") != std::string::npos);
+  TEST_CHECK(structuredContents.find("RIB_HOLES") != std::string::npos);
+  TEST_CHECK(structuredContents.find("SPLINE") != std::string::npos);
+  TEST_CHECK(structuredContents.find("100\nAcDbPolyline") != std::string::npos);
   structuredDxf.close();
   std::filesystem::remove(structuredPath);
 
@@ -1166,7 +1166,7 @@ int main() {
   designrc::domain::exportShearWebDxf(structured.shearWebs.front(), webPath, "Shear web");
   std::ifstream webDxf{webPath};
   const std::string webContents{std::istreambuf_iterator<char>{webDxf}, {}};
-  assert(webContents.find("SHEAR_WEB_OUTLINE") != std::string::npos);
+  TEST_CHECK(webContents.find("SHEAR_WEB_OUTLINE") != std::string::npos);
   webDxf.close();
   std::filesystem::remove(webPath);
 
@@ -1175,23 +1175,23 @@ int main() {
                                         "Sheet TE stock");
   std::ifstream sheetDxf{sheetPath};
   const std::string sheetContents{std::istreambuf_iterator<char>{sheetDxf}, {}};
-  assert(sheetContents.find("SHEET_TE_OUTLINE") != std::string::npos);
-  assert(sheetContents.find("SHEET_TE_SLOTS") == std::string::npos);
+  TEST_CHECK(sheetContents.find("SHEET_TE_OUTLINE") != std::string::npos);
+  TEST_CHECK(sheetContents.find("SHEET_TE_SLOTS") == std::string::npos);
   sheetDxf.close();
   std::filesystem::remove(sheetPath);
   const auto joinerPath = std::filesystem::temp_directory_path() / "designrc_wood_joiner.dxf";
   designrc::domain::exportWoodJoinerDxf(joined.joiners.back(), joinerPath, "Wood joiner");
   std::ifstream joinerDxf{joinerPath};
   const std::string joinerContents{std::istreambuf_iterator<char>{joinerDxf}, {}};
-  assert(joinerContents.find("WOOD_JOINER_OUTLINE") != std::string::npos);
+  TEST_CHECK(joinerContents.find("WOOD_JOINER_OUTLINE") != std::string::npos);
   joinerDxf.close();
   std::filesystem::remove(joinerPath);
   const auto splitRibPath = std::filesystem::temp_directory_path() / "designrc_split_rib.dxf";
   designrc::domain::exportStructuredRibDxf(joined.ribs.front(), splitRibPath, "R1");
   std::ifstream splitRibDxf{splitRibPath};
   const std::string splitRibContents{std::istreambuf_iterator<char>{splitRibDxf}, {}};
-  assert(splitRibContents.find("SPLINE") != std::string::npos);
-  assert(splitRibContents.find("999\nPart label: R1") != std::string::npos);
+  TEST_CHECK(splitRibContents.find("SPLINE") != std::string::npos);
+  TEST_CHECK(splitRibContents.find("999\nPart label: R1") != std::string::npos);
   splitRibDxf.close();
   std::filesystem::remove(splitRibPath);
 
@@ -1199,16 +1199,16 @@ int main() {
   designrc::domain::exportDihedralAngleDxf(6.0, anglePath, "Dihedral Angle 1");
   std::ifstream angleDxf{anglePath};
   const std::string angleContents{std::istreambuf_iterator<char>{angleDxf}, {}};
-  assert(angleContents.find("DIHEDRAL_ANGLE_OUTLINE") != std::string::npos);
-  assert(angleContents.find("38.100000") != std::string::npos);
-  assert(angleContents.find("25.400000") != std::string::npos);
-  assert(angleContents.find("999\nPart label: Dihedral Angle 1") !=
+  TEST_CHECK(angleContents.find("DIHEDRAL_ANGLE_OUTLINE") != std::string::npos);
+  TEST_CHECK(angleContents.find("38.100000") != std::string::npos);
+  TEST_CHECK(angleContents.find("25.400000") != std::string::npos);
+  TEST_CHECK(angleContents.find("999\nPart label: Dihedral Angle 1") !=
          std::string::npos);
-  assert(angleContents.find("TABLE\n  2\nLAYER") != std::string::npos);
-  assert(angleContents.find("  2\nDIHEDRAL_ANGLE_OUTLINE\n 70\n0\n 62\n7") !=
+  TEST_CHECK(angleContents.find("TABLE\n  2\nLAYER") != std::string::npos);
+  TEST_CHECK(angleContents.find("  2\nDIHEDRAL_ANGLE_OUTLINE\n 70\n0\n 62\n7") !=
          std::string::npos);
-  assert(angleContents.find("0\nLWPOLYLINE\n5\n") != std::string::npos);
-  assert(angleContents.find("330\n17\n100\nAcDbEntity") != std::string::npos);
+  TEST_CHECK(angleContents.find("0\nLWPOLYLINE\n5\n") != std::string::npos);
+  TEST_CHECK(angleContents.find("330\n17\n100\nAcDbEntity") != std::string::npos);
   angleDxf.close();
   std::filesystem::remove(anglePath);
 
@@ -1217,10 +1217,10 @@ int main() {
   designrc::domain::exportRibSvg(ribs.front(), ribSvgPath, "Test & rib");
   std::ifstream ribSvg{ribSvgPath};
   const std::string ribSvgContents{std::istreambuf_iterator<char>{ribSvg}, {}};
-  assert(ribSvgContents.find("<svg") != std::string::npos);
-  assert(ribSvgContents.find("mm\"") != std::string::npos);
-  assert(ribSvgContents.find("<path") != std::string::npos);
-  assert(ribSvgContents.find("Test &amp; rib") != std::string::npos);
+  TEST_CHECK(ribSvgContents.find("<svg") != std::string::npos);
+  TEST_CHECK(ribSvgContents.find("mm\"") != std::string::npos);
+  TEST_CHECK(ribSvgContents.find("<path") != std::string::npos);
+  TEST_CHECK(ribSvgContents.find("Test &amp; rib") != std::string::npos);
   ribSvg.close();
   std::filesystem::remove(ribSvgPath);
 
@@ -1230,9 +1230,9 @@ int main() {
   std::ifstream structuredSvg{structuredSvgPath};
   const std::string structuredSvgContents{
       std::istreambuf_iterator<char>{structuredSvg}, {}};
-  assert(structuredSvgContents.find("viewBox=") != std::string::npos);
-  assert(structuredSvgContents.find("Structured rib") != std::string::npos);
-  assert(structuredSvgContents.find("<path") != std::string::npos);
+  TEST_CHECK(structuredSvgContents.find("viewBox=") != std::string::npos);
+  TEST_CHECK(structuredSvgContents.find("Structured rib") != std::string::npos);
+  TEST_CHECK(structuredSvgContents.find("<path") != std::string::npos);
   structuredSvg.close();
   std::filesystem::remove(structuredSvgPath);
 
@@ -1259,8 +1259,8 @@ int main() {
       std::istreambuf_iterator<char>{unevenSplineSvg}, {}};
   // The old equal-spacing conversion placed this short segment's control
   // point at x=118.666833, producing the reported near-circular loop.
-  assert(unevenSplineSvgContents.find("118.666833") == std::string::npos);
-  assert(unevenSplineSvgContents.find("<path") != std::string::npos);
+  TEST_CHECK(unevenSplineSvgContents.find("118.666833") == std::string::npos);
+  TEST_CHECK(unevenSplineSvgContents.find("<path") != std::string::npos);
   unevenSplineSvg.close();
   std::filesystem::remove(unevenSplineSvgPath);
 
@@ -1277,7 +1277,7 @@ int main() {
   designrc::domain::exportDihedralAngleSvg(
       6.0, angleSvgPath, "Dihedral Angle 1");
   for (const auto& svgPath : {webSvgPath, sheetSvgPath, joinerSvgPath, angleSvgPath}) {
-    assert(std::filesystem::file_size(svgPath) > 100);
+    TEST_CHECK(std::filesystem::file_size(svgPath) > 100);
     std::filesystem::remove(svgPath);
   }
   const std::vector<designrc::domain::PartDrawing> compositeParts{
@@ -1288,7 +1288,7 @@ int main() {
       designrc::domain::makeDihedralAnglePartDrawing(
           6.0, "Composite Angle")};
   const auto arrangedParts = designrc::domain::arrangePartDrawings(compositeParts);
-  assert(arrangedParts.size() == compositeParts.size());
+  TEST_CHECK(arrangedParts.size() == compositeParts.size());
   const auto teDrawing = designrc::domain::makeSheetStockPartDrawing(
       sheetTe.sheetStockParts.front(), "Rotated TE");
   const auto rotatedTe = designrc::domain::arrangePartDrawings({teDrawing}).front();
@@ -1308,9 +1308,9 @@ int main() {
   };
   const auto originalTeBounds = pathBounds(teDrawing);
   const auto rotatedTeBounds = pathBounds(rotatedTe);
-  assert(std::abs((rotatedTeBounds[1] - rotatedTeBounds[0]) -
+  TEST_CHECK(std::abs((rotatedTeBounds[1] - rotatedTeBounds[0]) -
                   (originalTeBounds[3] - originalTeBounds[2])) < 1.0e-8);
-  assert(std::abs((rotatedTeBounds[3] - rotatedTeBounds[2]) -
+  TEST_CHECK(std::abs((rotatedTeBounds[3] - rotatedTeBounds[2]) -
                   (originalTeBounds[1] - originalTeBounds[0])) < 1.0e-8);
   const char* preservedDxfPath = std::getenv("DESIGNRC_DXF_TEST_OUTPUT");
   const auto compositeDxfPath = preservedDxfPath
@@ -1320,14 +1320,14 @@ int main() {
   std::ifstream compositeDxf{compositeDxfPath};
   const std::string compositeDxfContents{
       std::istreambuf_iterator<char>{compositeDxf}, {}};
-  assert(compositeDxfContents.find("Composite Rib") != std::string::npos);
-  assert(compositeDxfContents.find("Composite Web") != std::string::npos);
-  assert(compositeDxfContents.find("Composite Angle") != std::string::npos);
-  assert(compositeDxfContents.find("100\nAcDbPolyline") != std::string::npos);
-  assert(compositeDxfContents.find("100\nAcDbLine") != std::string::npos);
-  assert(compositeDxfContents.find("100\nAcDbSpline") != std::string::npos);
-  assert(compositeDxfContents.find("\nTEXT\n") == std::string::npos);
-  assert(compositeDxfContents.find("999\nPart label: Composite Rib") !=
+  TEST_CHECK(compositeDxfContents.find("Composite Rib") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("Composite Web") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("Composite Angle") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("100\nAcDbPolyline") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("100\nAcDbLine") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("100\nAcDbSpline") != std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("\nTEXT\n") == std::string::npos);
+  TEST_CHECK(compositeDxfContents.find("999\nPart label: Composite Rib") !=
          std::string::npos);
   compositeDxf.close();
   if (!preservedDxfPath) std::filesystem::remove(compositeDxfPath);
@@ -1336,9 +1336,9 @@ int main() {
   std::ifstream compositeSvg{compositeSvgPath};
   const std::string compositeSvgContents{
       std::istreambuf_iterator<char>{compositeSvg}, {}};
-  assert(compositeSvgContents.find("Composite Rib") != std::string::npos);
-  assert(compositeSvgContents.find("Composite Web") != std::string::npos);
-  assert(compositeSvgContents.find("Composite Angle") != std::string::npos);
+  TEST_CHECK(compositeSvgContents.find("Composite Rib") != std::string::npos);
+  TEST_CHECK(compositeSvgContents.find("Composite Web") != std::string::npos);
+  TEST_CHECK(compositeSvgContents.find("Composite Angle") != std::string::npos);
   compositeSvg.close();
   std::filesystem::remove(compositeSvgPath);
 
@@ -1352,9 +1352,9 @@ int main() {
   spoilerParameters.spoilerFrameRailWidth = 6.0;
   spoilerParameters.spoilerSupportRailHeight = 3.0;
   const auto spoilerWing = designrc::domain::applyWingStructure(ribs, spoilerParameters);
-  assert(spoilerWing.spoilers.size() == 1);
-  assert(spoilerWing.spoilers.front().spoilerProfiles.size() == 5);
-  assert(spoilerWing.spoilers.front().supportProfiles.size() == 2);
+  TEST_CHECK(spoilerWing.spoilers.size() == 1);
+  TEST_CHECK(spoilerWing.spoilers.front().spoilerProfiles.size() == 5);
+  TEST_CHECK(spoilerWing.spoilers.front().supportProfiles.size() == 2);
 
   auto legacyTopSparSpoilerParameters = spoilerParameters;
   legacyTopSparSpoilerParameters.spoilerChordLocationPercent = 10;
@@ -1368,7 +1368,7 @@ int main() {
     const std::size_t ribIndex =
         legacyTopSparSpoiler.spoilers.front().startRibIndex + local;
     const double expectedAftFace = 0.25 * ribs[ribIndex].chord + 5.01;
-    assert(std::abs(
+    TEST_CHECK(std::abs(
         legacyTopSparSpoiler.spoilers.front().forwardRailProfiles[local][0].x -
         expectedAftFace) < 1.0e-8);
   }
@@ -1384,7 +1384,7 @@ int main() {
     const std::size_t ribIndex =
         immediatelyBehindSpar.spoilers.front().startRibIndex + local;
     const double expectedAftFace = 0.25 * ribs[ribIndex].chord + 5.01;
-    assert(std::abs(
+    TEST_CHECK(std::abs(
         immediatelyBehindSpar.spoilers.front().forwardRailProfiles[local][0].x -
         expectedAftFace) < 1.0e-8);
   }
@@ -1401,7 +1401,7 @@ int main() {
     const std::size_t ribIndex =
         configurableTopSparSpoiler.spoilers.front().startRibIndex + local;
     const double expectedAftFace = 0.45 * ribs[ribIndex].chord + 4.51;
-    assert(std::abs(
+    TEST_CHECK(std::abs(
         configurableTopSparSpoiler.spoilers.front().forwardRailProfiles[local][0].x -
         expectedAftFace) < 1.0e-8);
   }
@@ -1420,11 +1420,11 @@ int main() {
         decimalTopSparSpoiler.spoilers.front().startRibIndex + local;
     const double expectedAftFace =
         0.251 * ribs[ribIndex].chord + 6.35 * 0.5 + 0.01;
-    assert(std::abs(
+    TEST_CHECK(std::abs(
         decimalTopSparSpoiler.spoilers.front().forwardRailProfiles[local][0].x -
         expectedAftFace) < 1.0e-8);
   }
-  assert(spoilerWing.spoilers.front().dxfOutline.size() == 4);
+  TEST_CHECK(spoilerWing.spoilers.front().dxfOutline.size() == 4);
   auto lightenedSpoilerParameters = spoilerParameters;
   lightenedSpoilerParameters.spoilerLighteningHoles = true;
   lightenedSpoilerParameters.spoilerMinimumWoodMargin = 6.0;
@@ -1432,11 +1432,11 @@ int main() {
   const auto lightenedSpoilerWing = designrc::domain::applyWingStructure(
       ribs, lightenedSpoilerParameters);
   const auto& lightenedSpoiler = lightenedSpoilerWing.spoilers.front();
-  assert(lightenedSpoiler.lighteningHoleOutlines.size() > 4);
+  TEST_CHECK(lightenedSpoiler.lighteningHoleOutlines.size() > 4);
   const double spoilerSpan = lightenedSpoiler.dxfOutline[1].x;
   double previousRight = -1.0;
   for (const auto& hole : lightenedSpoiler.lighteningHoleOutlines) {
-    assert(hole.size() == 48);
+    TEST_CHECK(hole.size() == 48);
     double minimumX = hole.front().x;
     double maximumX = hole.front().x;
     double minimumY = hole.front().y;
@@ -1447,12 +1447,12 @@ int main() {
       minimumY = std::min(minimumY, point.y);
       maximumY = std::max(maximumY, point.y);
     }
-    assert(minimumX >= 6.0 - 1.0e-8);
-    assert(spoilerSpan - maximumX >= 6.0 - 1.0e-8);
-    assert(minimumY >= 6.0 - 1.0e-8);
-    assert(lightenedSpoiler.width - maximumY >= 6.0 - 1.0e-8);
+    TEST_CHECK(minimumX >= 6.0 - 1.0e-8);
+    TEST_CHECK(spoilerSpan - maximumX >= 6.0 - 1.0e-8);
+    TEST_CHECK(minimumY >= 6.0 - 1.0e-8);
+    TEST_CHECK(lightenedSpoiler.width - maximumY >= 6.0 - 1.0e-8);
     if (previousRight >= 0.0)
-      assert(minimumX - previousRight >= 12.0 - 1.0e-8);
+      TEST_CHECK(minimumX - previousRight >= 12.0 - 1.0e-8);
     previousRight = maximumX;
   }
   auto carbonSpoilerParameters = spoilerParameters;
@@ -1485,8 +1485,8 @@ int main() {
   };
   // R4 is inside the R3-R7 spoiler range and contains the spoiler plus top
   // and bottom spar notches. All three must retain straight walls and floors.
-  assert(sharpNotchCount(carbonSpoilerWing.ribs[3].outlineSegments) >= 3);
-  assert(sharpNotchCount(carbonSpoilerWing.ribs[3].partOutlineSegments) >= 3);
+  TEST_CHECK(sharpNotchCount(carbonSpoilerWing.ribs[3].outlineSegments) >= 3);
+  TEST_CHECK(sharpNotchCount(carbonSpoilerWing.ribs[3].partOutlineSegments) >= 3);
   designrc::domain::StructureParameters sheetedCarbonLeParameters;
   sheetedCarbonLeParameters.leadingEdgeType = 4;
   sheetedCarbonLeParameters.leadingEdgeRodOd = 6.0;
@@ -1503,7 +1503,7 @@ int main() {
       [](const auto& member) {
         return member.name == "CF rod leading edge";
       });
-  assert(carbonLeMember != sheetedCarbonLeWing.members.end());
+  TEST_CHECK(carbonLeMember != sheetedCarbonLeWing.members.end());
   const auto& rootLeRib = sheetedCarbonLeWing.ribs.front();
   const auto exposedLeCenter = carbonLeMember->centers.front();
   const double leRadius = sheetedCarbonLeParameters.leadingEdgeRodOd * 0.5;
@@ -1523,18 +1523,18 @@ int main() {
       continue;
     }
     for (const auto point : segment.points)
-      assert(std::hypot(
+      TEST_CHECK(std::hypot(
           point.x - exposedLeCenter.x, point.y - exposedLeCenter.y) >=
           leRadius - 1.0e-7);
   }
-  assert(circularCradles == 1);
+  TEST_CHECK(circularCradles == 1);
   auto dihedralSpoilerParameters = spoilerParameters;
   dihedralSpoilerParameters.joinerDihedralDegrees = 5.0;
   dihedralSpoilerParameters.spoilerStartRib = 2;
   dihedralSpoilerParameters.spoilerEndRib = 6;
   const auto dihedralSpoilerWing = designrc::domain::applyWingStructure(
       ribs, dihedralSpoilerParameters);
-  assert(dihedralSpoilerWing.spoilers.size() == 1);
+  TEST_CHECK(dihedralSpoilerWing.spoilers.size() == 1);
   dihedralSpoilerParameters.spoilerStartRib = 1;
   bool rejectedCenterSpoilerWithDihedral = false;
   try {
@@ -1546,14 +1546,14 @@ int main() {
             "Dihedral must be 0 degrees for a center spoiler") !=
         std::string::npos;
   }
-  assert(rejectedCenterSpoilerWithDihedral);
+  TEST_CHECK(rejectedCenterSpoilerWithDihedral);
   const auto spoilerDrawing = designrc::domain::makeSpoilerPartDrawing(
       lightenedSpoiler, "Spoiler");
-  assert(spoilerDrawing.paths.size() ==
+  TEST_CHECK(spoilerDrawing.paths.size() ==
          lightenedSpoiler.lighteningHoleOutlines.size() + 1);
-  assert(spoilerDrawing.labelExclusions.size() ==
+  TEST_CHECK(spoilerDrawing.labelExclusions.size() ==
          lightenedSpoiler.lighteningHoleOutlines.size());
-  assert(spoilerDrawing.preferredLabelPlacement.has_value());
+  TEST_CHECK(spoilerDrawing.preferredLabelPlacement.has_value());
   const auto spoilerLabel = *spoilerDrawing.preferredLabelPlacement;
   double highestLighteningHolePoint =
       std::numeric_limits<double>::lowest();
@@ -1564,23 +1564,23 @@ int main() {
     for (const auto point : hole)
       highestLighteningHolePoint =
           std::max(highestLighteningHolePoint, point.y);
-  assert(spoilerLabel.position.y > highestLighteningHolePoint);
-  assert(spoilerLabel.position.y < spoilerTop);
+  TEST_CHECK(spoilerLabel.position.y > highestLighteningHolePoint);
+  TEST_CHECK(spoilerLabel.position.y < spoilerTop);
   const auto arrangedSpoiler =
       designrc::domain::arrangePartDrawings({spoilerDrawing}).front();
   const auto arrangedSpoilerLabel =
       designrc::domain::partLabelPlacement(arrangedSpoiler);
-  assert(arrangedSpoilerLabel.has_value());
+  TEST_CHECK(arrangedSpoilerLabel.has_value());
   double arrangedHighestHolePoint =
       std::numeric_limits<double>::lowest();
   for (const auto& hole : arrangedSpoiler.labelExclusions)
     for (const auto point : hole)
       arrangedHighestHolePoint = std::max(arrangedHighestHolePoint, point.y);
-  assert(arrangedSpoilerLabel->position.y > arrangedHighestHolePoint);
+  TEST_CHECK(arrangedSpoilerLabel->position.y > arrangedHighestHolePoint);
   const auto spoilerSvgPath = svgDirectory / "designrc_spoiler.svg";
   designrc::domain::exportSpoilerSvg(
       lightenedSpoiler, spoilerSvgPath, "Spoiler");
-  assert(std::filesystem::file_size(spoilerSvgPath) > 100);
+  TEST_CHECK(std::filesystem::file_size(spoilerSvgPath) > 100);
   std::filesystem::remove(spoilerSvgPath);
   const auto spoilerDxfPath = svgDirectory / "designrc_spoiler.dxf";
   designrc::domain::exportSpoilerDxf(
@@ -1588,7 +1588,7 @@ int main() {
   std::ifstream spoilerDxf{spoilerDxfPath};
   const std::string spoilerDxfContents{
       std::istreambuf_iterator<char>{spoilerDxf}, {}};
-  assert(spoilerDxfContents.find("SPOILER_LIGHTENING_HOLES") !=
+  TEST_CHECK(spoilerDxfContents.find("SPOILER_LIGHTENING_HOLES") !=
          std::string::npos);
   spoilerDxf.close();
   std::filesystem::remove(spoilerDxfPath);
@@ -1601,22 +1601,22 @@ int main() {
   wiringParameters.wiringHoleWidth = 9.525;
   wiringParameters.wiringHoleHeight = 6.35;
   const auto wiredWing = designrc::domain::applyWingStructure(ribs, wiringParameters);
-  assert(wiredWing.wiringHoles.size() == 3);
-  assert(wiredWing.ribs[0].internalCutouts.empty());
+  TEST_CHECK(wiredWing.wiringHoles.size() == 3);
+  TEST_CHECK(wiredWing.ribs[0].internalCutouts.empty());
   for (std::size_t index = 1; index <= 3; ++index) {
-    assert(wiredWing.ribs[index].internalCutouts.size() == 1);
+    TEST_CHECK(wiredWing.ribs[index].internalCutouts.size() == 1);
     const auto& opening = wiredWing.ribs[index].internalCutouts.front();
     const auto [minimum, maximum] = std::minmax_element(opening.begin(), opening.end(),
         [](const auto a, const auto b) { return a.x < b.x; });
-    assert(std::abs(minimum->x - 0.50 * ribs[index].chord) < 1.0e-8);
-    assert(std::abs(maximum->x - minimum->x - 9.525) < 1.0e-8);
+    TEST_CHECK(std::abs(minimum->x - 0.50 * ribs[index].chord) < 1.0e-8);
+    TEST_CHECK(std::abs(maximum->x - minimum->x - 9.525) < 1.0e-8);
     const auto drawing = designrc::domain::makeStructuredRibPartDrawing(
         wiredWing.ribs[index], "Wired Rib");
-    assert(std::any_of(drawing.paths.begin(), drawing.paths.end(),
+    TEST_CHECK(std::any_of(drawing.paths.begin(), drawing.paths.end(),
         [](const auto& path) {
           return path.layer == "RIB_OUTLINE" && path.spline;
         }));
-    assert(std::count_if(drawing.paths.begin(), drawing.paths.end(),
+    TEST_CHECK(std::count_if(drawing.paths.begin(), drawing.paths.end(),
         [](const auto& path) { return path.layer == "RIB_HOLES"; }) == 1);
   }
 
@@ -1635,16 +1635,16 @@ int main() {
   for (std::size_t index = 0; index < ribletWing.ribs.size(); ++index)
     ribletWing.ribs[index].name = "R" + std::to_string(index + 1);
   designrc::domain::addRiblets(ribletWing, ribletParameters);
-  assert(ribletWing.riblets.size() == 8);
-  assert(ribletWing.riblets.front().name == "R2a");
-  assert(ribletWing.riblets[1].name == "R2b");
-  assert(ribletWing.riblets.back().name == "R5b");
-  assert(ribletWing.riblets.front().rib.spanPosition >
+  TEST_CHECK(ribletWing.riblets.size() == 8);
+  TEST_CHECK(ribletWing.riblets.front().name == "R2a");
+  TEST_CHECK(ribletWing.riblets[1].name == "R2b");
+  TEST_CHECK(ribletWing.riblets.back().name == "R5b");
+  TEST_CHECK(ribletWing.riblets.front().rib.spanPosition >
          ribletWing.ribs[1].rib.spanPosition);
-  assert(ribletWing.riblets.front().rib.spanPosition <
+  TEST_CHECK(ribletWing.riblets.front().rib.spanPosition <
          ribletWing.ribs[2].rib.spanPosition);
-  assert(!ribletWing.riblets.front().booleanHoles.empty());
-  assert(!ribletWing.riblets.front().partOutlineSegments.empty());
+  TEST_CHECK(!ribletWing.riblets.front().booleanHoles.empty());
+  TEST_CHECK(!ribletWing.riblets.front().partOutlineSegments.empty());
   ribletParameters.ribLighteningHoles = true;
   ribletParameters.ribLighteningStartRib = 2;
   ribletParameters.ribLighteningStopRib = 6;
@@ -1652,7 +1652,7 @@ int main() {
   ribletParameters.ribLighteningMinimumHoleDistance = 2.0;
   designrc::domain::addRibLighteningHoles(
       ribletWing, ribletParameters);
-  assert(std::any_of(
+  TEST_CHECK(std::any_of(
       ribletWing.riblets.begin(), ribletWing.riblets.end(),
       [](const auto& riblet) {
         return !riblet.internalCutouts.empty();

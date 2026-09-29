@@ -1,15 +1,17 @@
 # Airplane statistics
 
-Every data panel except Weight and Balance has a compact footer showing available
+Every data panel except Assembly, Export and Weight and Balance has a compact footer showing available
 Wingspan, Wing Area, Root Chord, Aspect Ratio, Fuselage Length, Horiz Stab Area,
 Vert Stab Area, Weight, Wing Loading and CG from wing LE. Unknown values are omitted.
 Airfoils and other expanding lists/tabs become shorter to make room. The footer
-sits above bottom actions (Smooth/Export, Assembly Cut Intersections, Export).
+sits above bottom actions such as Smooth/Export on Airfoils.
 
 Lengths use Reference units; areas use mm² or in². Weight uses grams or ounces.
 Wing loading uses g/dm² or oz/ft². CG uses the placed wing root leading edge and
 is positive aft, negative forward, matching Weight and Balance. Weight and Balance
 has its own Wing Loading line, without the shared footer.
+Assembly and Export defer mass integration entirely, including when entering
+Export with no cached Weight and Balance measurement.
 
 Sketch-only calculations require a physical Reference scale. Wingspan is the
 entered full span in Specify Dimensions or the calibrated outline span in User
@@ -39,3 +41,10 @@ statistics even before regenerating after reopen. The persistent summary cache
 does not restore model solids or make Weight and Balance's full component table
 available without a current Assembly. Derived cache updates are excluded from
 edit history and the project-modified fingerprint, but included on Save.
+
+Assembly has no statistics footer. While Assembly is active, title refreshes,
+translations, rotations, and cut-state changes invalidate stale saved mass/CG/
+loading without refreshing statistics or integrating solids. Measurements are
+deferred until leaving Assembly for a panel that displays statistics, including
+Weight and Balance. Its existing fingerprint checks ensure the next measurement
+uses the current placement and geometry.

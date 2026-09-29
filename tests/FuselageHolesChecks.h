@@ -1,4 +1,5 @@
 #pragma once
+#include "LegacyProject.h"
 #include "geometry/FuselageHoles.h"
 #include "gui/FuselageCutPanel.h"
 #include "gui/SketchPaths.h"
@@ -71,9 +72,9 @@ inline void holeChecks(QApplication& app,const QString& directory) {
   std::cout<<"Hole scale, fixed wall thickness and wall/path diagnostics passed"<<std::endl;
   // Round-trip all wall layers and verify old projects receive empty holes.
   ProjectDocument p;p.fuselageHoles.layers=holes;
-  auto encoded=encodeProject(p);CHECK(encoded["version"]==29);
+  auto encoded=encodeProject(p);CHECK(encoded["version"]==31);
   CHECK(decodeProject(encoded).fuselageHoles.layers[0].curves.size()==1);
-  auto legacy=encoded;legacy["version"]=24;legacy.remove("fuselageHoles");CHECK(decodeProject(legacy).fuselageHoles.layers.size()==4&&decodeProject(legacy).fuselageHoles.layers[0].curves.empty());
+  auto legacy=encoded;legacy["version"]=24;legacyCutViews(legacy);legacy.remove("fuselageHoles");CHECK(decodeProject(legacy).fuselageHoles.layers.size()==4&&decodeProject(legacy).fuselageHoles.layers[0].curves.empty());
   std::cout<<"Hole persistence complete"<<std::endl;
   // Real panel controls: whole-path deletion, shared layout, containment and leave warning.
   PlanViewport view;view.show();SketchEditor outline{&view};SketchState os;os.layers=outlines;outline.restoreState(os);

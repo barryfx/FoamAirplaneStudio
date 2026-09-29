@@ -20,7 +20,7 @@ private:
   std::vector<geometry::ExportPart> parts_;
   std::vector<QCheckBox*> checks_;
   QCheckBox* all_{};
-  QRadioButton *dxf_{},*formerStep_{},*step_{};
+  QRadioButton *dxf_{},*formerSvg_{},*formerStep_{},*step_{};
   QPushButton* export_{};
   QVBoxLayout* list_{};
 };

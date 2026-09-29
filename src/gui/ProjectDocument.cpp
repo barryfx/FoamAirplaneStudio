@@ -215,20 +215,20 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
       {"grams",part.grams},{"centerMm",point(part.centerMm)},{"ounces",part.ounces}});
   QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"carbonFiberDensityKgM3",p.weightBalance.carbonFiberDensityKgM3},{"parts",balanceParts}};
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
-  return {{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",29},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",31},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
     {"stabilizerHingeCuts",QJsonArray{static_cast<int>(p.stabilizerHingeCuts[0]),static_cast<int>(p.stabilizerHingeCuts[1])}},
     {"horizontalStabilizerOutline",sketch(p.stabilizerOutlines[0])},{"verticalStabilizerOutline",sketch(p.stabilizerOutlines[1])},
-    {"formers",formers},{"servoTray",tray},{"fuselageHoles",sketch(p.fuselageHoles)},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
+    {"formers",formers},{"servoTray",tray},{"fuselageHoles",sketch(p.fuselageHoles)},{"fuselageCuts",sketch(p.fuselageCuts)},{"fuselageNoseOpen",p.fuselageNoseOpen?QJsonValue{*p.fuselageNoseOpen}:QJsonValue{}},{"fuselageTailOpen",p.fuselageTailOpen?QJsonValue{*p.fuselageTailOpen}:QJsonValue{}},{"fuselageThickening",p.fuselageThickening},{"fuselageProfiles",sketch(p.fuselageProfiles)},{"fuselageStations",fuselageStations},{"fuselageOutline",sketch(p.fuselage)},{"airfoilSketches",sketch(p.airfoilSketch)},{"stations",stations},{"airfoils",airfoils},
     {"lightening",lightening},{"dihedralDegrees",dihedral},{"ui",QJsonObject{{"fuselageView",p.fuselageView},{"workspace",p.workspace},{"tool",p.tool},{"viewport",p.viewport},{"dihedralPanel",p.selectedDihedralPanel},{"sparPanel",p.selectedSparPanel},{"stationPanel",p.selectedStationPanel},
       {"plan",QJsonObject{{"zoom",p.plan.zoom},{"center",point(p.plan.center)}}},{"camera",camera},{"splitter",split}}}};
 }
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>29)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>31)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
   if(version>=27) {
     const auto names=object(json["componentNames"],"component names");
@@ -549,11 +549,22 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     if(!holes.pending.empty()&&(!holes.editing||holes.tool==SketchTool::None))bad("fuselage hole draft tool");
   }
   if(version>=13) {
-    p.fuselageCuts=sketch(json["fuselageCuts"],2);
+    p.fuselageCuts=sketch(json["fuselageCuts"],version>=31?4:2);
     const auto& cuts=p.fuselageCuts;
-    if(cuts.layers.size()!=2)bad("fuselage cut view count");
+    if(cuts.layers.size()!=(version>=31?4:2))bad("fuselage cut view count");
+    if(version<31) {
+      auto side=std::move(p.fuselageCuts.layers[1]);p.fuselageCuts.layers.resize(4);
+      p.fuselageCuts.layers[1]={};p.fuselageCuts.layers[2]=std::move(side);
+      if(p.fuselageCuts.active==1)p.fuselageCuts.active=2;
+    }
     if(cuts.editing&&(p.workspace!=2||p.tool!="Cut"||p.viewport!=0))bad("fuselage cut editing workspace");
     if(!cuts.pending.empty()&&(!cuts.editing||cuts.tool==SketchTool::None))bad("fuselage cut draft tool");
+  }
+  p.fuselageNoseOpen.reset();p.fuselageTailOpen.reset();
+  if(version>=30) {
+    if(!json.contains("fuselageNoseOpen")||!json.contains("fuselageTailOpen"))bad("fuselage end settings");
+    if(!json["fuselageNoseOpen"].isNull())p.fuselageNoseOpen=boolean(json["fuselageNoseOpen"],"fuselage nose open");
+    if(!json["fuselageTailOpen"].isNull())p.fuselageTailOpen=boolean(json["fuselageTailOpen"],"fuselage tail open");
   }
   if(version>=12)p.fuselageThickening=boolean(json["fuselageThickening"],"fuselage thickening");
   if(version>=11)p.fuselageProfiles=sketch(json["fuselageProfiles"],100001,version>=28);

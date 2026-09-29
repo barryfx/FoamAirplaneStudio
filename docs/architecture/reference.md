@@ -1,6 +1,7 @@
 # Reference workflow
 
-Reference shows Load Image, the loaded path, and mutually exclusive scale choices.
+Reference begins with instructions explaining PDF/PNG tracing, automatic model
+scaling from Wingspan, and using reference physical dimensions instead. It shows Load Image, the loaded path, and mutually exclusive scale choices.
 PNG, JPG/JPEG, and PDF are supported. All PDF pages load in document order, stacked vertically.
 Load failures/cancellation preserve the previous reference. Selecting Reference
 brings the 2D viewport forward. Backgrounds stay available when changing workspaces.
@@ -12,7 +13,7 @@ for the common file/directory chooser policy.
 
 A new project enables only Reference in the workspace toolbar. Wing becomes
 available when Specify Dimensions has a positive, finite Wingspan
-value (with or without an image), or User Reference Image Scale is selected
+value (with or without an image), or Use Reference Image Scale is selected
 with a loaded image and valid physical dimensions for every page. Loading an
 image alone does not unlock Wing. Hidden manual values do not override an invalid
 actual-scale selection. Fuselage additionally requires completed Wing airfoil assignments; Top/Side outline, station and profile editing plus solid generation are implemented (fuselage-profiles.md). Assembly unlocks after complete Fuselage profiles and valid stabilizer outlines; Export enables after successful current Assembly generation.
@@ -29,7 +30,7 @@ manual dimensions, unit changes, invalid/cleared values, New, image-only input,
 scaled PNG/PDF, missing per-page scale metadata and unchanged downstream gating.
 Debug was rebuilt and launched. Linux/macOS remain untested.
 
-User Reference Image Scale uses embedded physical resolution or PDF page size, sets the
+Use Reference Image Scale uses embedded physical resolution or PDF page size, sets the
 project display units from the source metadata convention, and hides manual fields.
 Raster files without explicit physical-size metadata require Specify Dimensions.
 PNG physical size uses pHYs meters (displayed in mm); JPEG supports EXIF resolution

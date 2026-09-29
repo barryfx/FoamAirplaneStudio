@@ -3,6 +3,8 @@
 #include "gui/ReferenceImage.h"
 #include "geometry/FuselageSolidBuilder.h"
 #include <QWidget>
+#include <QPixmap>
+#include <QLineF>
 #include <functional>
 class QComboBox;
 class QDoubleSpinBox;
@@ -20,6 +22,8 @@ public:
   void configure(ProjectUnits units,geometry::FuselageSideTransform transform,QPointF initialCenter);
   void setActive(bool active);
   void setWingArea(std::optional<double> mm2);
+  void setCgHeightLine(std::optional<QLineF> line);
+  std::optional<QPointF> cgScenePosition() const;
   void setFoam(std::optional<FoamMassProperties> foam,std::optional<double> leadingEdge,QString message);
   void paint(QPainter& painter) const;
   QRectF partRectangle(int index) const;
@@ -50,6 +54,8 @@ private:
   std::optional<FoamMassProperties> foam_;
   std::optional<double> leadingEdge_;
   std::optional<double> wingAreaMm2_;
+  std::optional<QLineF> cgHeightLine_;
+  QPixmap cgSymbol_{":/graphics/cg-symbol.png"};
   QString unavailable_;
 };
 }

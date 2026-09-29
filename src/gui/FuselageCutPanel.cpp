@@ -14,13 +14,19 @@ FuselageCutPanel::FuselageCutPanel(SketchEditor& editor,QWidget* parent,bool hol
   auto* layout=new QVBoxLayout{this};layout->setContentsMargins(0,0,0,0);
   auto* text=new QLabel{holes?
     "Choose Top, Bottom, Left or Right wall, then Add Hole and draw a closed loop with Line and/or Spline. Top/Bottom use the Top View outline; Left/Right use the Side View outline. Every hole must fit entirely inside that outline. Join segments at their endpoints; click the first point to close the loop. Escape finishes a spline. Select a hole from the list or click its boundary to edit; Delete Hole removes the selected hole. Incomplete loops warn when leaving Holes.\n\nGeneration removes material through the chosen wall only, stopping at the inner cavity. A hole that cannot reach the cavity without opening another wall must be moved or resized. Holes are saved with the project.":
-    "Choose Top View or Side View, then Add Cut and draw a connected path with Line and/or Spline. Join segments at their endpoints; Escape finishes a spline. A closed loop is optional. Select a cut from the list or click its path to edit; Delete Cut removes the selected path. Add Cut finishes the current path and starts another.\n\nOpen paths must cross the outline at both ends. Top View cuts pass through the full height; Side View cuts pass through the full width. Generation splits the fuselage, retaining all resulting bodies without kerf. Cuts remain visible and are saved with the project.",this};
+    "Choose Top, Bottom, Left or Right View, then Add Cut and draw a connected path with Line and/or Spline. "
+    "Top/Bottom use the Top outline; Left/Right use the Side outline. Join segments at their endpoints; Escape "
+    "finishes a spline. Select a path to edit it or use Delete Cut to remove it.\n\n"
+    "A path reaching or crossing the outline boundary cuts all the way through both opposite walls. "
+    "A path entirely inside the outline cuts only the selected wall, stopping at the inner cavity. "
+    "Interior cuts require a hollow fuselage and a closed loop to detach a piece. Open paths must reach "
+    "the outline at both ends. Every cut-out is retained as a separate component without kerf. Cuts are saved with the project.",this};
   text->setObjectName(prefix+"Instructions");text->setWordWrap(true);layout->addWidget(text);
   auto* views=new QHBoxLayout;layout->addLayout(views);
-  const QStringList labels=holes?QStringList{"Top","Bottom","Left","Right"}:QStringList{"Top View","Side View"};
+  const QStringList labels{"Top","Bottom","Left","Right"};
   for(int i=0;i<labels.size();++i) {
-    auto* b=new QPushButton{labels[i],this};b->setCheckable(true);views_.push_back(b);views->addWidget(b);
-    b->setObjectName(prefix+(holes?labels[i]:(i==0?"Top":"Side")));
+    auto* b=new QPushButton{labels[i]+(holes?"":" View"),this};b->setCheckable(true);views_.push_back(b);views->addWidget(b);
+    b->setObjectName(prefix+labels[i]);
     connect(b,&QPushButton::clicked,this,[this,i]{editor_.setActiveLayer(i);selectedPath_=-1;sync();});
   }
   auto* add=new QPushButton{holes?"Add Hole":"Add Cut",this};add->setObjectName(prefix+"Add");layout->addWidget(add);

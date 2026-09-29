@@ -16,6 +16,7 @@
 #include "gui/ReferenceWorkflow.h"
 #include "gui/WingOutlinePanel.h"
 #include "gui/FuselageOutlinePanel.h"
+#include "geometry/FuselageEndRegistration.h"
 #include "gui/StabilizerOutlinePanel.h"
 #include "gui/StabilizerHingePanel.h"
 #include "gui/StabilizerCutPanel.h"
@@ -93,6 +94,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   dataLayout->addWidget(wingOutlinePanel_);
   fuselageOutlinePanel_=new FuselageOutlinePanel{planViewport_->fuselageSketchEditor(),dataPanel_};
   dataLayout->addWidget(fuselageOutlinePanel_);
+  fuselageOutlinePanel_->endsChanged=[this]{
+    if(restoringProject_)return;
+    updateProjectTitle();captureEdit();
+    QTimer::singleShot(0,this,[this]{updateFuselageModel();});
+  };
   fuselageOutlinePanel_->drawingRequested=[this]{graphicsTabs_->setCurrentWidget(planViewport_);};
   for (int i = 0; i < 2; ++i) {
     stabilizerOutlinePanels_[i] = new StabilizerOutlinePanel{planViewport_->stabilizerSketchEditor(i), i == 0, dataPanel_};
@@ -198,12 +204,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   weightBalancePanel_->changed=[this]{if(!restoringProject_)updateProjectTitle();};
   // Panel footers consume available list/tab height, above bottom actions.
   for(int i=0;i<dataLayout->count();++i) {
-    auto* panel=dataLayout->itemAt(i)->widget();if(!panel||panel==weightBalancePanel_)continue;
+    auto* panel=dataLayout->itemAt(i)->widget();if(!panel||panel==weightBalancePanel_||panel==assemblyPanel_||panel==exportPanel_)continue;
     auto* box=qobject_cast<QVBoxLayout*>(panel->layout());if(!box)continue;
     int slot=box->count();
     if(panel==airfoilPanel_)slot=box->indexOf(panel->findChild<QPushButton*>("smoothAirfoil"));
-    if(panel==exportPanel_)slot=box->count()-1;
-    if(panel==assemblyPanel_)slot=box->indexOf(assemblyCutButton_);
     auto* statistics=new QLabel{panel};statistics->setObjectName("airplaneStatistics");statistics->setTextFormat(Qt::RichText);
     statistics->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);statistics->setTextInteractionFlags(Qt::TextSelectableByMouse);
     statistics->setToolTip("Outline planform areas include controls, before cutouts; wing and horizontal stabilizer include both halves. CG is measured from the placed wing root leading edge, positive toward the tail.");
@@ -216,7 +220,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   weightBalancePanel_->resultsChanged=[this](QString text){
     balanceStatus_->setToolTip(text);
     QStringList summary;
-    for(const auto& line:text.split('\n'))if(line.startsWith("Total weight:")||line.startsWith("Center of mass:"))summary<<line;
+    for(const auto& line:text.split('\n'))if(line.startsWith("Total weight:")||line.startsWith("Center of Gravity:"))summary<<line;
     balanceStatus_->setText(summary.join("  |  "));
   };
   planViewport_->balanceOverlay=[this](QPainter& painter){weightBalancePanel_->paint(painter);};
@@ -379,7 +383,7 @@ void MainWindow::selectWorkspace(int index) {
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Edit Profiles" ? "Select a station; draw a closed section using Line, Spline or Circle; open 3D to generate the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken" ? "Set station wall thickness in Reference units, or enter mm/in; 3D generation now hollows the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Holes" ? "Choose a wall, Add Hole, then draw a closed loop inside its outline"
-          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Cut" ? "Choose Top or Side View; draw a connected cut path, then open 3D to split the fuselage"
+          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Cut" ? "Choose Top, Bottom, Left or Right View; draw a cut path, then open 3D to create separate cut-out components"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Formers" ? "Enter former thickness, Add Former, then drag its position or top/bottom edges; overlapping placements are blocked"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Servo Tray" ? "Enter tray width and height, then drag the rectangle into position on Side View; Thicken provides inner walls; supports extend 5 mm inward and down"
           : (dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && name=="Outline" ? "Trace one open outline; align its endpoint line within 10 degrees of horizontal or vertical"
@@ -418,6 +422,7 @@ void MainWindow::selectWorkspace(int index) {
 }
 
 void MainWindow::updateWeightBalance(bool frameSide) {
+  weightBalancePanel_->setCgHeightLine({});
   try {
     if(projectLengthScale()<=0)throw std::runtime_error("Complete the wing outline and stations to establish the project scale.");
     const auto& reference=projectReference();
@@ -469,6 +474,23 @@ void MainWindow::updateWeightBalance(bool frameSide) {
         geometry::assemblyComponentPlacement(assemblyOriginals_,assemblyState_,0)).X();
     statistics_.balance=StatisticsBalance{*balanceMassCache_,leadingEdge,statisticsMassKey()};
     weightBalancePanel_->setFoam(*balanceMassCache_,leadingEdge,{});
+    const auto& stations=planViewport_->sketchEditor().stationEditor().lines();
+    const auto calibration=wingCalibration(planViewport_->sketchEditor().layers(),stations,
+        reference.toScale?std::nullopt:reference.wingspanMm);
+    const auto span=[&](const auto& station){const auto center=(station.first.position+station.second.position)*.5;
+      return QPointF::dotProduct(center,calibration.spanDirection);};
+    const auto root=std::min_element(stations.begin(),stations.end(),[&](const auto& a,const auto& b){return span(a)<span(b);});
+    const auto& library=airfoilPanel_->library().entries();
+    if(root!=stations.end()&&root->airfoil&&*root->airfoil<library.size()) {
+      const auto profile=normalizedAirfoil(library[*root->airfoil]).resampled(201);
+      double low=profile.front().y,high=low;
+      for(const auto point:profile){low=std::min(low,point.y);high=std::max(high,point.y);}
+      const double height=(low+.2*(high-low))*calibration.rootChordMm;
+      const auto placement=geometry::assemblyComponentPlacement(assemblyOriginals_,assemblyState_,0);
+      const auto a=gp_Pnt{sourceLeadingEdge,0,height}.Transformed(placement);
+      const auto b=gp_Pnt{sourceLeadingEdge+calibration.rootChordMm,0,height}.Transformed(placement);
+      weightBalancePanel_->setCgHeightLine(QLineF{{a.X(),a.Z()},{b.X(),b.Z()}});
+    }
   } catch(const Standard_Failure& error){statusBar()->clearMessage();weightBalancePanel_->setFoam({}, {}, QString::fromUtf8(error.what()));}
     catch(const std::exception& error){statusBar()->clearMessage();weightBalancePanel_->setFoam({}, {}, QString::fromUtf8(error.what()));}
 }
@@ -480,6 +502,17 @@ QByteArray MainWindow::statisticsMassKey() const {
 }
 void MainWindow::updateStatistics() {
   if(restoringProject_||statisticsLabels_.empty())return;
+  const int workspace=dataPanel_->property("workspaceIndex").toInt();
+  if(workspace==5||workspace==6) {
+    // Placement edits refresh the title frequently. Invalidate stale saved mass,
+    // but defer solid integration until a workspace displaying statistics needs it.
+    // Export also has no statistics footer and must never trigger mass integration.
+    if(!statistics_.balance||statistics_.balance->sourceKey!=statisticsMassKey()) {
+      statistics_.balance.reset();statistics_.weightGrams.reset();
+      statistics_.cgFromLeadingEdgeMm.reset();statistics_.wingLoadingGramsPerDm2.reset();
+    }
+    return;
+  }
   auto balance=statistics_.balance;
   auto next=outlineStatistics(projectDocument());
   if(balance && balance->sourceKey!=statisticsMassKey())balance.reset();
@@ -905,7 +938,7 @@ void MainWindow::pollStabilizerJob(int index) {
 
 QByteArray MainWindow::fuselageFingerprint() const {
   const auto p=encodeProject(projectDocument(),false);
-  return QJsonDocument{QJsonObject{{"outlines",p["fuselageOutline"].toObject()["layers"]},
+  return QJsonDocument{QJsonObject{{"noseOpen",p["fuselageNoseOpen"]},{"tailOpen",p["fuselageTailOpen"]},{"outlines",p["fuselageOutline"].toObject()["layers"]},
       {"stations",p["fuselageStations"].toObject()["lines"]},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
       {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},{"holes",p["fuselageHoles"].toObject()["layers"]},
@@ -935,6 +968,7 @@ void MainWindow::updateFuselageModel() {
   geometry::FuselageSolidInput input{planViewport_->fuselageSketchEditor().layers(),
       planViewport_->fuselageSketchEditor().stationEditor().lines(),planViewport_->fuselageProfileEditor().layers(),
       scaledFuselageLength(),fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees,planViewport_->fuselageHoleEditor().layers()};
+  input.noseOpen=fuselageOutlinePanel_->noseOpen();input.tailOpen=fuselageOutlinePanel_->tailOpen();
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
@@ -1146,6 +1180,7 @@ ProjectDocument MainWindow::projectDocument() const {
   p.servoTray=planViewport_->servoTrayEditor().state();
   p.formers=planViewport_->formerEditor().state();
   p.fuselageStations=planViewport_->fuselageSketchEditor().stationEditor().state();
+  p.fuselageNoseOpen=fuselageOutlinePanel_->noseOpen();p.fuselageTailOpen=fuselageOutlinePanel_->tailOpen();
   p.fuselage=planViewport_->fuselageSketchEditor().state();p.fuselageView=fuselageOutlinePanel_->selectedView();
   p.stations=planViewport_->sketchEditor().stationEditor().state();p.airfoils=airfoilPanel_->state();
   p.workspace=dataPanel_->property("workspaceIndex").toInt();p.tool=dataPanel_->property("activeTool").toString();
@@ -1303,6 +1338,7 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   wingOutlinePanel_->restoreControls();
   planViewport_->fuselageSketchEditor().restoreState(p.fuselage);
   fuselageOutlinePanel_->restoreControls(p.fuselageView);
+
   planViewport_->fuselageProfileEditor().restoreState(p.fuselageProfiles);
   planViewport_->fuselageSketchEditor().stationEditor().restoreState(p.fuselageStations);
   for (int i = 0; i < 2; ++i) {planViewport_->stabilizerSketchEditor(i).restoreState(p.stabilizerOutlines[i]);stabilizerAirfoilPanels_[i]->restore(p.stabilizerAirfoils[i]);}
@@ -1340,6 +1376,17 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   fuselage.editing=workspace==2&&p.tool=="Outline"&&p.viewport==0&&p.fuselageView>=0;
   planViewport_->fuselageSketchEditor().restoreState(fuselage);
   fuselageOutlinePanel_->restoreControls(p.fuselageView);
+  {
+    bool nose=false,tail=false;
+    // Resolve legacy inference once when loading; subsequent outline edits do not change the user's choices.
+    if((!p.fuselageNoseOpen||!p.fuselageTailOpen)&&!p.fuselageStations.lines.empty())try {
+      const auto ends=geometry::registerFuselageEnds(p.fuselage.layers.at(1),scaledFuselageLength());
+      double first=1e100,last=-1e100;
+      for(const auto& station:p.fuselageStations.lines){first=std::min(first,station.first.position.x());last=std::max(last,station.first.position.x());}
+      nose=ends.noseStation(first);tail=ends.tailStation(last);
+    }catch(const std::exception&){}
+    fuselageOutlinePanel_->setEnds(p.fuselageNoseOpen.value_or(nose),p.fuselageTailOpen.value_or(tail));
+  }
   fuselageThickenPanel_->setUnits(p.reference.units);
   fuselageThickenPanel_->restore(p.fuselageThickening);
   updateFuselageProgress();
@@ -1479,7 +1526,4 @@ void MainWindow::pasteFocusedText() {
 }
 
 } // namespace designrc::gui
-
-
-
 

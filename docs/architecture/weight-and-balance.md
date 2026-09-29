@@ -66,3 +66,20 @@ Wing Loading is also displayed when total mass and nominal full wing area are
 available, in g/dm² for metric Reference units or oz/ft² for inches. The shared
 statistics footer is intentionally omitted here. Other panels save and display
 an independently validated summary cache; see airplane-statistics.md.
+
+Assembly movement and rotation do not trigger mass integration. The Assembly
+panel omits the shared statistics footer, and stale saved totals are cleared
+without measuring solids there. Enter Weight and Balance (or another statistics
+panel) to refresh totals for the current placement.
+
+The user-facing results and bottom status summary label the balance point Center of Gravity.
+
+A small CG symbol overlays the Side View only in Weight and Balance when the
+current model mass, wing datum and root airfoil are available. Its X coordinate
+matches the displayed LE-relative CG. Its visual height is 20% of the root
+airfoil's total vertical thickness above its lowest point, scaled by root chord
+and following the wing's Assembly translation and rotation. This height is a
+wing reference for the marker, not a claim about the actual vertical CG.
+The bundled `graphics/CG Symbol.png` draws at 28 logical pixels, independent of
+zoom. Part/density edits update its position using cached mass properties;
+stale model data hides it without generating geometry.

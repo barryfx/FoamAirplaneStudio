@@ -16,8 +16,10 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
 TopoDS_Shape finishFuselageHalves(const TopoDS_Shape& body,
     const std::function<void(const char*)>& progress,const ProcessingControl& processing,
     const FuselageAlignmentSpec& alignment);
-// Layer 0 projects Top (X/Y) through Z; layer 1 projects Side (X/Z) through Y.
+// Four layers: Top, Bottom, Left, Right. Interior paths cut only the chosen wall.
+// Legacy two-layer callers retain Top/Side through-cut behavior. All pieces are retained.
 TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchLayer>& cuts,
     const std::array<FuselageCutProjection,2>& projections,
-    const std::function<void(const char*)>& progress={},const ProcessingControl& processing={});
+    const std::function<void(const char*)>& progress={},const ProcessingControl& processing={},
+    const std::vector<gui::SketchLayer>& outlines={},const TopoDS_Shape& cavity={});
 }

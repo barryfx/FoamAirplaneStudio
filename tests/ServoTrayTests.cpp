@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "geometry/ServoTray.h"
 #include "geometry/FuselageCut.h"
@@ -108,8 +109,8 @@ int main(int argc,char** argv) {
     click(editor.state().rectangle->center());key(Qt::Key_Delete);CHECK(!editor.state().rectangle);
     place->click();CHECK(editor.state().rectangle);CHECK(std::abs(editor.state().rectangle->width()-130)<1e-8);
     CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangle);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);
-    auto old=encoded;old["version"]=13;old.remove("servoTray");CHECK(!decodeProject(old).servoTray.rectangle);
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==31);
+    auto old=encoded;old["version"]=13;legacyCutViews(old);old.remove("servoTray");CHECK(!decodeProject(old).servoTray.rectangle);
     auto bad=encoded;auto tray=bad["servoTray"].toObject();tray["rectangle"]=QJsonArray{1,2,0,5};bad["servoTray"]=tray;bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}CHECK(rejected);
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[4]->trigger();CHECK(!window.projectModified());
     view->fitInView(QRectF{0,0,900,500},Qt::KeepAspectRatio);app.processEvents();

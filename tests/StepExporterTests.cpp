@@ -21,7 +21,7 @@
 #include <XCAFDoc_DocumentTool.hxx>
 #include <XCAFDoc_ShapeTool.hxx>
 
-#include <cassert>
+#include "TestCheck.h"
 #include <filesystem>
 #include <fstream>
 #include <iterator>
@@ -32,24 +32,24 @@ namespace {
 
 std::string labelName(const TDF_Label& label) {
   Handle(TDataStd_Name) name;
-  assert(label.FindAttribute(TDataStd_Name::GetID(), name));
+  TEST_CHECK(label.FindAttribute(TDataStd_Name::GetID(), name));
   return TCollection_AsciiString{name->Get()}.ToCString();
 }
 
 TDF_Label componentDefinition(const TDF_Label& component) {
   TDF_Label definition;
-  assert(XCAFDoc_ShapeTool::GetReferredShape(component, definition));
+  TEST_CHECK(XCAFDoc_ShapeTool::GetReferredShape(component, definition));
   return definition;
 }
 
 TDF_Label findChild(const TDF_Label& assembly, const std::string& name) {
   NCollection_Sequence<TDF_Label> components;
-  assert(XCAFDoc_ShapeTool::GetComponents(assembly, components, false));
+  TEST_CHECK(XCAFDoc_ShapeTool::GetComponents(assembly, components, false));
   for (int index = 1; index <= components.Length(); ++index) {
     const auto definition = componentDefinition(components.Value(index));
     if (labelName(definition) == name) return definition;
   }
-  assert(false);
+  TEST_CHECK(false);
   return {};
 }
 
@@ -78,13 +78,13 @@ int main() {
     designrc::geometry::MaterialShapeSet materials;
     const auto shape = designrc::geometry::buildStructuredWingPreview(
         designrc::domain::applyWingStructure(ribs, structure), 2.38125, nullptr, &materials);
-    assert(BRepCheck_Analyzer{shape}.IsValid());
+    TEST_CHECK(BRepCheck_Analyzer{shape}.IsValid());
     const auto path = std::filesystem::temp_directory_path() / "designrc_ag_le_regression.step";
     designrc::geometry::exportStepAssembly(materials.parts, path, "AG glider outer panel");
     STEPControl_Reader reader;
-    assert(reader.ReadFile(path.string().c_str()) == IFSelect_RetDone);
-    assert(reader.TransferRoots() > 0);
-    assert(BRepCheck_Analyzer{reader.OneShape()}.IsValid());
+    TEST_CHECK(reader.ReadFile(path.string().c_str()) == IFSelect_RetDone);
+    TEST_CHECK(reader.TransferRoots() > 0);
+    TEST_CHECK(BRepCheck_Analyzer{reader.OneShape()}.IsValid());
     std::filesystem::remove(path);
   }
   for (const double twist : {-5.0, 5.0}) {
@@ -105,11 +105,11 @@ int main() {
     const auto tabbed = designrc::geometry::buildStructuredWingPreview(
         tabWing, parameters.ribThickness,
         nullptr, &materials);
-    assert(BRepCheck_Analyzer{tabbed}.IsValid());
+    TEST_CHECK(BRepCheck_Analyzer{tabbed}.IsValid());
     GProp_GProps plainProperties, tabProperties;
     BRepGProp::VolumeProperties(plain, plainProperties);
     BRepGProp::VolumeProperties(tabbed, tabProperties);
-    assert(tabProperties.Mass() > plainProperties.Mass());
+    TEST_CHECK(tabProperties.Mass() > plainProperties.Mass());
     const auto tabPath = std::filesystem::temp_directory_path() / "designrc_build_tabs.step";
     double expectedVolume = 0.0;
     for (auto& part : materials.parts) {
@@ -121,15 +121,15 @@ int main() {
     }
     designrc::geometry::exportStepAssembly(materials.parts, tabPath, "Build tabs");
     STEPControl_Reader tabReader;
-    assert(tabReader.ReadFile(tabPath.string().c_str()) == IFSelect_RetDone);
-    assert(tabReader.TransferRoots() > 0);
+    TEST_CHECK(tabReader.ReadFile(tabPath.string().c_str()) == IFSelect_RetDone);
+    TEST_CHECK(tabReader.TransferRoots() > 0);
     const auto imported = tabReader.OneShape();
-    assert(BRepCheck_Analyzer{imported}.IsValid());
+    TEST_CHECK(BRepCheck_Analyzer{imported}.IsValid());
     GProp_GProps importedProperties;
     BRepGProp::VolumeProperties(imported, importedProperties, 1.0e-9);
     // STEP healing can change the integral over spline-trimmed faces slightly.
     // Check overall volume, then verify every tab-foot endpoint independently.
-    assert(std::abs(importedProperties.Mass() - expectedVolume) < expectedVolume * 5.0e-4);
+    TEST_CHECK(std::abs(importedProperties.Mass() - expectedVolume) < expectedVolume * 5.0e-4);
     const double rootBottom = designrc::domain::untwistedRibBottom(ribs.front());
     const double tipBottom = designrc::domain::untwistedRibBottom(ribs.back());
     int footEndpoints = 0;
@@ -150,12 +150,12 @@ int main() {
         bool found = false;
         for (TopExp_Explorer vertices{imported, TopAbs_VERTEX}; vertices.More(); vertices.Next())
           found = found || BRep_Tool::Pnt(TopoDS::Vertex(vertices.Current())).Distance(expected) < 1.0e-5;
-        assert(found);
+        TEST_CHECK(found);
         ++footEndpoints;
         }
       }
     }
-    assert(footEndpoints == 4 * parameters.ribCount);
+    TEST_CHECK(footEndpoints == 4 * parameters.ribCount);
     std::filesystem::remove(tabPath);
   }
   using designrc::geometry::NamedPartShape;
@@ -190,34 +190,34 @@ int main() {
   const auto path = std::filesystem::temp_directory_path() /
       "designrc_step_export_regression.step";
   designrc::geometry::exportStepAssembly(parts, path, "DesignRC Test Wing");
-  assert(std::filesystem::exists(path));
-  assert(std::filesystem::file_size(path) > 1000);
+  TEST_CHECK(std::filesystem::exists(path));
+  TEST_CHECK(std::filesystem::file_size(path) > 1000);
   std::ifstream input{path};
   const std::string contents{std::istreambuf_iterator<char>{input}, {}};
-  assert(contents.find("DesignRC Test Wing") != std::string::npos);
-  assert(contents.find("Right Panel 1 -") == std::string::npos);
-  assert(contents.find("Left Panel 1 -") == std::string::npos);
-  assert(contents.find("Right Wing") != std::string::npos);
-  assert(contents.find("Center-Spanning Components") != std::string::npos);
-  assert(contents.find("COLOUR_RGB") == std::string::npos);
+  TEST_CHECK(contents.find("DesignRC Test Wing") != std::string::npos);
+  TEST_CHECK(contents.find("Right Panel 1 -") == std::string::npos);
+  TEST_CHECK(contents.find("Left Panel 1 -") == std::string::npos);
+  TEST_CHECK(contents.find("Right Wing") != std::string::npos);
+  TEST_CHECK(contents.find("Center-Spanning Components") != std::string::npos);
+  TEST_CHECK(contents.find("COLOUR_RGB") == std::string::npos);
   input.close();
 
   Handle(TDocStd_Document) document = new TDocStd_Document("BinXCAF");
   STEPCAFControl_Reader reader;
-  assert(reader.ReadFile(path.string().c_str()) == IFSelect_RetDone);
-  assert(reader.Transfer(document));
+  TEST_CHECK(reader.ReadFile(path.string().c_str()) == IFSelect_RetDone);
+  TEST_CHECK(reader.Transfer(document));
   const Handle(XCAFDoc_ShapeTool) shapeTool =
       XCAFDoc_DocumentTool::ShapeTool(document->Main());
   NCollection_Sequence<TDF_Label> roots;
   shapeTool->GetFreeShapes(roots);
-  assert(roots.Length() == 1);
+  TEST_CHECK(roots.Length() == 1);
   NCollection_Sequence<TDF_Label> components;
-  assert(XCAFDoc_ShapeTool::GetComponents(roots.Value(1), components, false));
-  assert(components.Length() == 1);
+  TEST_CHECK(XCAFDoc_ShapeTool::GetComponents(roots.Value(1), components, false));
+  TEST_CHECK(components.Length() == 1);
   const auto wing = findChild(roots.Value(1), "Wing");
   NCollection_Sequence<TDF_Label> wingComponents;
-  assert(XCAFDoc_ShapeTool::GetComponents(wing, wingComponents, false));
-  assert(wingComponents.Length() == 3);
+  TEST_CHECK(XCAFDoc_ShapeTool::GetComponents(wing, wingComponents, false));
+  TEST_CHECK(wingComponents.Length() == 3);
 
   const auto rightWing = findChild(wing, "Right Wing");
   const auto rightPanel = findChild(rightWing, "Panel 1");
@@ -225,30 +225,30 @@ int main() {
   const auto rightSpars = findChild(rightPanel, "Spars and Shear Webs");
   const auto rightEdges = findChild(
       rightPanel, "Leading and Trailing Edges");
-  assert(labelName(findChild(rightRibs, "R1")) == "R1");
-  assert(labelName(findChild(rightSpars, "Spar 1")) == "Spar 1");
-  assert(labelName(findChild(rightEdges, "Top TE sheeting")) ==
+  TEST_CHECK(labelName(findChild(rightRibs, "R1")) == "R1");
+  TEST_CHECK(labelName(findChild(rightSpars, "Spar 1")) == "Spar 1");
+  TEST_CHECK(labelName(findChild(rightEdges, "Top TE sheeting")) ==
       "Top TE sheeting");
   NCollection_Sequence<TDF_Label> sparComponents;
-  assert(XCAFDoc_ShapeTool::GetComponents(
+  TEST_CHECK(XCAFDoc_ShapeTool::GetComponents(
       rightSpars, sparComponents, false));
-  assert(sparComponents.Length() == 1);
+  TEST_CHECK(sparComponents.Length() == 1);
   const auto rightPanel2 = findChild(rightWing, "Panel 2");
-  assert(labelName(findChild(findChild(rightPanel2, "Joiners"),
+  TEST_CHECK(labelName(findChild(findChild(rightPanel2, "Joiners"),
       "Fixed Joiner 2 Steel Rod")) == "Fixed Joiner 2 Steel Rod");
 
   const auto leftWing = findChild(wing, "Left Wing");
   const auto leftPanel = findChild(leftWing, "Panel 1");
-  assert(labelName(findChild(findChild(leftPanel, "Ribs"), "R1")) == "R1");
+  TEST_CHECK(labelName(findChild(findChild(leftPanel, "Ribs"), "R1")) == "R1");
 
   const auto center = findChild(
       wing, "Center-Spanning Components");
-  assert(labelName(findChild(
+  TEST_CHECK(labelName(findChild(
       findChild(center, "Joiners"), "Fixed Joiner 1 CF Tube")) ==
       "Fixed Joiner 1 CF Tube");
-  assert(labelName(findChild(findChild(center, "Spoiler"), "Spoiler")) ==
+  TEST_CHECK(labelName(findChild(findChild(center, "Spoiler"), "Spoiler")) ==
       "Spoiler");
-  assert(labelName(findChild(
+  TEST_CHECK(labelName(findChild(
       findChild(center, "Frame Rails"), "Spoiler Frame Rail 1")) ==
       "Spoiler Frame Rail 1");
 

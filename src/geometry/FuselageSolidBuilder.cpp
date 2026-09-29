@@ -9,6 +9,10 @@
 #include "geometry/ServoTray.h"
 #include "geometry/Formers.h"
 #include <BRep_Builder.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepPrimAPI_MakeHalfSpace.hxx>
+#include <gp_Pln.hxx>
 #include <TopoDS_Compound.hxx>
 #include "gui/SketchBoundary.h"
 #include <BRepBuilderAPI_MakePolygon.hxx>
@@ -27,6 +31,34 @@
 namespace designrc::geometry {
 namespace {
 using Loop=std::vector<QPointF>;
+// Extend a straight slanted end to a temporary vertical plane. Hollow that
+// complete cross-section first, then trim both skin and cavity to the drawn plane.
+// This avoids offsetting the zero-height section at a slanted edge's extreme tip.
+std::optional<std::pair<QPointF,QPointF>> extendOpenEnd(Loop& boundary,
+    const gui::SketchLayer& outline,bool nose) {
+  double extreme=boundary.front().x();
+  for(auto p:boundary)extreme=nose?std::min(extreme,p.x()):std::max(extreme,p.x());
+  std::optional<std::pair<QPointF,QPointF>> edge;double height=0;
+  for(const auto& curve:outline.curves) {
+    if(curve.type!=gui::SketchTool::Line||curve.points.size()!=2)continue;
+    const auto a=outline.points[curve.points[0]],b=outline.points[curve.points[1]];
+    const double dy=std::abs(a.y()-b.y()),dx=std::abs(a.x()-b.x());
+    if(dy<=height||dy<=dx||std::abs((nose?std::min(a.x(),b.x()):std::max(a.x(),b.x()))-extreme)>1e-7)continue;
+    edge={{a,b}};height=dy;
+  }
+  if(!edge||std::abs(edge->first.x()-edge->second.x())<1e-8)return {};
+  for(std::size_t i=1;i<boundary.size();++i) {
+    const auto a=boundary[i-1],b=boundary[i];
+    if(!((QLineF{a,edge->first}.length()<1e-7&&QLineF{b,edge->second}.length()<1e-7)||
+         (QLineF{b,edge->first}.length()<1e-7&&QLineF{a,edge->second}.length()<1e-7)))continue;
+    Loop extended{boundary.begin(),boundary.begin()+i};
+    if(std::abs(a.x()-extreme)>1e-8)extended.push_back({extreme,a.y()});
+    if(std::abs(b.x()-extreme)>1e-8)extended.push_back({extreme,b.y()});
+    extended.insert(extended.end(),boundary.begin()+i,boundary.end());
+    boundary=std::move(extended);return edge;
+  }
+  return {};
+}
 QRectF bounds(const Loop& points) {
   double xmin=points.front().x(),xmax=xmin,ymin=points.front().y(),ymax=ymin;
   for(auto p:points){xmin=std::min(xmin,p.x());xmax=std::max(xmax,p.x());ymin=std::min(ymin,p.y());ymax=std::max(ymax,p.y());}
@@ -155,9 +187,14 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(input.outlines.size()!=2 || input.stations.empty() || (input.lengthMm && (!std::isfinite(*input.lengthMm) || *input.lengthMm<=0)))
     throw std::runtime_error("Define both outlines, a profile at every station, and a positive model length.");
   if(progress)progress("Fuselage: aligning Top and Side outlines at the nose...");
-  const auto sideRegistration=registerFuselageEnds(input.outlines[1],input.lengthMm);
+  auto sideRegistration=registerFuselageEnds(input.outlines[1],input.lengthMm);
   const double registeredLength=(sideRegistration.tailX-sideRegistration.noseX)*sideRegistration.scale;
   const auto topRegistration=registerFuselageEnds(input.outlines[0],registeredLength);
+  // Explicit openings follow the actual straight edge, including deliberate slopes.
+  if(input.noseOpen.value_or(false)||input.tailOpen.value_or(false))
+    sideRegistration.boundary=*gui::closedSketchBoundary(input.outlines[1]);
+  const auto noseTrim=input.noseOpen.value_or(false)?extendOpenEnd(sideRegistration.boundary,input.outlines[1],true):std::nullopt;
+  const auto tailTrim=input.tailOpen.value_or(false)?extendOpenEnd(sideRegistration.boundary,input.outlines[1],false):std::nullopt;
   const auto& top=topRegistration.boundary;const auto& side=sideRegistration.boundary;
   const auto tb=bounds(top),sb=bounds(side);
   if(tb.width()<1e-8||sb.width()<1e-8)throw std::runtime_error("Fuselage outlines need a nose-to-tail length.");
@@ -185,12 +222,14 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     sections.push_back({t,std::move(profile),station.thicknessMm.value_or(0)});
   }
   std::sort(sections.begin(),sections.end(),[](const auto& a,const auto& b){return a.t<b.t;});
-  const bool openNose=sideRegistration.noseStation(sb.left()+sections.front().t*sb.width());
-  const bool openTail=sideRegistration.tailStation(sb.left()+sections.back().t*sb.width());
+  const bool noseRegistered=sideRegistration.noseStation(sb.left()+sections.front().t*sb.width());
+  const bool openNose=input.noseOpen.value_or(noseRegistered);
+  const bool tailRegistered=sideRegistration.tailStation(sb.left()+sections.back().t*sb.width());
+  const bool openTail=input.tailOpen.value_or(tailRegistered);
   // Register only the outermost profiles, keeping intentionally interior
   // stations and their interpolation positions intact.
-  if(openNose)sections.front().t=0;
-  if(openTail)sections.back().t=1;
+  if(noseRegistered)sections.front().t=0;
+  if(tailRegistered)sections.back().t=1;
   std::vector<double> positions;for(int i=0;i<=32;++i)positions.push_back(i/32.);
   for(const auto& s:sections)positions.push_back(s.t);
   if(input.thicken) {
@@ -241,7 +280,26 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(solids!=1||std::abs(props.Mass())<1e-9)throw std::runtime_error("Fuselage did not produce one solid with positive volume.");
   if(props.Mass()<0)shape.Reverse();
   TopoDS_Shape cavity;FuselageBuildResult result;
-  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty())?&cavity:nullptr,input.mirrorConstruction);
+  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty()||std::any_of(input.cuts.begin(),input.cuts.end(),[](const auto& layer){return !layer.curves.empty();}))?&cavity:nullptr,input.mirrorConstruction);
+  for(const auto& edge:{noseTrim,tailTrim})if(edge) {
+    const auto a=edge->first,b=edge->second;
+    const gp_Pnt origin{(a.x()-sb.left())*sideScale,0,(verticalOrigin-a.y())*sideScale};
+    const gp_Dir normal{a.y()-b.y(),0,a.x()-b.x()};
+    const bool atNose=std::min(a.x(),b.x())<sb.center().x();
+    const auto face=BRepBuilderAPI_MakeFace{gp_Pln{origin,normal}}.Face();
+    const auto tool=BRepPrimAPI_MakeHalfSpace{face,gp_Pnt{atNose?-length:2*length,0,origin.Z()}}.Solid();
+    auto trim=[&](const TopoDS_Shape& operand) {
+      processing.checkpoint();BRepAlgoAPI_Cut cut;NCollection_List<TopoDS_Shape> args,tools;
+      args.Append(operand);tools.Append(tool);cut.SetArguments(args);cut.SetTools(tools);
+      cut.SetNonDestructive(true);cut.SetRunParallel(processing.parallel);cut.SetFuzzyValue(1e-7);
+      {auto range=processing.range();cut.Build(range);}processing.checkpoint();
+      if(!cut.IsDone()||cut.HasErrors()||!fuselageValid(cut.Shape(),processing))
+        throw std::runtime_error("Could not open the slanted fuselage end. Check its outline edge and wall thickness.");
+      return cut.Shape();
+    };
+    if(progress)progress(atNose?"Fuselage: opening the slanted nose...":"Fuselage: opening the slanted tail...");
+    shape=trim(shape);if(!cavity.IsNull())cavity=trim(cavity);
+  }
   if(input.servoTray) {
     const auto& r=*input.servoTray;
     const QRectF physical{(r.left()-sb.left())*sideScale,(verticalOrigin-r.bottom())*sideScale,r.width()*sideScale,r.height()*sideScale};
@@ -267,7 +325,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   FuselageAlignmentSpec alignment;alignment.seamReference=shape;
   if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);
   if(!input.cuts.empty())shape=cutFuselage(shape,input.cuts,
-      {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing);
+      {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing,input.outlines,cavity);
   shape=input.mirrorConstruction?finishFuselageHalves(shape,progress,processing,alignment):splitFuselageMainBody(shape,progress,processing,&alignment);
   result.body=shape;
   if(!result.servoTray.IsNull()||!result.formers.empty()) {

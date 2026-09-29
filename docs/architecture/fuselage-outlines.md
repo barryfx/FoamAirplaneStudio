@@ -3,8 +3,8 @@
 Fuselage is available after Reference and Wing airfoil assignments are complete.
 Entering it selects the checked Outline action and the 2D viewport. Outline shows
 instructions above Top View and Side View buttons. Both initially are off. Clicking
-one lights it, disables the other, and reveals its Line/Spline row directly below
-it. Click the active view again to release it and enable the other view.
+one lights it and reveals its Line/Spline row. Selecting the other switches
+directly; clicking the active view again releases it. Both selectors stay enabled.
 
 The existing SketchEditor supplies the same snapping, fitted curves, point dragging,
 curve selection/deletion and Escape behavior as Wing. Fuselage has a separate editor
@@ -45,3 +45,10 @@ unsaved change; committed geometry and pending points are. Fuselage does not ent
 the Wing generation fingerprint. Same-image reference scale changes remap both
 layers alongside the other sketches. New/Close clears both layers. See ADR-0019
 and the project format specification.
+
+The bottom of the outline controls contains separate exclusive Nose Open/Closed
+and Tail Open/Closed radio groups. They control the physical end walls when
+thickened, not closure of the traced 2D loops. New projects default to Nose Open and Tail Closed. The description explains this distinction. Changes support undo/redo,
+persist in format 30, and invalidate generated fuselage and dependent results.
+
+Top and Side selectors remain enabled; selecting the other switches directly. Clicking the selected view releases it.

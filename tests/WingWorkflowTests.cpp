@@ -3,7 +3,7 @@
 #include <QAction>
 #include <QToolBar>
 #include <array>
-#include <cassert>
+#include "TestCheck.h"
 
 int main(int argc, char** argv) {
   QApplication app{argc, argv};
@@ -17,24 +17,24 @@ int main(int argc, char** argv) {
   };
   populate();
   auto check = [&](WingDefinitionState state, std::array<bool, 7> expected, int selected) {
-    assert(applyWingWorkflow(toolbar, state) == selected);
+    TEST_CHECK(applyWingWorkflow(toolbar, state) == selected);
     for (int i = 0; i < 7; ++i) {
-      assert(toolbar.actions()[i]->isEnabled() == expected[i]);
-      assert(toolbar.actions()[i]->isChecked() == (i == selected));
+      TEST_CHECK(toolbar.actions()[i]->isEnabled() == expected[i]);
+      TEST_CHECK(toolbar.actions()[i]->isChecked() == (i == selected));
     }
   };
   check({}, {true,false,false,false,false,false,false}, 0);
   // Selecting a tool does not define geometry or unlock a dependent tool.
   toolbar.actions()[0]->trigger();
-  assert(!toolbar.actions()[1]->isEnabled());
+  TEST_CHECK(!toolbar.actions()[1]->isEnabled());
   check({true}, {true,true,false,false,false,false,false}, 1);
   check({true,true}, {true,true,true,false,false,false,false}, 2);
   check({true,true,true}, {true,true,true,true,false,false,false}, 3);
   check({true,true,true,true}, {true,true,true,true,true,true,true}, 3);
   for (int i : {4,5,6}) {
     toolbar.actions()[i]->trigger();
-    assert(toolbar.actions()[i]->isChecked());
-    assert(!toolbar.actions()[3]->isChecked());
+    TEST_CHECK(toolbar.actions()[i]->isChecked());
+    TEST_CHECK(!toolbar.actions()[3]->isChecked());
   }
   // Upstream removal locks every downstream action even if stale flags remain.
   check({false,true,true,true}, {true,false,false,false,false,false,false}, 0);

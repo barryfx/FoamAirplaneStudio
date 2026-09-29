@@ -26,6 +26,11 @@ allowing touching edges. If none fits, it reports that no position is available.
 Drag inside to move in both axes, including up/down for a partial-height former.
 Drag the top or bottom edge/handle to resize along the former's local height;
 thickness stays fixed.
+A rectangle can cross only the upper or lower Side View outline edge. The
+former still fits the actual inner cavity across its width, but ends at the
+opposite rectangle edge inside the fuselage. It need not cross both outline
+edges; crossing both gives a full-height former. This uses the existing cavity
+intersection and mask clipping, including for rotated rectangles.
 Click empty space/Escape to deselect; Delete removes the selected former.
 Completed rectangles remain visible across 2D modes and remap with references.
 
@@ -51,7 +56,7 @@ projects 3 mm inward along Y. Cavity clipping follows the available full side
 height even for partial-height formers; other former/tray solids are subtracted
 so rails cannot penetrate removable inserts. Existing supports may merge with
 rails. Empty portions beyond the cavity are omitted; disconnected supports
-produce an error. The completed right body is reflected into a separate left part (fuselage-cuts.md). Assembly Export defaults formers to separate named solids in the combined STEP file, with individual DXF/STL files also available (export.md).
+produce an error. The completed right body is reflected into a separate left part (fuselage-cuts.md). Assembly Export defaults formers to separate named solids in the combined STEP file, with individual DXF/SVG/STL files also available (export.md).
 
 Version 15 persists rectangle masks and next-former thickness in physical mm.
 Earlier versions load no formers; the legacy Firewall tool name maps to Formers.

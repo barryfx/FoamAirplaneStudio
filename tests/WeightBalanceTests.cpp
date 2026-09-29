@@ -1,6 +1,8 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/ReferencePanel.h"
 #include "gui/WeightBalancePanel.h"
+#include "gui/WingCalibration.h"
 #include "geometry/WeightBalance.h"
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <QApplication>
@@ -97,16 +99,16 @@ static void persistence() {
   p.spars[0][2].insideDiameterMm=5.08;p.spars[0][2].insideDiameterText=".2 in";
   p.weightBalance.carbonFiberDensityKgM3=1600;p.workspace=7;p.weightBalance.parts.push_back({"Motor",30,40,50,gramsPerOunce,{123,-45},true});
   p.weightBalance.plywoodDensityKgM3=725;p.weightBalance.densityKgM3=35;
-  auto json=encodeProject(p);CHECK(json["version"]==29);auto restored=decodeProject(json);
+  auto json=encodeProject(p);CHECK(json["version"]==31);auto restored=decodeProject(json);
   CHECK(restored.weightBalance.carbonFiberDensityKgM3==1600);
   CHECK(restored.spars[0][2].insideDiameterMm==5.08&&restored.spars[0][2].insideDiameterText==".2 in");
-  auto previous=json;previous["version"]=28;auto earlier=decodeProject(previous);
+  auto previous=json;previous["version"]=28;legacyCutViews(previous);auto earlier=decodeProject(previous);
   CHECK(earlier.weightBalance.carbonFiberDensityKgM3==1540);
   CHECK(closeEnough(earlier.spars[0][2].insideDiameterMm,5.35)&&earlier.spars[0][2].sizeMm==6.35);
   CHECK(restored.workspace==7);CHECK(restored.weightBalance.parts[0].centerMm==QPointF(123,-45));
   CHECK(restored.weightBalance.parts[0].ounces);CHECK(closeEnough(restored.weightBalance.parts[0].grams,gramsPerOunce));
   CHECK(restored.weightBalance.plywoodDensityKgM3==725);CHECK(restored.weightBalance.densityKgM3==35);
-  auto old=json;old["version"]=25;old.remove("weightBalance");auto ui=old["ui"].toObject();ui["workspace"]=0;old["ui"]=ui;
+  auto old=json;old["version"]=25;legacyCutViews(old);old.remove("weightBalance");auto ui=old["ui"].toObject();ui["workspace"]=0;old["ui"]=ui;
   const auto legacy=decodeProject(old);CHECK(legacy.weightBalance.parts.empty());CHECK(legacy.weightBalance.densityKgM3==25.63);
   auto rejects=[](QJsonObject value){try{decodeProject(value);}catch(const std::exception&){return true;}return false;};
   auto invalid=json;auto panels=invalid["spars"].toArray();auto spars=panels[0].toArray();auto mid=spars[2].toObject();
@@ -156,6 +158,27 @@ public:
     auto mass=geometry::foamMassProperties(*w.exportAssemblyParts());
     const double expected=calculateBalance(panel->state(),mass).centerMm.x()-75;
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains(QString::number(expected,'f',3)));
+    const auto verifyMarker=[&] {
+      const auto position=panel->cgScenePosition();CHECK(position);
+      const auto transform=geometry::fuselageSideTransform(project.fuselage.layers[1],500);
+      const auto root=wingCalibration(project.wing.layers,project.stations.lines,1000);
+      const auto profile=normalizedAirfoil(project.airfoils.entries[0]).resampled(201);
+      double low=profile.front().y,high=low;for(auto point:profile){low=std::min(low,point.y);high=std::max(high,point.y);}
+      const auto currentMass=calculateBalance(panel->state(),geometry::foamMassProperties(*w.exportAssemblyParts()));
+      CHECK(closeEnough(position->x(),transform.left+currentMass.centerMm.x()/transform.scale));
+      CHECK(closeEnough(position->y(),transform.verticalOrigin-(low+.2*(high-low))*root.rootChordMm/transform.scale));
+    };
+    verifyMarker();
+    // Render the actual bundled symbol at two zoom levels: location transforms,
+    // but the small 28-pixel marker stays the same size.
+    for(double zoom:{.5,3.}) {
+      QImage image{200,200,QImage::Format_ARGB32_Premultiplied};image.fill(Qt::white);
+      {QPainter painter{&image};painter.translate(100,100);painter.scale(zoom,zoom);painter.translate(-*panel->cgScenePosition());panel->paint(painter);}
+      int colored=0;QRect bounds;
+      for(int y=0;y<200;++y)for(int x=0;x<200;++x){const auto color=image.pixelColor(x,y);if(color.red()>150&&color.blue()>100&&color.green()<100){++colored;bounds=bounds.united(QRect{x,y,1,1});}}
+      CHECK(colored>80);CHECK(bounds.width()<=28&&bounds.height()<=28);CHECK(bounds.center().manhattanLength()>190&&bounds.center().manhattanLength()<210);
+      CHECK(image.save(directory+QString{"/cg-marker-%1.png"}.arg(zoom)));
+    }
     // Add via the real modal dialog. Invalid/duplicate names leave it open.
     QTimer::singleShot(0,&w,[&]{
       auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(d);
@@ -173,6 +196,7 @@ public:
     CHECK(closeEnough(panel->state().parts[0].centerMm.x(),250));CHECK(closeEnough(panel->state().parts[0].centerMm.y(),0));
     CHECK(closeEnough(panel->partRectangle(0).width(),64));CHECK(closeEnough(panel->partRectangle(0).height(),24));
     CHECK(panel->selected()==0);CHECK(w.projectModified());
+    verifyMarker();
     const auto before=panel->state().parts[0].centerMm;
     const auto start=w.planViewport_->mapFromScene(panel->partRectangle(0).center());const auto end=start+QPoint{80,-20};
     const auto drag=[&](QEvent::Type type,QPoint at,Qt::MouseButton button,Qt::MouseButtons buttons){
@@ -210,7 +234,7 @@ public:
     auto reference=w.projectReference();reference.units=ProjectUnits::Inches;
     w.referencePanel_->restoreReference(reference);w.updateWeightBalance();
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains(" in from"));
-    panel->setFoam(mass,1000,{});CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Center of mass: -"));w.updateWeightBalance();
+    panel->setFoam(mass,1000,{});CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Center of Gravity: -"));w.updateWeightBalance();
     QTimer::singleShot(0,&w,[&]{
       auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(closeEnough(d->findChild<QDoubleSpinBox*>("balancePartLength")->value(),100/25.4,1e-6));d->reject();
     });panel->findChild<QPushButton*>("balanceEditPart")->click();
@@ -260,6 +284,6 @@ public:
 int main(int argc,char** argv) {
   QApplication app{argc,argv};app.setStyle("Fusion");QTemporaryDir settings;QSettings::setDefaultFormat(QSettings::IniFormat);
   QSettings::setPath(QSettings::IniFormat,QSettings::UserScope,settings.path());app.setOrganizationName("WeightBalanceTests");app.setApplicationName("WeightBalanceTests");
-  try {mathematics();persistence();WeightBalanceTest::run(argc>1?QString::fromLocal8Bit(argv[1]):settings.path());std::cout<<"Weight and Balance checks passed\n";return 0;}
+  try {if(!app.arguments().contains("--gui-only")){mathematics();persistence();}WeightBalanceTest::run(argc>1?QString::fromLocal8Bit(argv[1]):settings.path());std::cout<<"Weight and Balance checks passed\n";return 0;}
   catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }

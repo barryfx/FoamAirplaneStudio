@@ -17,6 +17,7 @@ struct FuselageSolidInput {
   std::vector<double> formerRotationDegrees; // Side View clockwise, about each mask center.
   std::vector<gui::SketchLayer> holes; // Top, Bottom, Left, Right wall loops.
   bool mirrorConstruction=true; // False: full symmetric lofts/supports for benchmark parity.
+  std::optional<bool> noseOpen, tailOpen; // Absent: legacy station-based behavior.
 };
 // Shared drawing-to-model alignment for reference imagery and fuselage geometry.
 struct FuselageSideTransform { double left, verticalOrigin, scale; };

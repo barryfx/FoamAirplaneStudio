@@ -56,7 +56,7 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   fuselageProfileEditor_->setClosedLoopMode(true);
   fuselageProfileEditor_->setSnapAcrossLayers(false);
   fuselageCutEditor_ = new SketchEditor{this};
-  fuselageCutEditor_->setLayerCount(2);
+  fuselageCutEditor_->setLayerCount(4);
   fuselageCutEditor_->setClosedLoopMode(true);
   fuselageCutEditor_->setSnapAcrossLayers(false);
   fuselageHoleEditor_=new SketchEditor{this};fuselageHoleEditor_->setLayerCount(4);
@@ -151,7 +151,7 @@ void PlanViewport::clearPlan() {
   fuselageProfileEditor_->reset();
   servoTrayEditor_->restore({});
   formerEditor_->restore({});
-  fuselageCutEditor_->reset();fuselageCutEditor_->setLayerCount(2);
+  fuselageCutEditor_->reset();fuselageCutEditor_->setLayerCount(4);
   fuselageHoleEditor_->reset();fuselageHoleEditor_->setLayerCount(4);
   fuselageSketchEditor_->reset();
   fuselageSketchEditor_->setLayerCount(2);

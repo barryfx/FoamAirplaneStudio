@@ -3,6 +3,8 @@
 #include <BRepAlgoAPI_Splitter.hxx>
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
+#include "gui/SketchPaths.h"
 #include <BRepBuilderAPI_MakeEdge.hxx>
 #include <BRepBuilderAPI_MakeWire.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
@@ -167,22 +169,37 @@ TopoDS_Shape splitFuselageMainBody(const TopoDS_Shape& body,
 }
 TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchLayer>& cuts,
     const std::array<FuselageCutProjection,2>& projections,const std::function<void(const char*)>& progress,
-    const ProcessingControl& processing) {
+    const ProcessingControl& processing,const std::vector<gui::SketchLayer>& outlines,const TopoDS_Shape& cavity) {
   processing.checkpoint();if(cuts.empty())return body;
-  if(cuts.size()!=2)throw std::runtime_error("Cut sketches require Top and Side views.");
+  if(cuts.size()!=2&&cuts.size()!=4)throw std::runtime_error("Cut sketches require Top, Bottom, Left and Right views.");
+  if(cuts.size()==4&&outlines.size()!=2)throw std::runtime_error("Four-surface cuts require both fuselage outlines.");
   Bnd_Box box;fuselageBounds(body,box,processing);double x0,y0,z0,x1,y1,z1;box.Get(x0,y0,z0,x1,y1,z1);
   const double margin=std::max({x1-x0,y1-y0,z1-z0,1.});auto result=body;
-  for(int view=0;view<2;++view) {
-    const auto& layer=cuts[view];const auto& projection=projections[view];
+  for(int surface=0;surface<static_cast<int>(cuts.size());++surface) {
+    const int view=cuts.size()==2?surface:(surface<2?0:1);
+    const bool positive=surface==0||surface==3;
+    const int axis=view==0?2:1;
+    const auto& layer=cuts[surface];const auto& projection=projections[view];
     const auto viewPaths=paths(layer);
     for(std::size_t n=0;n<viewPaths.size();++n) {
       processing.checkpoint();
-      const std::string label=std::string{view==0?"Top":"Side"}+" View cut "+std::to_string(n+1);
+      const std::string label=std::string{cuts.size()==2?(view==0?"Top":"Side"):std::array{"Top","Bottom","Left","Right"}[surface]}+" View cut "+std::to_string(n+1);
+      gui::SketchLayer path;path.points=layer.points;
+      for(const auto& [index,reverse]:viewPaths[n])path.curves.push_back(layer.curves[index]);
+      // Only points belonging to this path participate in containment (other
+      // paths in the same layer can independently cross the outline).
+      auto isolated=gui::sketchPaths(path);
+      bool interior=cuts.size()==4;
+      if(interior)for(const auto& part:isolated)if(!part.layer.curves.empty()&&!gui::sketchPathInside(part.layer,outlines[view]))interior=false;
+      if(interior&&cavity.IsNull())throw std::runtime_error(label+" is inside the outline and needs a hollow fuselage to cut only the selected wall.");
+      const double low=view==0?z0:y0,high=view==0?z1:y1;
+      const double near=interior&&positive?high+margin:low-margin;
+      const double far=interior&&positive?low-margin:high+margin;
       if(progress)progress(("Fuselage: splitting with "+label+"...").c_str());
       auto point=[&](std::size_t id) {
         const auto p=layer.points[id];const double x=(p.x()-projection.noseX)*projection.scale;
-        return view==0?gp_Pnt{x,(p.y()-projection.transverseOrigin)*projection.scale,z0-margin}:
-            gp_Pnt{x,y0-margin,(projection.transverseOrigin-p.y())*projection.scale};
+        return view==0?gp_Pnt{x,(p.y()-projection.transverseOrigin)*projection.scale,near}:
+            gp_Pnt{x,near,(projection.transverseOrigin-p.y())*projection.scale};
       };
       BRepBuilderAPI_MakeWire wire;
       for(const auto& [index,reverse]:viewPaths[n]) {
@@ -203,8 +220,51 @@ TopoDS_Shape cutFuselage(const TopoDS_Shape& body,const std::vector<gui::SketchL
         }
         wire.Add(edge);if(!wire.IsDone())throw std::runtime_error(label+" segments do not connect.");
       }
-      const auto direction=view==0?gp_Vec{0,0,z1-z0+2*margin}:gp_Vec{0,y1-y0+2*margin,0};
-      const auto sheet=BRepPrimAPI_MakePrism{wire.Wire(),direction}.Shape();
+      const auto direction=view==0?gp_Vec{0,0,far-near}:gp_Vec{0,far-near,0};
+      if(interior) {
+        // Check the whole hatch footprint, not only its perimeter. A parallel
+        // wall can lie inside the loop and bridge the near and far skins.
+        BRepBuilderAPI_MakeFace face{wire.Wire(),true};
+        if(!wire.Wire().Closed()||!face.IsDone()||!fuselageValid(face.Face(),processing))
+          throw std::runtime_error(label+" needs a simple closed loop for a single-wall cut.");
+        const auto prism=BRepPrimAPI_MakePrism{face.Face(),direction}.Shape();
+        BRepAlgoAPI_Cut isolation;NCollection_List<TopoDS_Shape> args,tools;
+        args.Append(prism);tools.Append(cavity);isolation.SetArguments(args);isolation.SetTools(tools);
+        isolation.SetNonDestructive(true);isolation.SetRunParallel(processing.parallel);isolation.SetFuzzyValue(1e-7);
+        {auto range=processing.range();isolation.Build(range);}processing.checkpoint();
+        if(!isolation.IsDone()||isolation.HasErrors()||!fuselageValid(isolation.Shape(),processing))
+          throw std::runtime_error(label+" could not verify inner-cavity clearance.");
+        int selected=0;
+        for(TopExp_Explorer solid{isolation.Shape(),TopAbs_SOLID};solid.More();solid.Next()) {
+          Bnd_Box bounds;fuselageBounds(solid.Current(),bounds,processing);double v[6];bounds.Get(v[0],v[1],v[2],v[3],v[4],v[5]);
+          if(std::abs((positive?v[axis+3]:v[axis])-near)>1e-5)continue;
+          ++selected;
+          if(std::abs((positive?v[axis]:v[axis+3])-far)<1e-5)
+            throw std::runtime_error(label+" overlaps a parallel wall. Move or shrink the cut over the inner cavity.");
+        }
+        if(selected!=1)throw std::runtime_error(label+" could not isolate the selected wall from the inner cavity.");
+      }
+      auto sheet=BRepPrimAPI_MakePrism{wire.Wire(),direction}.Shape();
+      if(interior) {
+        // Subtract the cavity from the sheet, retaining only faces connected to
+        // the chosen exterior starting plane. This splits material rather than
+        // removing it, so a hatch remains a separate solid/component.
+        BRepAlgoAPI_Cut clip;NCollection_List<TopoDS_Shape> args,tools;
+        args.Append(sheet);tools.Append(cavity);clip.SetArguments(args);clip.SetTools(tools);
+        clip.SetNonDestructive(true);clip.SetRunParallel(processing.parallel);clip.SetFuzzyValue(1e-7);
+        {auto range=processing.range();clip.Build(range);}processing.checkpoint();
+        if(!clip.IsDone()||clip.HasErrors())throw std::runtime_error(label+" could not stop at the inner cavity.");
+        BRep_Builder builder;TopoDS_Compound selected;builder.MakeCompound(selected);int count=0;
+        for(TopExp_Explorer face{clip.Shape(),TopAbs_FACE};face.More();face.Next()) {
+          Bnd_Box bounds;fuselageBounds(face.Current(),bounds,processing);double v[6];bounds.Get(v[0],v[1],v[2],v[3],v[4],v[5]);
+          if(std::abs((positive?v[axis+3]:v[axis])-near)>1e-5)continue;
+          if(std::abs((positive?v[axis]:v[axis+3])-far)<1e-5)
+            throw std::runtime_error(label+" cannot reach the cavity without crossing another wall. Move or resize the interior cut.");
+          builder.Add(selected,face.Current());++count;
+        }
+        if(!count)throw std::runtime_error(label+" does not reach the selected wall.");
+        sheet=selected;
+      }
       BRepAlgoAPI_Splitter splitter;NCollection_List<TopoDS_Shape> arguments,tools;
       arguments.Append(result);tools.Append(sheet);splitter.SetArguments(arguments);splitter.SetTools(tools);
       splitter.SetNonDestructive(true);splitter.SetRunParallel(processing.parallel);splitter.SetFuzzyValue(1e-7);

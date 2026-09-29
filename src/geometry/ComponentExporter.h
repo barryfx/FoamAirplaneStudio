@@ -14,7 +14,7 @@ struct ExportPart {
 // manufacturing solid gets its own selectable entry.
 std::vector<ExportPart> assemblyExportParts(const AssemblyParts& assembly);
 domain::PartDrawing formerDrawing(const ExportPart& part);
-enum class FormerExportFormat { Dxf, Stl, Step };
+enum class FormerExportFormat { Dxf, Stl, Step, Svg };
 enum class ComponentExportFormat { Step, Stl };
 std::vector<std::string> exportFileNames(const std::vector<ExportPart>& selected,
     FormerExportFormat formers, ComponentExportFormat components,const std::string& projectName="Components");

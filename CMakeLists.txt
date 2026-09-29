@@ -300,6 +300,12 @@ endif()
 
 if(DESIGNRC_BUILD_TESTS)
   enable_testing()
+  add_executable(test_check_tests tests/TestCheckTests.cpp)
+  target_compile_definitions(test_check_tests PRIVATE NDEBUG)
+  add_test(NAME test_check_tests COMMAND test_check_tests)
+  add_test(NAME test_check_failure_tests COMMAND test_check_tests --fail)
+  set_tests_properties(test_check_failure_tests PROPERTIES WILL_FAIL TRUE)
+
   add_executable(project_tests tests/ProjectTests.cpp resources/designrc.qrc
     src/gui/MainWindow.cpp src/gui/AssemblyWorkflow.cpp src/gui/OcctViewport.cpp src/gui/PlanViewport.cpp
     src/gui/ReferencePanel.cpp src/gui/ReferencePanel.h src/gui/ReferenceImage.cpp
@@ -455,6 +461,7 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(fuselage_cut_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(fuselage_cut_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME fuselage_cut_tests COMMAND fuselage_cut_tests)
+  add_test(NAME fuselage_surface_cut_tests COMMAND fuselage_cut_tests --surface-only)
   add_test(NAME fuselage_alignment_tests COMMAND fuselage_cut_tests --alignment-only)
   if(NOT WIN32)
     set_tests_properties(fuselage_cut_tests fuselage_alignment_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
@@ -477,6 +484,10 @@ if(DESIGNRC_BUILD_TESTS)
   if(NOT WIN32)
     set_tests_properties(fuselage_thicken_tests fuselage_thicken_ui_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()
+
+  add_executable(fuselage_opening_tests tests/FuselageOpeningTests.cpp)
+  target_link_libraries(fuselage_opening_tests PRIVATE foam_wing foam_project)
+  add_test(NAME fuselage_opening_tests COMMAND fuselage_opening_tests)
 
   add_executable(fuselage_orientation_tests tests/FuselageOrientationTests.cpp src/gui/OcctViewport.cpp)
   target_link_libraries(fuselage_orientation_tests PRIVATE foam_wing foam_project TKV3d TKService TKOpenGl)

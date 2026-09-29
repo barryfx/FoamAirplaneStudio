@@ -97,7 +97,7 @@ std::vector<std::string> exportFileNames(const std::vector<ExportPart>& selected
     partNames.insert(partKey);
     if(p.formerPlane) {
       if(formers==FormerExportFormat::Step)step=true;
-      else names.push_back(p.name+(formers==FormerExportFormat::Dxf?".dxf":".stl"));
+      else names.push_back(p.name+(formers==FormerExportFormat::Dxf?".dxf":formers==FormerExportFormat::Svg?".svg":".stl"));
     }
     else if(components==ComponentExportFormat::Stl)names.push_back(p.name+".stl");
     else step=true;
@@ -116,6 +116,8 @@ void writeComponentExports(const std::vector<ExportPart>& selected,
     if(p.shape.IsNull())throw std::invalid_argument("No Assembly geometry for "+p.name);
     if(p.formerPlane&&formers==FormerExportFormat::Dxf)
       domain::exportPartsDxf({formerDrawing(p)},directory/std::filesystem::u8path(p.name+".dxf"));
+    else if(p.formerPlane&&formers==FormerExportFormat::Svg)
+      domain::exportPartsSvg({formerDrawing(p)},directory/std::filesystem::u8path(p.name+".svg"));
     else if(p.formerPlane?formers==FormerExportFormat::Stl:components==ComponentExportFormat::Stl)
       writeStl(p.shape,directory/std::filesystem::u8path(p.name+".stl"));
     else step.push_back({p.name,p.shape,PartMaterial::Wood,false});

@@ -4,6 +4,8 @@
 #include "gui/ReferencePanel.h"
 #include "gui/WeightBalancePanel.h"
 #include <QApplication>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Compound.hxx>
 #include <QAction>
 #include <QJsonObject>
 #include <QLabel>
@@ -76,13 +78,12 @@ public:
   CHECK(stats->geometry().bottom()<smooth->geometry().top());CHECK(stats->geometry().bottom()<w.airfoilPanel_->height());
   CHECK(w.grab().save(directory+"/airplane-statistics-airfoils.png"));
   for(int i=0;i<w.dataContents_->layout()->count();++i) {
-    auto* panel=w.dataContents_->layout()->itemAt(i)->widget();if(!panel||panel==w.weightBalancePanel_)continue;
+    auto* panel=w.dataContents_->layout()->itemAt(i)->widget();if(!panel||panel==w.weightBalancePanel_||panel==w.assemblyPanel_||panel->objectName()=="exportPanel")continue;
     CHECK(panel->findChild<QLabel*>("airplaneStatistics"));
   }
-  for(const auto* name:{"exportPanel","assemblyPanel"}) {
+  for(const auto* name:{"exportPanel"}) {
     auto* panel=w.findChild<QWidget*>(name);CHECK(panel);
-    auto* layout=qobject_cast<QVBoxLayout*>(panel->layout());
-    CHECK(layout->indexOf(panel->findChild<QLabel*>("airplaneStatistics"))==layout->count()-2);
+    CHECK(!panel->findChild<QLabel*>("airplaneStatistics"));
   }
   for(auto* action:w.componentToolBar_->actions())if(action->text()=="Outline")action->trigger();
   QApplication::processEvents();
@@ -111,6 +112,28 @@ public:
   auto old=encodeProject(fixture());old.remove("airplaneStatistics");CHECK(!decodeProject(old).statistics.balance);
   auto invalid=encodeProject(*saved);auto cache=invalid["airplaneStatistics"].toObject();cache["wingAreaMm2"]=-1;invalid["airplaneStatistics"]=cache;
   bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);
+  CHECK(!w.assemblyPanel_->findChild<QLabel*>("airplaneStatistics"));
+  // Supply only an empty cached shape, never generate a wing or fuselage. A
+  // misplaced automatic measurement would reset/replace the sentinel mass cache.
+  TopoDS_Compound cached;BRep_Builder builder;builder.MakeCompound(cached);
+  w.assemblyOriginals_.fuselage=cached;w.assemblyState_.cuts=false;
+  w.assemblySourceFingerprint_=w.assemblyFingerprint();
+  FoamMassProperties sentinel;sentinel.volumeMm3=123456;
+  w.balanceMassCache_=sentinel;w.balanceMassFingerprint_="unmeasured sentinel";
+  balance.sourceKey=w.statisticsMassKey();w.statistics_.balance=balance;
+  w.statistics_.weightGrams=1000;w.statistics_.cgFromLeadingEdgeMm=100;w.statistics_.wingLoadingGramsPerDm2=50;
+  w.dataPanel_->setProperty("workspaceIndex",5);
+  for(int i=0;i<3;++i) {
+    w.assemblyState_.offsets[0]+=QPointF{1,0};w.assemblyState_.rotationDegrees[0]+=.5;
+    w.updateProjectTitle();w.updateStatistics();
+    CHECK(w.balanceMassCache_&&w.balanceMassCache_->volumeMm3==123456);
+    CHECK(w.balanceMassFingerprint_=="unmeasured sentinel");
+    CHECK(!w.statistics_.balance&&!w.statistics_.weightGrams&&!w.statistics_.cgFromLeadingEdgeMm&&!w.statistics_.wingLoadingGramsPerDm2);
+    CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_&&!w.stabilizerProcessing());
+  }
+  // Leaving Assembly resumes the statistics footer without starting generation.
+  w.assemblyOriginals_={};w.dataPanel_->setProperty("workspaceIndex",0);w.updateStatistics();
+  CHECK(referenceStats->text().contains("Wingspan"));
   w.resetProject();CHECK(referenceStats->isHidden()&&!w.statistics_.weightGrams);
  }
 };

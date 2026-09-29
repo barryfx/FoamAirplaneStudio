@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/OcctViewport.h"
 #include <BRepTools.hxx>
@@ -50,6 +51,20 @@ void geometryTests() {
   const auto outer=BRepPrimAPI_MakeBox{gp_Pnt{0,-25,-20},100,50,40}.Shape();
   const auto cavity=BRepPrimAPI_MakeBox{gp_Pnt{5,-20,-15},90,40,30}.Shape();
   const auto shell=BRepAlgoAPI_Cut{outer,cavity}.Shape();
+  // Cross only the lower or upper Side View outline. The opposite mask edge
+  // stays inside the cavity and defines the finished former height exactly.
+  for(const auto& mask:std::vector<QRectF>{{20,-30,4,35},{20,-5,4,35}}) {
+    const auto partial=geometry::buildFormers(cavity,shell,{mask});
+    CHECK(partial.size()==1&&count(partial[0])==1);
+    CHECK(std::abs(volume(partial[0])-3200)<1e-5);
+    Bnd_Box bounds;BRepBndLib::Add(partial[0],bounds);double x0,y0,z0,x1,y1,z1;bounds.Get(x0,y0,z0,x1,y1,z1);
+    CHECK(std::abs(z0-std::max(-15.,mask.top()))<1e-5);
+    CHECK(std::abs(z1-std::min(15.,mask.bottom()))<1e-5);
+    CHECK(std::abs(volume(BRepAlgoAPI_Common{partial[0],shell}.Shape()))<1e-6);
+    const auto rails=geometry::addFormerRetainers(shell,cavity,{mask},partial);
+    CHECK(count(rails)==1);
+    CHECK(std::abs(volume(BRepAlgoAPI_Common{rails,partial[0]}.Shape()))<1e-6);
+  }
   const auto inserts=geometry::buildFormers(cavity,shell,{{20,-30,4,60}});
   const auto retained=geometry::addFormerRetainers(shell,cavity,{{20,-30,4,60}},inserts);
   CHECK(count(retained)==1);CHECK(std::abs(volume(retained)-volume(shell)-4*4*3*30)<1e-5);
@@ -209,6 +224,11 @@ int main(int argc,char** argv) {
     r=editor.state().rectangles[0];drag(r.center(),{400,r.center().y()});CHECK(editor.state().rectangles[0]==r);
     enter("8 mm");CHECK(std::abs(editor.state().rectangles[0].width()-8)<1e-8);
     r=editor.state().rectangles[0];drag({r.center().x(),r.top()},{r.center().x(),365});CHECK(std::abs(editor.state().rectangles[0].top()-365)<2);
+    CHECK(editor.state().rectangles[0].bottom()>430); // Bottom edge only.
+    r=editor.state().rectangles[0];drag({r.center().x(),r.top()},{r.center().x(),340});
+    r=editor.state().rectangles[0];drag({r.center().x(),r.bottom()},{r.center().x(),415});
+    CHECK(editor.state().rectangles[0].top()<350&&editor.state().rectangles[0].bottom()<430); // Top edge only.
+    r=editor.state().rectangles[0];drag({r.center().x(),r.top()},{r.center().x(),365});
     r=editor.state().rectangles[0];drag({r.center().x(),r.bottom()},{r.center().x(),415});CHECK(std::abs(editor.state().rectangles[0].bottom()-415)<2);
     r=editor.state().rectangles[0];drag(r.center(),r.center()+QPointF{0,4});CHECK(std::abs(editor.state().rectangles[0].top()-r.top()-4)<2);
     add->click();CHECK(editor.state().rectangles.size()==2);r=editor.state().rectangles[1];drag(r.center(),{510,r.center().y()});r=editor.state().rectangles[1];
@@ -219,8 +239,8 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==29);auto old=encoded;old["version"]=14;old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
-    auto v23=encoded;v23["version"]=23;auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==31);auto old=encoded;old["version"]=14;legacyCutViews(old);old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto v23=encoded;v23["version"]=23;legacyCutViews(v23);auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
     auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
     bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);
     auto oldUi=old["ui"].toObject();oldUi["tool"]="Firewall";old["ui"]=oldUi;CHECK(decodeProject(old).tool=="Formers");

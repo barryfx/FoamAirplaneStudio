@@ -1,3 +1,4 @@
+#include "LegacyProject.h"
 #include "gui/MainWindow.h"
 #include "gui/WingCalibration.h"
 #include "gui/StabilizerOutlinePanel.h"
@@ -226,8 +227,8 @@ int main(int argc,char** argv) {
     std::stop_source stop;stop.request_stop();bool stopped=false;
     try{designrc::geometry::buildStabilizerSolid({chain,defaultFoil,1,true},{},{stop.get_token()});}
     catch(const designrc::geometry::ProcessingCancelled&){stopped=true;}CHECK(stopped);
-    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==29);
-    auto legacy=encoded; legacy["version"]=15; legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
+    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==31);
+    auto legacy=encoded; legacy["version"]=15;legacyCutViews(legacy); legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
     CHECK(decodeProject(legacy).stabilizerOutlines[0].layers[0].curves.empty());
     for (const auto& oldTool : {"Airfoils","Airfoil Stations","Edit"}) {
       auto ui=legacy["ui"].toObject(); ui["tool"]=oldTool; legacy["ui"]=ui;
@@ -236,7 +237,7 @@ int main(int argc,char** argv) {
     auto withLeading=p;withLeading.stabilizerOutlines[0].layers[0]=chain;
     const auto selectedJson=encodeProject(withLeading);
     CHECK(decodeProject(selectedJson).stabilizerOutlines[0].layers[0].leadingEdge==0);
-    auto oldSelection=selectedJson;oldSelection["version"]=17;
+    auto oldSelection=selectedJson;oldSelection["version"]=17;legacyCutViews(oldSelection);
     CHECK(!decodeProject(oldSelection).stabilizerOutlines[0].layers[0].leadingEdge);
     auto reject=[](const QJsonObject& json){bool rejected=false;try{decodeProject(json);}catch(const std::exception&){rejected=true;}CHECK(rejected);};
     for(int invalidIndex:{-1,1,99}) {
@@ -244,17 +245,17 @@ int main(int argc,char** argv) {
       auto ls=outline["layers"].toArray();auto l=ls[0].toObject();l["leadingEdge"]=invalidIndex;ls[0]=l;outline["layers"]=ls;
       malformed["horizontalStabilizerOutline"]=outline;reject(malformed);
     }
-    auto legacyCuts=encoded;legacyCuts["version"]=19;legacyCuts.remove("horizontalStabilizerCuts");legacyCuts.remove("verticalStabilizerCuts");
+    auto legacyCuts=encoded;legacyCuts["version"]=19;legacyCutViews(legacyCuts);legacyCuts.remove("horizontalStabilizerCuts");legacyCuts.remove("verticalStabilizerCuts");
     CHECK(decodeProject(legacyCuts).stabilizerCuts[0].layers.size()==1&&decodeProject(legacyCuts).stabilizerCuts[0].layers[0].curves.empty());
     auto malformedCuts=encoded;auto malformedSketch=malformedCuts["horizontalStabilizerCuts"].toObject();malformedSketch["layers"]=QJsonArray{};malformedCuts["horizontalStabilizerCuts"]=malformedSketch;reject(malformedCuts);
-    auto oldHinges=encoded;oldHinges["version"]=18;oldHinges.remove("stabilizerHingeCuts");oldHinges.remove("horizontalStabilizerHinge");oldHinges.remove("verticalStabilizerHinge");
+    auto oldHinges=encoded;oldHinges["version"]=18;legacyCutViews(oldHinges);oldHinges.remove("stabilizerHingeCuts");oldHinges.remove("horizontalStabilizerHinge");oldHinges.remove("verticalStabilizerHinge");
     CHECK(decodeProject(oldHinges).stabilizerHinges[0].layers[0].curves.empty());
     CHECK(decodeProject(oldHinges).stabilizerHingeCuts[1]==HingeCut::Tape);
     auto badCuts=encoded;badCuts["stabilizerHingeCuts"]=QJsonArray{0,2};reject(badCuts);
     badCuts["stabilizerHingeCuts"]=QJsonArray{0};reject(badCuts);
     auto invalidAirfoil=encoded;invalidAirfoil["stabilizerAirfoils"]=QJsonArray{QJsonValue{}};reject(invalidAirfoil);
     invalidAirfoil["stabilizerAirfoils"]=QJsonArray{QJsonObject{{"name","Flat"},{"coordinates",QJsonArray{QJsonArray{1,0},QJsonArray{.5,0},QJsonArray{0,0},QJsonArray{.5,0},QJsonArray{1,0}}}},QJsonValue{}};reject(invalidAirfoil);
-    auto legacy16=encoded;legacy16["version"]=16;legacy16.remove("stabilizerAirfoils");
+    auto legacy16=encoded;legacy16["version"]=16;legacyCutViews(legacy16);legacy16.remove("stabilizerAirfoils");
     CHECK(!decodeProject(legacy16).stabilizerAirfoils[0]&&!decodeProject(legacy16).stabilizerAirfoils[1]);
     auto bad=encoded; auto sketch=bad["horizontalStabilizerOutline"].toObject();
     auto layers=sketch["layers"].toArray(); layers.append(layers[0]); sketch["layers"]=layers; bad["horizontalStabilizerOutline"]=sketch; reject(bad);

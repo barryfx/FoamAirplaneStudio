@@ -51,7 +51,8 @@ int main(int argc,char** argv) {
     const auto guided=geometry::buildFuselageSolid(input);
     Bnd_Box guideBox;BRepBndLib::AddOptimal(guided,guideBox,false,false);
     double xmin,ymin,zmin,xmax,ymax,zmax;guideBox.Get(xmin,ymin,zmin,xmax,ymax,zmax);
-    CHECK(std::abs(ymax-15)<1e-5); // Nose center is y=5; rail reaches y=20.
+    // The 20 mm guide width is centered about Y=0 by mirrored construction.
+    CHECK(std::abs(ymin+10)<1e-5&&std::abs(ymax-10)<1e-5);
     if(argc>1) {
       QString error;const auto project=gui::readProject(QString::fromLocal8Bit(argv[1]),error);
       if(!project)throw std::runtime_error(error.toStdString());

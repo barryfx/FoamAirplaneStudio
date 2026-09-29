@@ -2,5 +2,6 @@
   <qresource prefix="/">
     <file alias="airfoils/naca009.dat">naca009.dat</file>
     <file alias="graphics/FoamAirplaneStudio.png">graphics/FoamAirplaneStudio.png</file>
+    <file alias="graphics/cg-symbol.png">graphics/CG Symbol.png</file>
   </qresource>
 </RCC>

@@ -1,12 +1,12 @@
 # Documentation guide
 
-Current state: September 25, 2026.
+Current state: September 29, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
-- `formats/foam-project.md` specifies version 29 and migration from versions 1-28.
+- `formats/foam-project.md` specifies version 31 and migration from versions 1-30.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.
@@ -29,7 +29,7 @@ Each stabilizer reuses its successful model cache on unchanged navigation.
 See `architecture/stabilizer-hinges.md`, `architecture/stabilizer-cuts.md` and
 `baseline/stabilizer-cache-validation.md`.
 Assembly positioning, collision checks and reversible interface cuts are implemented
-([Assembly](architecture/assembly.md), ADR-0033). [Export](architecture/export.md) provides former STEP/DXF/STL and component STEP/STL.
+([Assembly](architecture/assembly.md), ADR-0033). [Export](architecture/export.md) provides former STEP/DXF/SVG/STL and component STEP/STL.
 Project-wide editor Undo/Redo is implemented (architecture/editor-history.md). Fuselage unlocks after Wing airfoil assignment, and supports Top/Side outlines (architecture/fuselage-outlines.md, ADR-0019).
 Profile Stations places vertical Side View sections (architecture/fuselage-stations.md,
 ADR-0020). Edit Profiles, solid generation, Thicken, Cut, Servo Tray and Formers are implemented.
@@ -63,7 +63,7 @@ Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.
 
 The latest documentation audit is recorded in
-[documentation audit](baseline/documentation-audit-2026-09-22.md).
+[documentation audit](baseline/documentation-audit-2026-09-29.md).
 Historical test commands are evidence, not authorization to rerun generation:
 follow the current restrictions in `../AGENTS.md`.
 
@@ -112,3 +112,14 @@ Half-fuselage timing and geometry parity: [validation](baseline/fuselage-speedup
 
 Dependency license texts, component coverage and compatibility notes are in
 [the license collection](../licenses/README.md).
+
+[Regression test conventions](../tests/README.md) describe checks that stay active
+in Release builds and the command for enabling the Release test suite.
+
+Explicit fuselage end controls and slanted open ends are documented in [ADR-0048](adr/0048-explicit-fuselage-ends.md).
+
+Four-surface cuts, retained cut-outs and parallel-wall checks: [ADR-0049](adr/0049-four-surface-fuselage-cuts.md), [validation](baseline/four-surface-cut-validation.md), and [partial former validation](baseline/cut-clearance-partial-formers.md).
+
+Windows per-user packaging, license verification and optional desktop shortcut: [installer](architecture/windows-installer.md) and [validation](baseline/windows-installer-validation.md).
+
+Release and Debug regression evidence: [test checks](baseline/release-debug-test-checks.md). Assembly and Export omit the statistics footer and defer mass calculation; Weight and Balance displays its own totals and a small CG marker.
