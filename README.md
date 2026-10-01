@@ -1,141 +1,247 @@
 # FoamAirplaneStudio
 
-Desktop foam-airplane design using C++23, Qt and Open CASCADE Technology (OCCT).
-The drawing-driven workflow creates separate foam parts for CNC routing and 3D
-printing, plus outlines for laser cutting.
+**This software has been tested through Export, but no airplanes have been milled with it.**
 
-## Current progress
+**Version 0.1.0 — October 1, 2026.** Desktop foam-airplane design with C++23,
+Qt and Open CASCADE Technology (OCCT). Trace reference plans, generate separate
+foam and structural parts, assemble the airplane, and export manufacturing files
+for CNC routing, 3D printing and laser cutting.
 
-As of September 29, 2026, Reference and Wing provide:
+Projects use `.foam` format **31**; versions 1–30 remain readable. The application
+version and project-format version are independent. Legacy `.designrc` projects
+are not supported.
 
-- PNG/JPG and multipage PDF references, physical scaling, and mixed mm/in inputs.
-- Numbered panel outlines, reusable line/spline editing, curve-attached stations,
-  and one shared library of imported DAT and traced airfoils.
-- Independent panel lofts, cumulative root dihedral, automatically rounded outer
-  tips, and mirrored OCCT wing bodies.
-- Panel-specific ailerons/flaps with hinge relief and end clearance; surface spar
-  grooves, Mid holes, manufacturing splits and alignment features.
-- Optional lightening with accessible stepped pockets, uniform crossmembers,
-  retained skins and protected alignment supports.
-- Portable version-31 `.foam` projects preserving embedded references, design inputs,
-  drafts, mixed-unit text, view state. Versions 1-30 remain readable.
-- Cancellable background regeneration with bounded panel concurrency, panel progress,
-  camera retention and mirrored display-mesh reuse. Only Cancel remains interactive
-  during generation; cancellation retains the previous display.
+## Platforms and Release packages
 
-Fuselage unlocks after Wing airfoil assignment and provides Top/Side closed-outline
-editing with the reusable sketch editor. Two valid outlines enable Profile Stations;
-it places vertical Side View sections with one click. Edit Profiles attaches section sketches
-to stations and generates a cached solid in a separate worker. Generation uses default/saved station walls without visiting optional tabs. Thicken edits their smooth transitions. Complete fuselage definitions enable Horiz Stab and Vert Stab navigation. Outline has independent Nose/Tail Open or Closed choices, defaulting to Nose Open and Tail Closed. Cut supports Top, Bottom, Left and Right Line/Spline paths: boundary-crossing paths split through opposite walls; interior loops detach only the selected wall. Cut-outs remain separate components, and single-wall cuts that intersect a parallel wall stop generation with an error. Servo Tray adds a cavity-fitted tray and 5 mm side ledges.
-Formers adds movable, individually rotated full/partial-height cavity-fitted inserts with overlap prevention and 4 x 3 mm retaining rails on both inner sides. The largest post-cut body splits into left/right halves with four alignment pins (two top, two bottom); other cut-outs remain whole. Pins project 3 mm into 3.5 mm-deep sockets and use a 4 mm diameter capped by local wall thickness. Rail generation skips disjoint insert cuts and joins all rails in one shell fusion; measured GentleLady results are in `docs/baseline/former-retainers-validation.md`.
+All three installers contain **Release builds**. Generated installers, source
+archives and checksums are in `dist/`; they are not committed to Git.
 
-Holes adds closed Line/Spline loops for Top, Bottom, Left or Right, cutting only
-the selected wall. Holes and Cut share controls for adding, selecting and deleting
-multiple paths. Rear alignment pins start at 75% of the main-body length and
-front pins at 15%, with nearby safe positions used when needed.
+| Platform | Installer | Validation environment |
+|---|---|---|
+| Windows x64 | `FoamAirplaneStudio-0.1.0-Windows-x64-Setup.exe` | Local Windows x64 installation and launch; targets Windows 10 1809 or later |
+| Ubuntu x86-64 | `foamairplanestudio_0.1.0_amd64.deb` | Ubuntu 24.04.3 LTS under WSL 2 with WSLg |
+| Fedora x86-64 | `foamairplanestudio-0.1.0-1.x86_64.rpm` | Fedora 44 container, normal user, Xvfb virtual X11 display |
+| macOS | Not available | Planned target; no validated build, installer or run procedure |
 
-Horiz Stab and Vert Stab provide independent open outlines, explicit leading-edge
-selection, a bundled NACA009 or imported DAT airfoil, and cached background
-generation. Horizontal halves join into one stabilizer; the vertical fin is one
-body. Hinge Line separates the elevator/rudder with Tape or Standard relief,
-leaving two bodies. Closed Line/Spline Cut Shapes remove material through the
-thickness and can create additional bodies. Unchanged navigation reuses each
-component's successful model cache. Assembly provides side-view positioning,
-control-surface collision checks, reversible intersection cuts and separate export
-geometry caches (see [Assembly](docs/architecture/assembly.md)). Export offers former STEP/DXF/SVG/STL and component STEP/STL from the current Assembly
-(see [Export](docs/architecture/export.md)). Project-wide Undo/Redo uses Ctrl+Z/Ctrl+Y; Assembly also includes Undo Cuts.
-Tray DXF remains future work.
+Linux packages are built separately for each distribution. Other Linux versions
+and native desktop environments are not yet validated. Linux uses X11; Wayland
+sessions need XWayland, and WSL needs WSLg. See the exact completed checks in
+[Release installer validation](docs/baseline/linux-package-validation.md).
 
-Fuselage generation uses the right profile half and reflects the completed body
-as a separate left part, with whole formers and tray. Former/rail work and mating
-hardware use bounded parallel workers; see the [benchmark and validation](docs/baseline/fuselage-speedup-validation.md).
+## Implemented features
 
-Weight and Balance adds named RC parts to Side View and calculates mass, CG and wing loading from current Assembly foam, Aero Plywood, carbon-fiber spars and entered parts. A small CG symbol appears at the calculated longitudinal position, 20% above the root airfoil's lowest point through its maximum thickness. Default densities are 25.63, 680 and 1540 kg/m³ respectively. Mid spars default to 6 mm outside and 5 mm inside diameter, with mixed mm/in inputs. See [Weight and Balance](docs/architecture/weight-and-balance.md).
+- **Reference:** PNG/JPG and multipage PDF plans, physical image scale or entered
+  wingspan, mixed mm/in inputs, embedded reference images in saved projects.
+- **Wing:** numbered panels, line/spline outlines, curve-attached stations,
+  imported DAT or hand-traced airfoils, smoothing previews, and normalized DAT
+  export with at most 69 cosine-sampled points. Panel dihedral, rounded tips,
+  mirrored bodies, ailerons/flaps, tape/standard hinge relief, spar channels,
+  split-wing alignment features and optional lightening pockets.
+- **Fuselage:** Top/Side outlines, profile stations, Line/Spline/Circle profiles,
+  copy/paste and movement, orphan-profile recovery, variable wall thickness,
+  explicit nose/tail closure (Nose Open and Tail Closed by default), separate
+  mirrored halves, alignment pins, cavity-fitted formers and servo tray.
+  Formers can be rotated or partial height; their entered thickness stays fixed
+  when wingspan changes.
+- **Fuselage cuts and holes:** Top/Bottom/Left/Right surfaces. Boundary-crossing
+  cuts split both opposite walls; closed interior cuts detach only the selected
+  wall. Cut-outs remain separate components. Single-wall cuts that hit a parallel
+  wall stop generation with an error. Holes remove selected-wall material.
+- **Stabilizers:** independent horizontal/vertical outlines and airfoils,
+  separate elevator/rudder bodies, tape/standard hinge bevels and cut shapes.
+- **Assembly:** positioning, rotation about the root center in 0.5-degree steps,
+  collision checks and reversible mating cuts, including wing seats in formers.
+- **Inspect and export:** per-component visibility and editable export names;
+  former STEP/DXF/SVG/STL and component STEP/STL export, with All selected by
+  default. Combined STEP files use the project name. Tray DXF is not implemented.
+- **Weight and Balance:** movable named RC parts, foam/plywood/carbon-fiber mass,
+  CG and wing loading. Editable density defaults are 25.63/680/1540 kg/m³.
+  Mid spars default to 6 mm OD and 5 mm ID. The CG marker is placed longitudinally
+  at the calculated CG and vertically 20% up from the root airfoil's lowest point
+  through its maximum thickness. CG distance is relative to the placed wing root
+  leading edge, positive toward the tail.
+- **Workflow:** project-wide Undo/Redo (Ctrl+Z/Ctrl+Y), individual sketch-curve
+  selection/deletion, cancellable background regeneration and model caching.
+  Available airplane statistics are saved with the project. Assembly and Export
+  omit the statistics footer and defer mass calculations; Weight and Balance
+  has its own totals. The primary toolbar ends with Inspect, Weight and Balance,
+  then Export.
 
-Data panels other than Assembly, Export and Weight and Balance show available airplane dimensions, areas, aspect ratio, weight, wing loading and CG. Assembly movements and entering Export defer mass measurements. These statistics are saved with the project and refreshed when their inputs change. See [airplane statistics](docs/architecture/airplane-statistics.md).
+Detailed behavior and design decisions are indexed in the
+[documentation guide](docs/README.md), [architecture](docs/architecture/baseline.md)
+and [project format](docs/formats/foam-project.md). Requirements documents may
+also describe future features; historical validation records describe their
+recorded revisions.
 
-Wing Airfoils can smooth traced profiles while preserving a straight blunt trailing edge, and export normalized DAT files with at most 69 cosine-sampled points. Assembly rotates components about their root center in 0.5-degree steps and cuts formers for wing clearance.
+## Included example
 
-The primary toolbar ends with Inspect, Weight and Balance, then Export. Startup displays the application image for three seconds; Help → About describes the workflow and credits OpenAI Codex.
+Every installer includes the `Example` folder containing **BabyBuzzard36.foam**
+and its reference plan **Baby_Buzzard_Plan_559_New.pdf**.
 
-Inspect shows and hides individual generated components and saves editable names
-for Export. Combined STEP files use the project basename.
+| Installation | Example folder |
+|---|---|
+| Windows default | `%LOCALAPPDATA%\Programs\FoamAirplaneStudio\Example` |
+| Windows custom folder | `Example` inside the chosen installation directory |
+| Ubuntu and Fedora | `/usr/share/foamairplanestudio/Example` |
+| Source checkout | `resources/Example` |
 
-Edit Profiles supports Circle, Copy/Paste, whole-profile movement and orphan
-selection/deletion. Double-click an orphan to reassign it to an unassigned station.
-Nearly vertical fuselage ends use model-only 0.5 mm/2 degree registration; the
-original traces remain unchanged. See [fuselage profiles](docs/architecture/fuselage-profiles.md)
-and [end registration](docs/adr/0044-tolerant-fuselage-ends.md).
+Use **File > Open** to open `BabyBuzzard36.foam`, then **Save As** to a folder you
+own before editing. Linux installation directories are read-only for normal users.
+The project opens in 2D without automatically generating geometry; select 3D or
+Assembly when ready. Installed examples may be replaced during upgrades.
 
-The former DesignRC field-driven wing/rib pipeline and persistence were removed.
-Legacy `.designrc` projects are not supported. Original DesignRC documentation is
-archival, not a description of current FoamAirplaneStudio behavior.
+## Windows: install and run
 
-See the [documentation guide](docs/README.md), [requirements](docs/requirements.md),
-[current architecture](docs/architecture/baseline.md),
-[wing generation](docs/architecture/wing-solids.md), and
-[project format](docs/formats/foam-project.md).
+Run `FoamAirplaneStudio-0.1.0-Windows-x64-Setup.exe`, review and accept the licenses,
+and choose whether to create a desktop shortcut. Installation is per user and
+requires no administrator rights. The default folder is
+`%LOCALAPPDATA%\Programs\FoamAirplaneStudio`. Qt, OCCT and the MSVC runtime are
+included; installed license files are checked against their SHA-256 hashes.
 
-## Build and run
-
-Windows prerequisites: Visual Studio 2026 C++ tools, CMake 4.2 or newer
-(required by the preset's Visual Studio 2026 generator),
-Qt 6.11.1 with matching Qt PDF at `C:/Qt/6.11.1/msvc2022_64`, and OCCT in
-`../third_party/occt/install-debug`.
+Launch FoamAirplaneStudio from the Start menu, its optional desktop shortcut, or:
 
 ```powershell
+& "$env:LOCALAPPDATA\Programs\FoamAirplaneStudio\foamairplanestudio.exe"
+```
+
+Uninstall through Windows Installed Apps or `unins000.exe` in the install folder.
+
+### Build Windows from source
+
+Install Visual Studio 2026 C++ tools, CMake 4.2+ (required by the checked-in VS 2026
+presets), Qt 6.11.1 with Qt PDF at `C:/Qt/6.11.1/msvc2022_64`, and OCCT 8.0.0.
+The presets use sibling OCCT installations at
+`../third_party/occt/install-debug` and `../third_party/occt/install-release`.
+Adjust the preset/cache paths for your dependency installations. Inno Setup 6 is
+required to create the Windows installer.
+
+```powershell
+# Debug development build and run
 cmake --preset windows-debug
-cmake --build --preset windows-debug --parallel 4
+cmake --build --preset windows-debug --target designrc --parallel 4
 .\build\debug\Debug\foamairplanestudio.exe
+
+# Release build, run and package
+cmake --preset windows-release
+cmake --build --preset windows-release --target designrc --parallel 4
+.\build\release\Release\foamairplanestudio.exe
+pwsh -File packaging/windows/build-installer.ps1
 ```
 
-For Release deployment and the per-user Windows installer, see
-[Windows installer](docs/architecture/windows-installer.md). The installer defaults
-to `%LOCALAPPDATA%\Programs\FoamAirplaneStudio`, requires license acceptance,
-verifies installed license hashes, and offers an optional desktop shortcut.
+Close the corresponding workspace app before rebuilding it. The internal CMake
+target is still `designrc`; the executable and application identity are
+`foamairplanestudio` / FoamAirplaneStudio. Packaging path overrides and silent
+license acceptance are documented in [Windows installer](docs/architecture/windows-installer.md).
 
-Internal CMake targets/options and namespaces retain designrc/DESIGNRC names.
-Application/settings identity is FoamAirplaneStudio. Linux presets are retained;
-current FoamAirplaneStudio Linux and macOS builds are not validated.
+## Ubuntu: install and run
 
-## Validation
+On Ubuntu 24.04, install the DEB with APT so dependencies are resolved:
 
-```powershell
-ctest --preset windows-debug -R "^(reference_tests|sketch_editor_tests|wing_workflow_tests)$"
+```bash
+sudo apt install ./dist/foamairplanestudio_0.1.0_amd64.deb
+foamairplanestudio
 ```
 
-This is a small non-generation editor/reference check. Follow `AGENTS.md`:
-Wing and Fuselage generation tests require explicit user authorization, including
-suites that generate those components internally. Unfiltered CTest includes them.
+For this Windows checkout under WSL, the package path is:
+`/mnt/c/Users/barry/projects/FoamAirplaneStudio/dist/foamairplanestudio_0.1.0_amd64.deb`.
+The desktop application menu also includes FoamAirplaneStudio.
 
-The available tests cover project lifecycle, editors, workflow, wing/control/spar/lightening
-geometry, background processing, mesh orientation and retained domain/export code.
-The legacy `designrc_geometry_tests` target is an explicitly skipped placeholder.
+## Fedora: install and run
 
-Latest evidence: [Release/Debug test checks](docs/baseline/release-debug-test-checks.md),
-[four-surface cuts](docs/baseline/four-surface-cut-validation.md),
-[installer validation](docs/baseline/windows-installer-validation.md), and
-[September 29 documentation audit](docs/baseline/documentation-audit-2026-09-29.md).
+On Fedora 44, install the RPM with DNF:
 
-The September 19 [former rotation validation](docs/baseline/former-rotation-validation.md)
-records the full Debug build, 35 passing implemented tests after the workflow-test
-update, one intentionally skipped placeholder, and app launch. Parallel generation
-measurements are recorded for [Fuselage](docs/baseline/fuselage-parallel-validation.md)
-and [Wing](docs/baseline/wing-kernel-parallel-validation.md).
+```bash
+sudo dnf install ./dist/foamairplanestudio-0.1.0-1.x86_64.rpm
+foamairplanestudio
+```
 
-The September 16 [regeneration validation](docs/baseline/regeneration-validation.md)
-records a successful Debug build, eight relevant passing suites and app launch.
-Its single-sample Debug benchmarks establish geometry parity and reduced meshing
-work, but do not establish an overall sequential speedup. Historical test results
-validate their recorded revisions only. Fuselage validation is recorded in
-[fuselage outline validation](docs/baseline/fuselage-outline-validation.md) and
-[profile station validation](docs/baseline/fuselage-station-validation.md).
+Both Linux packages install the launcher at **`/usr/bin/foamairplanestudio`**,
+which is normally already on PATH. Use this launcher: it sets the private library
+and OCCT resource paths. The binary and bundled libraries are in
+`/usr/lib/foamairplanestudio`, resources/examples in `/usr/share/foamairplanestudio`,
+and package metadata in `/usr/share/doc/foamairplanestudio`. Licenses are beside
+the binary. Linux package installation requires administrator privileges and
+does not display Windows Setup's interactive license-acceptance page.
 
-Build output, SDKs and local working artwork/projects in `reference_imgaes` are
-excluded from Git. Small regression fixtures remain in `tests/fixtures`.
+Uninstall with `sudo apt remove foamairplanestudio` (Ubuntu) or
+`sudo dnf remove foamairplanestudio` (Fedora). Projects saved outside the installation
+remain yours.
 
-## License
+## Linux: build from source and create packages
 
-Copyright (C) 2026 Barry Foust. GNU GPL version 3 only; see [LICENSE](LICENSE).
-Dependency notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
-[the deployed license collection](licenses/README.md).
+Use CMake 3.24+, Ninja, a C++23 compiler, Qt 6.4+ with PDF, and **OCCT 8.0**.
+Ubuntu validation uses GCC 13.3/Qt 6.4.2; Fedora uses GCC 16.1/Qt 6.11.2.
+Fedora 44's system OCCT 7.9.3 is too old. Build OCCT 8 on each target distribution;
+do not reuse Ubuntu binaries on Fedora.
+
+```bash
+# Ubuntu build dependencies
+sudo apt update
+sudo apt install build-essential cmake ninja-build git qt6-base-dev \
+  qt6-base-dev-tools qt6-pdf-dev libgl-dev libglu1-mesa-dev \
+  libx11-dev libxext-dev libxmu-dev libxi-dev libfreetype-dev \
+  libfontconfig1-dev dpkg-dev fakeroot gzip
+
+# Fedora build dependencies
+sudo dnf install gcc-c++ cmake ninja-build git rpm-build qt6-qtbase-devel \
+  qt6-qtpdf-devel mesa-libGL-devel mesa-libGLU-devel libX11-devel \
+  libXext-devel libXmu-devel libXi-devel freetype-devel fontconfig-devel gzip
+```
+
+Set `occt_source` to the extracted OCCT 8.0.0 directory containing CMakeLists.txt:
+
+```bash
+occt_source="$(realpath ../third_party/occt/OCCT-8_0_0/OCCT-8_0_0)"
+occt_prefix="$(realpath -m ../third_party/occt/install-linux-release)"
+cmake -S "$occt_source" -B "$HOME/build/foam-occt-release" -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$occt_prefix" \
+  -DINSTALL_DIR_LAYOUT=Unix -DINSTALL_DIR_CMAKE=cmake \
+  -DBUILD_MODULE_Draw=OFF -DUSE_FREETYPE=ON -DUSE_OPENGL=ON -DUSE_XLIB=ON \
+  -DUSE_FFMPEG=OFF -DUSE_FREEIMAGE=OFF -DUSE_TBB=OFF -DUSE_VTK=OFF
+cmake --build "$HOME/build/foam-occt-release" --parallel 4
+cmake --install "$HOME/build/foam-occt-release"
+
+# From the FoamAirplaneStudio repository, run the matching Release packager:
+sh packaging/linux/build-package.sh  # Ubuntu
+sh packaging/linux/build-rpm.sh      # Fedora
+
+# Run the uninstalled Release application:
+./build/linux-release/foamairplanestudio   # Ubuntu
+./build/fedora-release/foamairplanestudio  # Fedora
+```
+
+Scripts use CPack and private Qt/OCCT/ICU libraries, following DesignRC's approach.
+They stage on a native Linux temporary filesystem and write the package,
+format-specific application-source archive, and SHA-256 checksums to `dist/`.
+RPM builds accept an `OpenCASCADE_DIR` environment override; both scripts accept
+`CMAKE_BUILD_PARALLEL_LEVEL` (default 4). Application-source archives do not contain
+dependency source trees. See [Linux packaging](docs/architecture/linux-packages.md).
+
+For a Debug application and selected non-generation editor tests:
+
+```bash
+cmake -S . -B build/linux-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+  -DOpenCASCADE_DIR="$occt_prefix/cmake" -DDESIGNRC_BUILD_TESTS=ON
+cmake --build build/linux-debug --target designrc reference_tests \
+  sketch_editor_tests file_dialog_tests --parallel 4
+LD_LIBRARY_PATH="$occt_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+QT_QPA_PLATFORM=offscreen ctest --test-dir build/linux-debug \
+  -R '^(reference_tests|sketch_editor_tests|file_dialog_tests)$' --output-on-failure
+./build/linux-debug/foamairplanestudio
+```
+
+## Validation and licensing
+
+Follow [AGENTS.md](AGENTS.md): Wing/Fuselage generation tests require explicit
+authorization, including broader suites that generate those components internally.
+Do not substitute an unfiltered CTest run for the selected editor checks above.
+The legacy `designrc_geometry_tests` target remains an intentionally skipped placeholder.
+
+See [current installer validation](docs/baseline/linux-package-validation.md),
+[Release/Debug regression evidence](docs/baseline/release-debug-test-checks.md),
+and [geometry validation](docs/baseline/four-surface-cut-validation.md).
+Installation smoke tests do not establish full geometry or native-desktop coverage.
+
+Copyright (C) 2026 Barry Foust. Application license: **GPL-3.0-only**; see
+[LICENSE](LICENSE). Dependencies retain their own terms; see
+[third-party notices](THIRD_PARTY_NOTICES.md) and [license collection](licenses/README.md).

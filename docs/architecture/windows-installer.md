@@ -44,3 +44,7 @@ References: [Inno non-admin configuration](https://jrsoftware.org/ishelp/topic_s
 [file hashing](https://jrsoftware.org/ishelp/topic_isxfunc_getsha256offile.htm),
 [Microsoft app-local deployment](https://learn.microsoft.com/en-us/cpp/windows/choosing-a-deployment-method?view=msvc-170),
 [VS 2026 redistribution](https://learn.microsoft.com/en-us/visualstudio/releases/2026/redistribution).
+
+The installer also includes `resources/Example` as `Example` beneath the selected
+application directory, containing BabyBuzzard36.foam and its reference PDF.
+Use Save As to keep an editable copy outside the installation directory.

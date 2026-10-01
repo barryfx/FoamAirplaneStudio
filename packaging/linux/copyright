@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: FoamAirplaneStudio
+Source: https://github.com/barryfx/FoamAirplaneStudio
+
+Files: *
+Copyright: 2026 Barry Foust
+License: GPL-3.0-only
+ See /usr/lib/foamairplanestudio/licenses/GPL-3.0.txt.
+ Bundled dependencies retain their respective licenses; see that directory.

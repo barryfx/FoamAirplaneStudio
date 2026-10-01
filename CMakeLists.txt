@@ -640,3 +640,7 @@ endif()
 
 
 
+
+if(UNIX AND NOT APPLE)
+  include(packaging/linux/Packaging.cmake)
+endif()

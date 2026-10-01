@@ -23,7 +23,7 @@ Copy-Item -LiteralPath "$release/foamairplanestudio.exe","$release/Qt6Pdf.dll" -
 if ($LASTEXITCODE) { throw 'Qt deployment failed' }
 Get-ChildItem "$release/TK*.dll" | Copy-Item -Destination $stage
 Copy-Item -LiteralPath "$release/freetype.dll" -Destination $stage
-Copy-Item -LiteralPath "$repo/resources/help","$repo/licenses" -Destination $stage -Recurse
+Copy-Item -LiteralPath "$repo/resources/help","$repo/resources/Example","$repo/licenses" -Destination $stage -Recurse
 Copy-Item -LiteralPath "$repo/THIRD_PARTY_NOTICES.md" -Destination "$stage/licenses"
 Copy-Item -LiteralPath (Join-Path (Split-Path $Iscc) 'license.txt') -Destination "$stage/licenses/INNO-SETUP.txt"
 $redist = Get-ChildItem "$VisualStudio/VC/Redist/MSVC" -Directory | Where-Object { $_.Name -match '^\d+\.' } | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FoamAirplaneStudio
+Comment=Design foam RC airplanes and export manufacturing parts
+Exec=foamairplanestudio
+Icon=/usr/share/foamairplanestudio/graphics/FoamAirplaneStudio.png
+Terminal=false
+Categories=Graphics;Engineering;

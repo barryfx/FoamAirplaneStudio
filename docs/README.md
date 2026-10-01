@@ -123,3 +123,5 @@ Four-surface cuts, retained cut-outs and parallel-wall checks: [ADR-0049](adr/00
 Windows per-user packaging, license verification and optional desktop shortcut: [installer](architecture/windows-installer.md) and [validation](baseline/windows-installer-validation.md).
 
 Release and Debug regression evidence: [test checks](baseline/release-debug-test-checks.md). Assembly and Export omit the statistics footer and defer mass calculation; Weight and Balance displays its own totals and a small CG marker.
+
+Linux DEB/RPM packaging: [design](architecture/linux-packages.md) and [installation validation](baseline/linux-package-validation.md).

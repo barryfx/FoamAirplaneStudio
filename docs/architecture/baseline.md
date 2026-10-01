@@ -107,3 +107,5 @@ and `FoamAirplaneStudio.ico`, derived from that PNG at 16, 24, 32, 48, 64, 128 a
 no Python or image-conversion dependency is required to build the application.
 
 Startup displays the embedded `FoamAirplaneStudio.png` in a centered, aspect-preserving splash (up to 512 pixels). Main-window initialization occurs behind it. A precise, nonblocking timer keeps it visible for three seconds before revealing the maximized application; clicks do not dismiss it early. Slow initialization may extend this duration until the window is ready.
+
+Linux deployment uses CPack DEB/RPM packages with private Qt/OCCT runtimes and a desktop launcher; see [Linux packaging](linux-packages.md). Platform-specific installation evidence is recorded separately from geometry tests.
