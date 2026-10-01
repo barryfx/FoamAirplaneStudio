@@ -1,5 +1,8 @@
 # Documentation guide
 
+The [project website](architecture/project-website.md) is checked into `website/`
+and deployed from `main` through GitHub Pages.
+
 Current state: September 29, 2026.
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including

@@ -2,6 +2,8 @@
 
 **This software has been tested through Export, but no airplanes have been milled with it.**
 
+[Project website and downloads](https://barryfx.github.io/FoamAirplaneStudio/)
+
 **Version 0.1.0 — October 1, 2026.** Desktop foam-airplane design with C++23,
 Qt and Open CASCADE Technology (OCCT). Trace reference plans, generate separate
 foam and structural parts, assemble the airplane, and export manufacturing files
