@@ -59,6 +59,20 @@ static geometry::AssemblyParts parts() {
   return p;
 }
 static void mathematics() {
+  CHECK(geometry::balanceWorkerLimit(0)==1&&geometry::balanceWorkerLimit(1)==1);
+  CHECK(geometry::balanceWorkerLimit(2)==1&&geometry::balanceWorkerLimit(4)==3);
+  CHECK(geometry::balanceWorkerLimit(8)==7&&geometry::balanceWorkerLimit(16)==14);
+  CHECK(geometry::balanceWorkerLimit(20)==18&&geometry::balanceWorkerLimit(64)==57);
+  geometry::MaterialMeasurementCache cache;auto cachedParts=parts();
+  auto cachedMass=geometry::foamMassProperties(cachedParts,0,&cache);CHECK(cache.integrations==4);
+  geometry::foamMassProperties(cachedParts,0,&cache);CHECK(cache.integrations==4);
+  cachedParts.inserts[0].name="Renamed former";cachedMass=geometry::foamMassProperties(cachedParts,0,&cache);CHECK(cache.integrations==4&&cachedMass.components[6].name=="Renamed former");
+  cachedParts.wing=box(100,50,100,100);cachedMass=geometry::foamMassProperties(cachedParts,0,&cache);CHECK(cache.integrations==5&&closeEnough(cachedMass.volumeMm3,1.5e6));
+  AssemblyState movedState;movedState.offsets[0]={20,30};
+  cachedMass=geometry::foamMassProperties(geometry::placeAssembly(cachedParts,movedState),0,&cache);CHECK(cache.integrations==6);
+  const auto freshMass=geometry::foamMassProperties(geometry::placeAssembly(cachedParts,movedState),1);CHECK(closeEnough(cachedMass.volumeMm3,freshMass.volumeMm3));CHECK(cachedMass.centroidMm==freshMass.centroidMm);
+  geometry::foamMassProperties(geometry::placeAssembly(cachedParts,movedState),0,&cache);CHECK(cache.integrations==6);
+  std::swap(cachedParts.inserts[0],cachedParts.inserts[1]);geometry::foamMassProperties(geometry::placeAssembly(cachedParts,movedState),0,&cache);CHECK(cache.integrations==6);
   auto mass=geometry::foamMassProperties(parts());
   const auto serial=geometry::foamMassProperties(parts(),1);
   CHECK(closeEnough(serial.volumeMm3,mass.volumeMm3));CHECK(serial.centroidMm==mass.centroidMm);
@@ -307,10 +321,26 @@ public:
     CHECK(closeEnough(*w.statistics_.weightGrams,calculateBalance(panel->state(),*w.balanceMassCache_).grams));
     QString clothArea,resinArea;for(int row=0;row<breakdown->rowCount();++row){const auto label=breakdown->item(row,0)->text();if(label.contains("Root reinforcement / Fiberglass"))clothArea=label.mid(label.indexOf('('));if(label.contains("Root reinforcement / Resin"))resinArea=label.mid(label.indexOf('('));}CHECK(!clothArea.isEmpty()&&clothArea==resinArea);
     CHECK(w.grab().save(directory+"/weight-balance-fiberglass.png"));
+    // An aggregate cache miss must preserve each unaffected measurement.
+    const auto volumeIntegrations=w.balanceMaterialCache_.integrations;
+    const auto coveringIntegrations=w.balanceFiberglassCache_.integrations;
+    auto incremental=covering;auto second=covering.sketch.layers[0];for(auto& point:second.points)point.rx()+=5;
+    incremental.sketch.layers.push_back(second);incremental.patches.push_back(covering.patches[0]);incremental.patches[1].name="Second patch";
+    w.fiberglassPanels_[0]->restore(incremental);w.updateProjectTitle();
+    CHECK(w.balanceMaterialCache_.integrations==volumeIntegrations);
+    CHECK(w.balanceFiberglassCache_.integrations==coveringIntegrations+1);
+    CHECK(w.balanceMassCache_->fiberglass.size()==2&&closeEnough(w.balanceMassCache_->fiberglass[0].areaMm2,measuredArea));
+    incremental.sketch.layers[1].points[0].rx()+=2;w.fiberglassPanels_[0]->restore(incremental);w.updateProjectTitle();
+    CHECK(w.balanceMaterialCache_.integrations==volumeIntegrations&&w.balanceFiberglassCache_.integrations==coveringIntegrations+2);
+    auto densityState=panel->state();densityState.resinDensityKgM3+=10;panel->restore(densityState);w.updateProjectTitle();
+    CHECK(w.balanceMaterialCache_.integrations==volumeIntegrations&&w.balanceFiberglassCache_.integrations==coveringIntegrations+2);
+    w.fiberglassPanels_[0]->restore(covering);w.updateProjectTitle();
+    CHECK(w.balanceFiberglassCache_.integrations==coveringIntegrations+2&&w.balanceFiberglassCache_.entries.size()==1);
     // Undo/redo includes patch material and sketch inputs.
     w.resetEditHistory();covering.patches[0].name="Renamed covering";w.fiberglassPanels_[0]->restore(covering);w.captureEdit();CHECK(w.undoAction_->isEnabled());
     w.undoAction_->trigger();CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Root reinforcement");w.redoAction_->trigger();CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Renamed covering");
     CHECK(w.saveProjectFile(file,error));CHECK(w.openProjectFile(file,error));CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Renamed covering");CHECK(!w.projectModified());
+    CHECK(w.balanceMaterialCache_.entries.empty()&&w.balanceFiberglassCache_.entries.empty());
     CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_);
     w.resetProject();CHECK(panel->state().carbonFiberDensityKgM3==1540);CHECK(panel->state().parts.empty());CHECK(panel->state().densityKgM3==25.63);CHECK(!toolbar->actions()[7]->isEnabled());
   }

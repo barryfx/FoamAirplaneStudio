@@ -482,8 +482,9 @@ void MainWindow::updateWeightBalance(bool frameSide) {
     if(!balanceMassCache_ || balanceMassFingerprint_!=key || !sameShapes) {
       balanceMassCache_.reset();
       ProcessingScope processing{this,"Calculating Weight and Balance foam, plywood and Carbon Fiber statistics..."};
-      auto mass=geometry::foamMassProperties(*exportAssemblyParts());
-      mass.fiberglass=geometry::fiberglassMassProperties(project,assemblyOriginals_,*exportAssemblyParts());
+      const auto placed=*exportAssemblyParts();
+      auto mass=geometry::foamMassProperties(placed,0,&balanceMaterialCache_);
+      mass.fiberglass=geometry::fiberglassMassProperties(project,assemblyOriginals_,placed,0,&balanceFiberglassCache_);
       balanceMassCache_=std::move(mass);
       balanceMassFingerprint_=key;balanceMassSources_=std::move(shapes);
       statusBar()->clearMessage();
@@ -1152,6 +1153,7 @@ void MainWindow::resetProject() {
   assemblySourceFingerprint_.clear();assemblyAttemptFingerprint_.clear();assemblySelected_=-1;
   for(auto* button:assemblySelect_)button->setChecked(false);
   balanceMassCache_.reset();balanceMassSources_.clear();balanceMassFingerprint_.clear();
+  balanceMaterialCache_={};balanceFiberglassCache_={};
   ++projectEpoch_;for(auto& job:stabilizerJobs_)if(job)job->cancel();if(modelJob_)modelJob_->cancel();if(fuselageJob_)fuselageJob_->cancel();
   ProcessingScope processing{this, "Creating empty project..."};
   restoringProject_=true;projectOpen_=true;centralWidget()->setEnabled(true);

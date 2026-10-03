@@ -27,6 +27,10 @@
 using namespace designrc;
 using namespace designrc::gui;
 static bool closeEnough(double a,double b,double tolerance=1e-5){return std::abs(a-b)<tolerance;}
+static void sameCoverings(const std::vector<FoamMassProperties::Covering>& a,const std::vector<FoamMassProperties::Covering>& b) {
+  TEST_CHECK(a.size()==b.size());
+  for(std::size_t i=0;i<a.size();++i){TEST_CHECK(a[i].name==b[i].name);TEST_CHECK(closeEnough(a[i].areaMm2,b[i].areaMm2));TEST_CHECK(closeEnough(a[i].clothGrams,b[i].clothGrams));TEST_CHECK(closeEnough(a[i].resinVolumeMm3,b[i].resinVolumeMm3));TEST_CHECK((a[i].centroidMm-b[i].centroidMm).manhattanLength()<1e-5);}
+}
 static SketchLayer loop(std::vector<QPointF> points,bool closed=true) {
   SketchLayer layer;layer.points=std::move(points);
   for(std::size_t i=1;i<layer.points.size();++i)layer.curves.push_back({SketchTool::Line,{i-1,i}});
@@ -145,6 +149,35 @@ static void placementChecks() {
   TEST_CHECK(serial.size()==3&&parallel.size()==serial.size());
   for(std::size_t i=0;i<serial.size();++i){TEST_CHECK(serial[i].name==parallel[i].name);TEST_CHECK(closeEnough(serial[i].areaMm2,parallel[i].areaMm2));TEST_CHECK(closeEnough(serial[i].resinVolumeMm3,parallel[i].resinVolumeMm3));TEST_CHECK(closeEnough(serial[i].clothGrams,parallel[i].clothGrams));TEST_CHECK((serial[i].centroidMm-parallel[i].centroidMm).manhattanLength()<1e-5);}
   std::cout<<"Fiberglass serial/4-worker parity: "<<serialMs<<" / "<<parallelMs<<" ms (analytic fixtures)"<<std::endl;
+  // More than four patches on one component can now execute independently.
+  for(int i=1;i<8;++i){auto layer=fuselage.sketch.layers[0];for(auto& point:layer.points)point.rx()+=i*4;fuselage.sketch.layers.push_back(layer);auto meta=fuselage.patches[0];meta.name=QString{"Strip %1"}.arg(i);fuselage.patches.push_back(meta);}
+  geometry::FiberglassMeasurementCache cache;
+  const auto measure=[&]{return geometry::fiberglassMassProperties(p,originals,geometry::placeAssembly(originals,p.assembly),0,&cache);};
+  timer.restart();const auto freshSerial=geometry::fiberglassMassProperties(p,originals,placed,1);const auto coldSerialMs=timer.nsecsElapsed()/1e6;
+  timer.restart();auto cached=measure();const auto coldParallelMs=timer.nsecsElapsed()/1e6;sameCoverings(freshSerial,cached);TEST_CHECK(cache.integrations==10);
+  timer.restart();sameCoverings(cached,measure());const auto warmMs=timer.nsecsElapsed()/1e6;TEST_CHECK(cache.integrations==10);
+  fuselage.sketch.layers[0].points[2].rx()+=2;
+  timer.restart();cached=measure();const auto editedMs=timer.nsecsElapsed()/1e6;TEST_CHECK(cache.integrations==11);
+  sameCoverings(cached,geometry::fiberglassMassProperties(p,originals,geometry::placeAssembly(originals,p.assembly),1));
+  auto count=cache.integrations;fuselage.patches[0].name="Renamed";fuselage.patches[0].clothGm2=200;fuselage.patches[0].automaticResin=false;fuselage.patches[0].resinThicknessMm=.2;
+  cached=measure();TEST_CHECK(cache.integrations==count);TEST_CHECK(cached[0].name=="Fuselage / Renamed");TEST_CHECK(closeEnough(cached[0].resinVolumeMm3,cached[0].areaMm2*.2));TEST_CHECK(closeEnough(cached[0].clothGrams,cached[0].areaMm2*.0002));
+  // Top View changes do not invalidate Side View patches.
+  p.fuselage.layers[0].points[0].rx()+=1;measure();TEST_CHECK(cache.integrations==count);
+  std::swap(fuselage.sketch.layers[0],fuselage.sketch.layers[1]);std::swap(fuselage.patches[0],fuselage.patches[1]);measure();TEST_CHECK(cache.integrations==count);
+  auto added=fuselage.sketch.layers[0];for(auto& point:added.points)point.rx()+=1;fuselage.sketch.layers.push_back(added);fuselage.patches.push_back(fuselage.patches[0]);measure();TEST_CHECK(cache.integrations==++count);
+  fuselage.sketch.layers.pop_back();fuselage.patches.pop_back();measure();TEST_CHECK(cache.integrations==count&&cache.entries.size()==10);
+  fuselage.patches[0].wrap=!fuselage.patches[0].wrap;measure();TEST_CHECK(cache.integrations==++count);
+  fuselage.patches[0].side=CoverSide::Right;measure();TEST_CHECK(cache.integrations==++count);
+  p.assembly.offsets[1].rx()+=5;cached=measure();TEST_CHECK(cache.integrations==++count);
+  sameCoverings(cached,geometry::fiberglassMassProperties(p,originals,geometry::placeAssembly(originals,p.assembly),1));
+  measure();TEST_CHECK(cache.integrations==count); // Numerically identical new TopLoc datums hit.
+  originals.fuselage=BRepPrimAPI_MakeBox{gp_Pnt{0,-40,-10},200,80,20}.Shape();measure();count+=8;TEST_CHECK(cache.integrations==count); // New topology, same bounds.
+  const auto valid=fuselage.sketch.layers[0];fuselage.sketch.layers[0]=loop({{100,90},{110,92}},false);
+  bool failed=false;try{measure();}catch(const std::exception&){failed=true;}TEST_CHECK(failed&&cache.integrations==count&&cache.entries.size()==10);
+  fuselage.sketch.layers[0]=valid;measure();TEST_CHECK(cache.integrations==count);
+  p.reference.wingspanMm=400;cached=measure();count+=10;TEST_CHECK(cache.integrations==count);
+  sameCoverings(cached,geometry::fiberglassMassProperties(p,originals,geometry::placeAssembly(originals,p.assembly),1));
+  std::cout<<"10-patch benchmark, hardware threads "<<std::thread::hardware_concurrency()<<", budget "<<geometry::balanceWorkerLimit()<<": serial cold "<<coldSerialMs<<" ms, parallel cold "<<coldParallelMs<<" ms, cached "<<warmMs<<" ms, one edit "<<editedMs<<" ms"<<std::endl;
 }
 static void guiChecks(QApplication& app,const QString& directory) {
   std::cout<<"Editor GUI"<<std::endl;

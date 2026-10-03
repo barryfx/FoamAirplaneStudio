@@ -71,10 +71,19 @@ inputs under the updated statistics key; stale data is never used as current.
 Only Weight and Balance integrates mass or updates weight, wing loading and CG.
 Every other mode displays dashes for these three statistics; outline dimensions
 continue to update. Independent components/plywood inserts use bounded workers
-for volume integration, and covering components use up to four workers with
+for volume integration, and individual changed patches use up to 90% of reported
+logical hardware threads (rounded down, minimum one) with
 private meshes and classifiers. Results are reduced in component/patch order.
 Inner covering meshes run serially to avoid nested worker multiplication.
 Both cloth and resin rows show exactly the same covered area.
+
+Each patch caches its measured area and centroid independently. Only misses are
+scheduled, including concurrent patches on the same component. Boundary,
+surface/wrap, relevant outline/projection, scale or source topology/placement
+changes invalidate that entry; other patches and material-only edits reuse their
+measurements. Reordering and removing patches preserves surviving cache hits.
+These bounded caches last for the project session, reset on New/Open/Close, and
+retain their previous entries if a calculation fails. See ADR-0051.
 
 A Side View open U whose endpoints close below the fuselage covers the lower
 left side, connecting bottom and lower right side in Wrap Sides mode, without

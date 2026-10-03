@@ -1,6 +1,7 @@
 #pragma once
 #include "gui/ProjectDocument.h"
 #include "geometry/Assembly.h"
+#include "geometry/WeightBalanceCache.h"
 #include <functional>
 namespace designrc::geometry {
 // Projection returns reference-scene coordinates; direction points out of the
@@ -14,5 +15,6 @@ QPainterPath fiberglassRegion(gui::SketchLayer layer,const QPainterPath& outline
 gui::FoamMassProperties::Covering measureFiberglass(const TopoDS_Shape& shape,
     const QPainterPath& region,const FiberglassProjection& projection,bool wrap,bool parallelMesh=true);
 std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
-    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers=0);
+    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers=0,
+    FiberglassMeasurementCache* cache=nullptr);
 }

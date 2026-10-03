@@ -88,7 +88,23 @@ zoom. Part/density edits update its position using cached mass properties;
 stale model data hides it without generating geometry.
 
 Volume integration runs in bounded workers across independent components and
-plywood inserts; fiberglass area integration runs across component workers.
+plywood inserts; fiberglass area integration runs across individual patches.
 Workers own their accumulators and covering meshes; deterministic reductions
 preserve component order and mass/CG results. Both cloth and resin entries show
 the same covered surface area; the resin row also retains its material volume.
+
+Weight and Balance uses up to 90% of reported logical hardware threads, rounded
+down with a minimum of one, limited by the number of uncached tasks. Other
+generation schedulers are unchanged. Nested covering meshing remains serial.
+
+Individual component/insert volumes and patch areas/centroids have transient
+caches beneath the aggregate cache. Editing one boundary measures only that
+patch; unchanged foam and other patches are reused. Material values reweight
+existing measurements. Topology, placement or relevant projection changes
+invalidate only dependent entries. Keys compare immutable source topology,
+orientation and numeric transforms; patch keys also include their geometry,
+wrap/surface, scale and relevant outline inputs. Renaming/reordering/deleting
+patches preserves reuse for surviving geometry. Successful queries replace the
+retained entry set, so obsolete shapes do not accumulate. Failed measurements
+leave the previous valid cache intact. New/Open/Close clears these caches; they
+are not saved as portable CAD measurements. See ADR-0051.

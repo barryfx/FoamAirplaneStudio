@@ -15,6 +15,8 @@
 #include <TopoDS_Compound.hxx>
 #include <QPainterPathStroker>
 #include <QTransform>
+#include <QDataStream>
+#include <QIODevice>
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -37,6 +39,34 @@ QPainterPath outlinePath(SketchLayer layer,QPointF span={}) {
   return gui::sketchPolygon(*boundary);
 }
 gp_Pnt average(const gp_Pnt& a,const gp_Pnt& b,const gp_Pnt& c) {return gp_Pnt{(a.XYZ()+b.XYZ()+c.XYZ())/3};}
+void writeLayer(QDataStream& out,const SketchLayer& layer) {
+  out<<quint64(layer.points.size());for(auto point:layer.points)out<<point;
+  out<<quint64(layer.curves.size());for(const auto& curve:layer.curves) {
+    out<<qint32(curve.type)<<quint64(curve.points.size());for(auto point:curve.points)out<<quint64(point);
+  }
+  out<<bool(layer.leadingEdge);if(layer.leadingEdge)out<<quint64(*layer.leadingEdge);
+}
+// Only inputs consumed by this patch's projection belong here. Material values,
+// names, selection, other patches and unrelated component outlines do not.
+QByteArray coveringKey(const gui::ProjectDocument& project,int component,std::size_t patchIndex,
+    const gui::WingCalibration& calibration,const gp_Trsf& placement) {
+  QByteArray key;QDataStream out{&key,QIODevice::WriteOnly};out<<qint32(component)<<calibration.scale;
+  const auto& patch=project.fiberglass[component].patches[patchIndex];
+  out<<qint32(patch.side)<<patch.wrap;writeLayer(out,project.fiberglass[component].sketch.layers[patchIndex]);
+  for(int row=1;row<=3;++row)for(int column=1;column<=4;++column)out<<placement.Value(row,column);
+  if(component==0) {
+    out<<calibration.spanDirection<<quint64(project.wing.layers.size());
+    for(const auto& layer:project.wing.layers)writeLayer(out,layer);
+    out<<quint64(project.stations.lines.size());for(const auto& station:project.stations.lines)
+      out<<station.first.layer<<station.first.position<<station.second.position;
+    out<<quint64(project.dihedralDegrees.size());for(auto angle:project.dihedralDegrees)out<<angle;
+  } else if(component==1) {
+    const bool top=patch.side==gui::CoverSide::Top||patch.side==gui::CoverSide::Bottom;
+    writeLayer(out,project.fuselage.layers[top?0:1]);
+    out<<outlinePath(project.fuselage.layers[1]).boundingRect().width();
+  } else writeLayer(out,project.stabilizerOutlines[component-2].layers[0]);
+  return key;
+}
 }
 QPainterPath fiberglassRegion(SketchLayer layer,const QPainterPath& outline) {
   if(layer.curves.empty())return {};
@@ -145,21 +175,44 @@ gui::FoamMassProperties::Covering measureFiberglass(const TopoDS_Shape& source,
 }
 
 std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
-    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers) {
+    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers,
+    FiberglassMeasurementCache* cache) {
   std::vector<gui::FoamMassProperties::Covering> result;
   bool any=false;for(const auto& component:project.fiberglass){any=any||!component.sketch.pending.empty();for(const auto& layer:component.sketch.layers)any=any||!layer.curves.empty();}
-  if(!any)return result;
+  if(!any){if(cache)cache->entries.clear();return result;}
   const auto calibration=gui::wingCalibration(project.wing.layers,project.stations.lines,project.reference.toScale?std::nullopt:project.reference.wingspanMm);
   const double scale=calibration.scale;const QString names[]{"Wing","Fuselage","Horiz Stab","Vert Stab"};
-  std::array<std::vector<gui::FoamMassProperties::Covering>,4> measured;
-  // Each component owns its projection, copied mesh and visibility classifier.
-  // Keep OCCT meshing serial inside workers to bound nested thread counts.
-  processing::runIndexedTasks(4,[&](std::size_t component,std::stop_token) {
+  struct Task {int component;std::size_t patch;gp_Trsf placement;};
+  std::vector<Task> tasks;std::vector<FiberglassMeasurementCache::Entry> measured;
+  std::vector<std::size_t> missing;
+  for(int component=0;component<4;++component) {
     const auto& state=project.fiberglass[component];
-    bool present=!state.sketch.pending.empty();for(const auto& layer:state.sketch.layers)present=present||!layer.curves.empty();
-    if(!present)return;
     if(!state.sketch.pending.empty())throw std::runtime_error((names[component]+": finish the pending fiberglass curve first.").toStdString());
     gp_Trsf placement;if(component!=1)placement=assemblyComponentPlacement(originals,project.assembly,component==0?0:component-1);
+    std::vector<TopoDS_Shape> sources;
+    if(component==0)sources={placed.wing};else if(component==1)sources={placed.fuselage};
+    else if(component==2)sources={placed.horizontal,placed.elevator};else sources={placed.vertical,placed.rudder};
+    for(std::size_t i=0;i<state.patches.size();++i) {
+      if(state.sketch.layers[i].curves.empty())continue;
+      tasks.push_back({component,i,placement});
+      measured.push_back({sources,coveringKey(project,component,i,calibration,placement),{}});
+      auto& entry=measured.back();
+      if(cache) {
+        const auto found=std::find_if(cache->entries.begin(),cache->entries.end(),[&](const auto& old) {
+          return old.projection==entry.projection&&old.sources.size()==sources.size()&&
+              std::equal(old.sources.begin(),old.sources.end(),sources.begin(),sameMassShape);
+        });
+        if(found!=cache->entries.end()){entry.measured=found->measured;continue;}
+      }
+      missing.push_back(tasks.size()-1);
+    }
+  }
+  // One task per changed patch, including patches on the same component. Each
+  // owns its projection, copied mesh and classifier. No nested meshing workers.
+  // Publish cache replacements only after every task succeeds and joins.
+  processing::runIndexedTasks(missing.size(),[&](std::size_t taskIndex,std::stop_token) {
+    const auto index=missing[taskIndex];const auto& task=tasks[index];const int component=task.component;
+    const auto& state=project.fiberglass[component];const auto& placement=task.placement;
     const auto inverse=placement.Inverted();
     BRep_Builder builder;TopoDS_Compound shape;builder.MakeCompound(shape);
     const auto append=[&](const TopoDS_Shape& part){if(!part.IsNull())builder.Add(shape,part);};
@@ -196,8 +249,8 @@ std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
       WingFrame best=frames.front();double distance=1e100;
       for(const auto& frame:frames){const double y=std::abs(p.Y())-frame.y,z=p.Z()-frame.z;const double u=y*std::cos(frame.angle)+z*std::sin(frame.angle),v=-y*std::sin(frame.angle)+z*std::cos(frame.angle);const double d=std::hypot(u-std::clamp(u,0.,frame.length),v);if(d<distance){distance=d;best=frame;}}return best;
     };
-    for(std::size_t i=0;i<state.patches.size();++i) {
-      const auto& patch=state.patches[i];if(state.sketch.layers[i].curves.empty())continue;
+    const auto i=task.patch;
+      const auto& patch=state.patches[i];
       try {
         FiberglassProjection projection;
         WingFrame currentFrame{};double mirrorSign=1;
@@ -221,12 +274,15 @@ std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
           projection.outward=[=](const gp_Pnt&){return (component==2?gp_Dir{0,0,sign}:gp_Dir{0,sign,0}).Transformed(placement);};
         }
         const auto region=fiberglassRegion(state.sketch.layers[i],outline);
-        auto covered=measureFiberglass(shape,region,projection,patch.wrap,false);covered.name=names[component]+" / "+patch.name;
-        covered.clothGrams=covered.areaMm2*patch.clothGm2*1e-6;covered.resinVolumeMm3=covered.areaMm2*gui::resinThickness(patch);measured[component].push_back(covered);
+        measured[index].measured=measureFiberglass(shape,region,projection,patch.wrap,false);
       } catch(const std::exception& error){throw std::runtime_error((names[component]+" / "+patch.name+": "+error.what()).toStdString());}
-    }
-  },{},workers);
-  for(auto& component:measured)for(auto& patch:component)result.push_back(std::move(patch));
+  },{},workers?std::min(workers,balanceWorkerLimit()):balanceWorkerLimit());
+  for(std::size_t index=0;index<tasks.size();++index) {
+    const auto& task=tasks[index];const auto& patch=project.fiberglass[task.component].patches[task.patch];
+    auto covered=measured[index].measured;covered.name=names[task.component]+" / "+patch.name;
+    covered.clothGrams=covered.areaMm2*patch.clothGm2*1e-6;covered.resinVolumeMm3=covered.areaMm2*gui::resinThickness(patch);result.push_back(std::move(covered));
+  }
+  if(cache){cache->entries=std::move(measured);cache->integrations+=missing.size();}
   return result;
 }
 }

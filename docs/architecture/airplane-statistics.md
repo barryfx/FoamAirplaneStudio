@@ -47,3 +47,7 @@ and Balance, title refreshes and design edits invalidate stale saved material
 measurements without integrating solids or updating weighted totals. Entering
 Weight and Balance validates the cache against geometry, placement and covering
 inputs, measures when necessary, then recalculates mass, CG and wing loading.
+
+Individual transient material/covering caches reuse unchanged component volumes
+and patch areas/centroids when the aggregate inputs change. Only affected entries
+are remeasured; these caches are separate from the persistent summary above.

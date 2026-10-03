@@ -11,6 +11,7 @@
 #include "geometry/StabilizerSolidBuilder.h"
 #include "geometry/Assembly.h"
 #include "geometry/ComponentExporter.h"
+#include "geometry/WeightBalanceCache.h"
 
 class QVBoxLayout;
 class QTabWidget;
@@ -101,6 +102,8 @@ private:
   QByteArray balanceMassFingerprint_;
   std::vector<TopoDS_Shape> balanceMassSources_;
   std::optional<FoamMassProperties> balanceMassCache_;
+  geometry::MaterialMeasurementCache balanceMaterialCache_;
+  geometry::FiberglassMeasurementCache balanceFiberglassCache_;
   void updateExportAvailability();
   void exportComponents();
   ExportPanel* exportPanel_{};
