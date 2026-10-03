@@ -34,7 +34,7 @@ double skinY(const FuselageWallSection& section,double z) {
 int solids(const TopoDS_Shape& shape){int n=0;for(TopExp_Explorer e{shape,TopAbs_SOLID};e.More();e.Next())++n;return n;}
 }
 TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<FuselageWallSection>& sections,
-    double length,const gui::StiffenerState& settings,std::vector<SparMaterial>& materials,const ProcessingControl& control) {
+    double length,const gui::StiffenerState& settings,std::vector<SparMaterial>& materials,const ProcessingControl& control,bool rightHalf) {
   gui::validateStiffeners(settings);if(!settings.count)return body;
   if(body.IsNull()||sections.size()<2||!std::isfinite(length)||length<=0)throw std::runtime_error("Stiffeners require a complete fuselage.");
   const bool round=settings.shape==gui::SparShape::Round;const double width=round?settings.diameterMm:settings.widthMm;
@@ -71,6 +71,7 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
       if(gp_Pnt{a.XYZ()+(c.XYZ()-a.XYZ())*t}.Distance(b)<1e-8)centers.erase(centers.begin()+i);else ++i;
     }
     for(int side:{1,-1}) {
+      if(rightHalf&&side<0)break;
       const auto loft=[&](bool cutting) {
         BRepOffsetAPI_ThruSections result{true,false,1e-7};result.CheckCompatibility(false);result.SetMaxDegree(3);
         for(auto center:centers) {

@@ -1,10 +1,13 @@
 # FoamAirplaneStudio project format, version 33
 
-Version 33 adds `stiffeners`: `count` (integer 0–16 per side), `shape`
+Version 33 adds `stiffeners`: `count` (integer 0–3 per side), `shape`
 (Round=0, Strip=1), `startPercent` and `stopPercent` (0–100, start < stop),
 and `widthMm`, `heightMm`, `diameterMm` (0.01–100 mm). Counts are mirrored on
-both fuselage sides. Defaults are disabled (count 0), Strip, 50–95%, width
+both fuselage sides. Defaults are disabled (count 0), Strip, 20–90%, width
 3 mm, height 1 mm and diameter 3 mm. Versions 1–32 initialize these defaults.
+Earlier version-33 counts 4–16 load capped at 3. Existing saved percentages are
+preserved. Entry defaults to mm regardless of project units; explicit inch
+display is transient and no additional unit flags are saved.
 Unused shape dimensions remain saved for switching shapes. Generated grooves
 and stock records stay in session caches; optional derived statistics retain
 their existing cache rules. No geometry is saved. Older readers

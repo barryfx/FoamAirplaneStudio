@@ -111,7 +111,8 @@ The shared builder also parallelizes independent wall offsets and enables OCCT
 parallel Boolean, validation and meshing work. Loft/cavity/accessory/cut ordering
 is preserved. See regeneration.md for the per-operation serial comparison option.
 
-Generation now hollows and adds supports/rails to the right half, then reflects
+Generation now hollows, adds supports/rails and cuts stiffener grooves in the
+right half, then reflects
 it as a separate left part. The main halves are never joined. Whole cavity tooling
 fits the removable formers and tray. Holes, cuts and alignment pins/sockets are
 applied afterwards; detached cut-out pieces retain whole-part behavior. See

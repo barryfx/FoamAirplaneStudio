@@ -248,7 +248,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
   if(version>=33) {
     const auto s=object(json["stiffeners"],"stiffeners");auto& out=p.stiffeners;
-    out.count=integer(s["count"],"stiffener count",0,16);out.shape=static_cast<SparShape>(integer(s["shape"],"stiffener shape",0,1));
+    out.count=std::min(3,integer(s["count"],"stiffener count",0,16));out.shape=static_cast<SparShape>(integer(s["shape"],"stiffener shape",0,1));
     out.startPercent=number(s["startPercent"],"stiffener start",0,100);out.stopPercent=number(s["stopPercent"],"stiffener stop",0,100);
     out.widthMm=number(s["widthMm"],"stiffener width",.01,100);out.heightMm=number(s["heightMm"],"stiffener height",.01,100);out.diameterMm=number(s["diameterMm"],"stiffener diameter",.01,100);validateStiffeners(out);
   }

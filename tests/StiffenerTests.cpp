@@ -1,6 +1,7 @@
 #include "TestCheck.h"
 #include "geometry/FuselageStiffeners.h"
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/FuselageSymmetry.h"
 #include "geometry/WeightBalance.h"
 #include "gui/StiffenerPanel.h"
 #include "gui/ProjectDocument.h"
@@ -21,6 +22,7 @@
 #include <QJsonObject>
 #include <QScreen>
 #include <iostream>
+#include <algorithm>
 #include <numbers>
 using namespace designrc;using namespace designrc::gui;
 static bool closeEnough(double a,double b,double epsilon=.01){return std::abs(a-b)<epsilon;}
@@ -38,6 +40,12 @@ int main(int argc,char** argv) {
     s.count=3;stock.clear();const auto multiple=geometry::cutFuselageStiffeners(body,sections,200,s,stock);
     TEST_CHECK(stock.size()==6&&closeEnough(volume(body)-volume(multiple),6*360));
     TEST_CHECK(closeEnough(stock[0].center.Z(),-5)&&closeEnough(stock[2].center.Z(),0)&&closeEnough(stock[4].center.Z(),5));
+    const auto right=BRepPrimAPI_MakeBox{gp_Pnt{0,0,-10},200,10,20}.Shape();
+    std::vector<geometry::SparMaterial> rightStock;
+    const auto groovedRight=geometry::cutFuselageStiffeners(right,sections,200,s,rightStock,{},true);
+    TEST_CHECK(rightStock.size()==3&&closeEnough(volume(right)-volume(groovedRight),3*360));
+    const auto mirroredGrooves=geometry::fuselagePair(groovedRight);
+    TEST_CHECK(BRepCheck_Analyzer{mirroredGrooves}.IsValid()&&closeEnough(volume(mirroredGrooves),volume(multiple)));
     geometry::AssemblyParts parts;parts.fuselage=multiple;parts.sparMaterials=stock;AssemblyState placement;placement.offsets[0]={25,30};placement.rotationDegrees[0]=20;
     const auto placed=geometry::placeAssembly(parts,placement);TEST_CHECK(placed.sparMaterials[0].center.Distance(stock[0].center)<1e-8);
     const auto mass=geometry::foamMassProperties(placed);TEST_CHECK(closeEnough(mass.carbonFiberVolumeMm3,2160));TEST_CHECK(closeEnough(mass.carbonFiberCentroidMm.x(),100));
@@ -54,9 +62,18 @@ int main(int argc,char** argv) {
     ConstrainedLine first,last;first.first.position={50,0};first.profile=0;first.thicknessMm=5;last=first;last.first.position={150,0};input.stations={first,last};
     std::cout<<"Generating hollow fuselage with mirrored strip grooves..."<<std::endl;
     input.stiffeners=s;input.stiffeners.shape=SparShape::Strip;input.stiffeners.count=2;
-    const auto generatedStrip=geometry::buildFuselageModel(input);
+    std::vector<std::string> stages;
+    const auto generatedStrip=geometry::buildFuselageModel(input,[&](const char* stage){stages.emplace_back(stage);});
+    auto grooveStage=std::find(stages.begin(),stages.end(),"Fuselage: cutting carbon fiber stiffener grooves...");
+    auto mirrorStage=std::find(stages.begin(),stages.end(),"Fuselage: reflecting the completed right half as a separate left part...");
+    TEST_CHECK(grooveStage!=stages.end()&&mirrorStage!=stages.end()&&grooveStage<mirrorStage);
     TEST_CHECK(generatedStrip.stiffeners.size()==4&&BRepCheck_Analyzer{generatedStrip.body}.IsValid());
     for(const auto& material:generatedStrip.stiffeners)TEST_CHECK(closeEnough(material.volumeMm3,360));
+    for(int i=0;i<2;++i) {
+      const auto& r=generatedStrip.stiffeners[i];const auto& l=generatedStrip.stiffeners[i+2];
+      TEST_CHECK(r.volumeMm3==l.volumeMm3&&r.center.X()==l.center.X()&&r.center.Z()==l.center.Z()&&r.center.Y()==-l.center.Y());
+      TEST_CHECK(r.name.ends_with(" / Right")&&l.name.ends_with(" / Left"));
+    }
     std::cout<<"Generating hollow fuselage with mirrored round grooves..."<<std::endl;
     input.stiffeners=s;const auto generatedRound=geometry::buildFuselageModel(input);
     TEST_CHECK(generatedRound.stiffeners.size()==2&&BRepCheck_Analyzer{generatedRound.body}.IsValid());

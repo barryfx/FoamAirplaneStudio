@@ -162,10 +162,11 @@ outermost profiles within 0.5 mm of those end planes as open ends. Drawing data
 is unchanged; this describes legacy automatic end inference (ADR-0044), superseded
 for current projects by the explicit end choices in ADR-0048/0049.
 
-Fuselage / Stiffeners: Number of Stiffeners is per side, mirrored on both sides.
+Fuselage / Stiffeners: Number of Stiffeners is 0–3 per side, mirrored on both sides.
 Zero disables grooves. Shape selects Strip (Width vertical, Height inward) or
-Round (one Diameter). Start and Stop are percentages from the nose. Lengths use
-Reference units or explicit mm/in. One route follows local mid-height; multiple
+Round (one Diameter). Start and Stop default to 20% and 90% from the nose.
+Lengths default to mm independently of Reference units; explicit inches remain
+displayed in inches for that field until replaced. One route follows local mid-height; multiple
 routes are evenly spaced, with smooth lofts and checks against abrupt bends and
 wall breakthrough. Regenerate in 3D; Weight and Balance includes solid carbon
 stock. See architecture/fuselage-stiffeners.md.

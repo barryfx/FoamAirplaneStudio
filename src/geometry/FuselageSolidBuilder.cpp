@@ -314,13 +314,21 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
     shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees,input.mirrorConstruction);
   }
+  if(input.stiffeners.count) {
+    if(progress)progress("Fuselage: cutting carbon fiber stiffener grooves...");
+    shape=cutFuselageStiffeners(shape,walls,length,input.stiffeners,result.stiffeners,processing,input.mirrorConstruction);
+  }
   if(input.mirrorConstruction) {
     if(progress)progress("Fuselage: reflecting the completed right half as a separate left part...");
     shape=fuselagePair(shape,processing);
-  }
-  if(input.stiffeners.count) {
-    if(progress)progress("Fuselage: cutting carbon fiber stiffener grooves...");
-    shape=cutFuselageStiffeners(shape,walls,length,input.stiffeners,result.stiffeners,processing);
+    // Reflection preserves stock volume; mirror the centroids without another
+    // loft, cut or integration on the left side.
+    const auto count=result.stiffeners.size();
+    for(std::size_t i=0;i<count;++i) {
+      auto left=result.stiffeners[i];left.center.SetY(-left.center.Y());
+      left.name="Fuselage stiffener "+std::to_string(i+1)+" / Left";
+      result.stiffeners.push_back(std::move(left));
+    }
   }
   if(!input.holes.empty()) {
     if(progress)progress("Fuselage: cutting holes through the selected walls...");

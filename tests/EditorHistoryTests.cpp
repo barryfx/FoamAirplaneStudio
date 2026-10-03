@@ -98,6 +98,9 @@ public:
     const auto wingBeforeStiffeners=w.wingFingerprint(),fuselageBeforeStiffeners=w.fuselageFingerprint();
     roundTrip([&]{auto state=w.stiffenerPanel_->state();state.count=2;w.stiffenerPanel_->restore(state);});
     CHECK(w.wingFingerprint()==wingBeforeStiffeners&&w.fuselageFingerprint()!=fuselageBeforeStiffeners);
+    auto legacyStiffeners=encodeProject(ProjectDocument{});auto settings=legacyStiffeners["stiffeners"].toObject();
+    settings["count"]=16;legacyStiffeners["stiffeners"]=settings;
+    CHECK(decodeProject(legacyStiffeners).stiffeners.count==3);
     // Stations move as one click/hover/drop edit and restore with their source curve.
     project.wing.layers={{{{100,100},{400,100},{400,300},{100,300}},
       {{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}}}}};

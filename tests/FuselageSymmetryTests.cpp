@@ -10,6 +10,7 @@
 #include <TopoDS.hxx>
 #include <Standard_Failure.hxx>
 #include <array>
+#include <algorithm>
 #include <set>
 #include <memory>
 #include <cmath>
@@ -72,6 +73,12 @@ void parity(geometry::FuselageSolidInput input,const char* name) {
   std::cout<<"  full symmetric / serial"<<std::endl;input.mirrorConstruction=false;const auto full=geometry::buildFuselageModel(input,[](const char* status){std::cout<<status<<std::endl;},geometry::ProcessingControl{{},false});
   std::cout<<"  half construction / parallel"<<std::endl;input.mirrorConstruction=true;const auto mirrored=geometry::buildFuselageModel(input,[](const char* status){std::cout<<status<<std::endl;});
   compare(full.shape,mirrored.shape);
+  CHECK(full.stiffeners.size()==mirrored.stiffeners.size());
+  for(const auto& material:full.stiffeners) {
+    auto found=std::find_if(mirrored.stiffeners.begin(),mirrored.stiffeners.end(),[&](const auto& other){return other.name==material.name;});
+    CHECK(found!=mirrored.stiffeners.end());CHECK(std::abs(found->volumeMm3-material.volumeMm3)<1e-5);
+    CHECK(found->center.Distance(material.center)<1e-5);
+  }
   CHECK(full.formers.size()==mirrored.formers.size());
   for(std::size_t i=0;i<full.formers.size();++i)compare(full.formers[i],mirrored.formers[i]);
   if(!full.servoTray.IsNull())compare(full.servoTray,mirrored.servoTray);
@@ -84,6 +91,7 @@ int main(int argc,char** argv) {
       for(int configuration=0;configuration<2;++configuration) {
         auto input=fixture();input.thicken=true;
         if(configuration==0) {
+          input.stiffeners.count=1;
           input.servoTray=QRectF{40,108,20,2};input.formers={QRectF{20,98,3,34},QRectF{85,98,3,34}};
           input.formerRotationDegrees={12,-8};
         } else {
@@ -109,6 +117,9 @@ int main(int argc,char** argv) {
     };
     auto input=fixture();check(input,"solid asymmetric profile becomes symmetric");
     input.thicken=true;check(input,"closed cavity");
+    auto stiffened=input;stiffened.stiffeners.count=2;check(stiffened,"strip stiffeners before reflection");
+    stiffened.stiffeners.shape=gui::SparShape::Round;stiffened.stiffeners.diameterMm=2;
+    check(stiffened,"round stiffeners before reflection");
     input.stations[0].first.position.setX(0);input.stations[0].second.position.setX(0);
     auto tail=input.stations.front();tail.first.position.setX(120);tail.second.position.setX(120);
     tail.thicknessMm=5;input.stations.push_back(tail);check(input,"open ends and varying walls");

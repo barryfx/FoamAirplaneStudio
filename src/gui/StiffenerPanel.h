@@ -16,7 +16,7 @@ private:
   void refresh();
   bool updating_=false;
   StiffenerState state_;
-  ProjectUnits units_=ProjectUnits::Millimeters;
+  ProjectUnits widthUnits_=ProjectUnits::Millimeters, heightUnits_=ProjectUnits::Millimeters, diameterUnits_=ProjectUnits::Millimeters;
   QFormLayout* form_{};
   QSpinBox* count_{};QComboBox* shape_{};
   QDoubleSpinBox *start_{},*stop_{};

@@ -521,8 +521,10 @@ the overlay, overlap checks, fitted solid and retaining rails; save it per forme
 
 ## Fuselage stiffeners (implemented refinement)
 
-Fuselage / Stiffeners shall provide a per-side mirrored count, Strip/Round shape,
-start/stop percentages from the nose, strip Width/Height or round Diameter.
+Fuselage / Stiffeners shall provide a per-side mirrored count of 0–3, Strip/Round shape,
+start/stop percentages from the nose (defaults 20%/90%), strip Width/Height or round Diameter.
+Dimensions shall default to mm regardless of project units, with explicit inches
+retained in the field display.
 One follows local mid-height; multiple routes are evenly spaced vertically.
 Generation shall produce surface grooves with smooth paths and reject abrupt
 bends or inadequate wall clearance. Weight and Balance shall include the solid

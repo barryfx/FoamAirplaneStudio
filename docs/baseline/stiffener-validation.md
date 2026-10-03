@@ -43,3 +43,25 @@ The rebuilt Release executable was launched from
 FoamAirplaneStudio, the process remained alive and Windows reported it responding.
 Debug and Release help deployment was refreshed after the final format-reference
 correction. Linux/macOS builds were not exercised.
+
+## Follow-up: defaults, units and cutting before reflection
+
+Default Start/Stop is now 20%/90%; count is restricted to 0–3 per side. GUI tests
+verify bare mm entry in an inch project, independent explicit inch display,
+invalid entry preservation and reset defaults. Earlier saved counts above three
+load capped at three; saved percentages are retained.
+
+Grooves now cut the right half before reflection. Tests verify the reported stage
+order, right-half removal volume, mirrored carbon centroids and volumes, and full
+regeneration of straight and curved hollow booms. Full serial versus mirrored
+parallel parity includes both Strip and Round, comparing geometry and carbon
+properties. Cancellation checks include the stiffener cutting stage.
+
+Only test executables were rebuilt; neither Debug nor Release application was
+built or launched for this follow-up. The user authorized fuselage regeneration
+after initially requesting GUI-only validation. Six selected Debug tests passed
+in 233.81 seconds: stiffener_panel_tests, editor_history_tests, stiffener_tests,
+fuselage_symmetry_tests, fuselage_cancellation_tests and fuselage_thicken_tests.
+The final panel test was rebuilt/rerun after improving the count-validation error
+message and adding its regression assertion. OCCT parallel Boolean processing
+remains on by default. No performance improvement is claimed or benchmarked.
