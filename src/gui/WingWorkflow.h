@@ -12,7 +12,7 @@ struct WingDefinitionState {
   bool dihedralDefined{};
 };
 
-// Configure the seven Wing actions. Earlier steps remain editable; every later
+// Configure the Wing actions. Earlier steps remain editable; every later
 // step requires the complete prerequisite chain. Returns the selected tool.
 int applyWingWorkflow(QToolBar& toolbar, const WingDefinitionState& state);
 }

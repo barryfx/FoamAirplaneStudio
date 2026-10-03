@@ -147,7 +147,7 @@ public:
     CHECK(w.findChild<QLineEdit*>("inspectName0")->text()=="Renamed generated wing");
     CHECK(w.inspectPanel_->isVisible()&&!w.graphicsTabs_->isTabEnabled(0));
     w.resetProject();
-    auto json=encodeProject(document);CHECK(json["version"]==31);json["version"]=26;legacyCutViews(json);json.remove("componentNames");
+    auto json=encodeProject(document);CHECK(json["version"]==32);json["version"]=26;legacyCutViews(json);json.remove("componentNames");
     auto ui=json["ui"].toObject();ui["workspace"]=0;json["ui"]=ui;
     CHECK(decodeProject(json).componentNames.empty());
     auto invalid=encodeProject(document);invalid["componentNames"]=QJsonObject{{"Wing/solid/0","../escape"}};

@@ -10,11 +10,13 @@
 #include "gui/WeightBalanceState.h"
 #include "gui/ComponentNames.h"
 #include "gui/AirplaneStatistics.h"
+#include "gui/FiberglassState.h"
 namespace designrc::gui {
 struct ProjectDocument {
   AirplaneStatistics statistics;
   ComponentNames componentNames;
   WeightBalanceState weightBalance;
+  std::array<FiberglassState,4> fiberglass=[] {std::array<FiberglassState,4> states;states[3].patches[0].side=CoverSide::Left;return states;}();
   AssemblyState assembly;
   ProjectReference reference;
   QString wingspanText, fuselageText;

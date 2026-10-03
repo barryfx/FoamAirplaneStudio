@@ -44,6 +44,7 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   for (auto& editor : stabilizerSketchEditors_) editor = new SketchEditor{this};
   for(auto& editor:stabilizerHingeEditors_)editor=new SketchEditor{this};
   for(auto& editor:stabilizerCutEditors_)editor=new SketchEditor{this, SketchAppearance::Cut};
+  for(auto& editor:fiberglassEditors_)editor=new SketchEditor{this, SketchAppearance::Fiberglass};
   sketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_->setClosedLoopMode(true);
@@ -81,6 +82,7 @@ void PlanViewport::drawForeground(QPainter* painter, const QRectF& rect) {
   fuselageProfileEditor_->paint(*painter);
   fuselageCutEditor_->paint(*painter);
   fuselageHoleEditor_->paint(*painter);
+  for(auto* editor:fiberglassEditors_)editor->paint(*painter);
   servoTrayEditor_->paint(*painter);
   formerEditor_->paint(*painter);
   if(balanceOverlay)balanceOverlay(*painter);
@@ -147,6 +149,7 @@ void PlanViewport::clearPlan() {
   for (auto* editor : stabilizerSketchEditors_) editor->reset();
   for(auto* editor:stabilizerHingeEditors_)editor->reset();
   for(auto* editor:stabilizerCutEditors_)editor->reset();
+  for(auto* editor:fiberglassEditors_)editor->reset();
   airfoilSketchEditor_->reset();
   fuselageProfileEditor_->reset();
   servoTrayEditor_->restore({});
@@ -190,6 +193,7 @@ void PlanViewport::setReferenceBackground(const std::vector<ReferencePage>& page
     for (auto* editor : stabilizerSketchEditors_) editor->mapPoints(remap);
     for(auto* editor:stabilizerHingeEditors_)editor->mapPoints(remap);
     for(auto* editor:stabilizerCutEditors_)editor->mapPoints(remap);
+    for(auto* editor:fiberglassEditors_)editor->mapPoints(remap);
     airfoilSketchEditor_->mapPoints(remap);
     fuselageSketchEditor_->mapPoints(remap);
     fuselageProfileEditor_->mapPoints(remap);
@@ -333,5 +337,4 @@ void PlanViewport::wheelEvent(QWheelEvent* event) {
 }
 
 } // namespace designrc::gui
-
 

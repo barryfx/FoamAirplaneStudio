@@ -2,6 +2,7 @@
 #include "gui/MainWindow.h"
 #include "gui/ReferencePanel.h"
 #include "gui/WeightBalancePanel.h"
+#include "gui/FiberglassPanel.h"
 #include "gui/WingCalibration.h"
 #include "geometry/WeightBalance.h"
 #include <BRepPrimAPI_MakeBox.hxx>
@@ -99,7 +100,7 @@ static void persistence() {
   p.spars[0][2].insideDiameterMm=5.08;p.spars[0][2].insideDiameterText=".2 in";
   p.weightBalance.carbonFiberDensityKgM3=1600;p.workspace=7;p.weightBalance.parts.push_back({"Motor",30,40,50,gramsPerOunce,{123,-45},true});
   p.weightBalance.plywoodDensityKgM3=725;p.weightBalance.densityKgM3=35;
-  auto json=encodeProject(p);CHECK(json["version"]==31);auto restored=decodeProject(json);
+  auto json=encodeProject(p);CHECK(json["version"]==32);auto restored=decodeProject(json);
   CHECK(restored.weightBalance.carbonFiberDensityKgM3==1600);
   CHECK(restored.spars[0][2].insideDiameterMm==5.08&&restored.spars[0][2].insideDiameterText==".2 in");
   auto previous=json;previous["version"]=28;legacyCutViews(previous);auto earlier=decodeProject(previous);
@@ -243,8 +244,10 @@ public:
     w.assemblyCutParts_=parts();w.assemblyCutParts_->fuselage=box(0,50,100,100);w.assemblyState_.cuts=true;w.updateWeightBalance();
     CHECK(calculations==beforeCuts+1);
     CHECK(closeEnough(calculateBalance(panel->state(),geometry::foamMassProperties(*w.assemblyCutParts_)).grams,38.445+136+2*gramsPerOunce));
-    panel->findChild<QDoubleSpinBox*>("balanceDensity")->setValue(40);CHECK(panel->state().densityKgM3==40);
-    panel->findChild<QDoubleSpinBox*>("balancePlywoodDensity")->setValue(700);CHECK(panel->state().plywoodDensityKgM3==700);
+    QTimer::singleShot(0,&w,[&]{panel->findChild<QDoubleSpinBox*>("balanceDensity")->setValue(99);panel->findChild<QDialog*>("balanceMaterialsDialog")->reject();});
+    panel->findChild<QPushButton*>("balanceMaterials")->click();CHECK(panel->state().densityKgM3==25.63);
+    QTimer::singleShot(0,&w,[&]{auto* dialog=panel->findChild<QDialog*>("balanceMaterialsDialog");dialog->findChild<QDoubleSpinBox*>("balanceDensity")->setValue(40);dialog->findChild<QDoubleSpinBox*>("balancePlywoodDensity")->setValue(700);dialog->findChild<QDoubleSpinBox*>("balanceResinDensity")->setValue(1200);CHECK(dialog->grab().save(directory+"/material-densities.png"));dialog->accept();});
+    panel->findChild<QPushButton*>("balanceMaterials")->click();CHECK(panel->state().densityKgM3==40);CHECK(panel->state().plywoodDensityKgM3==700);CHECK(panel->state().resinDensityKgM3==1200);
     CHECK(breakdown->item(0,1)->text()=="500.00");CHECK(breakdown->item(0,2)->text()=="20.00");
     CHECK(breakdown->item(6,2)->text()=="70.00");CHECK(breakdown->item(8,2)->text()=="60.00");
     CHECK(breakdown->rowCount()==12);CHECK(breakdown->item(11,1)->text()==QString::fromUtf8("—"));
@@ -273,10 +276,33 @@ public:
     w.assemblyState_.cuts=false;w.assemblySourceFingerprint_=w.assemblyFingerprint();w.updateWeightBalance();
     auto* carbonDensity=panel->findChild<QDoubleSpinBox*>("balanceCarbonFiberDensity");CHECK(carbonDensity&&carbonDensity->value()==1540);
     CHECK(breakdown->item(8,0)->text().contains("Carbon Fiber"));CHECK(breakdown->item(8,2)->text()=="15.40");
-    const int beforeCarbonDensity=calculations;carbonDensity->setValue(1600);w.updateWeightBalance();CHECK(calculations==beforeCarbonDensity);
+    const int beforeCarbonDensity=calculations;
+    QTimer::singleShot(0,&w,[&]{carbonDensity->setValue(1600);panel->findChild<QDialog*>("balanceMaterialsDialog")->accept();});
+    panel->findChild<QPushButton*>("balanceMaterials")->click();w.updateWeightBalance();CHECK(calculations==beforeCarbonDensity);
     CHECK(breakdown->item(8,2)->text()=="16.00");CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Carbon Fiber: 16.00 g"));
     CHECK(w.projectDocument().weightBalance.carbonFiberDensityKgM3==1600);
     QApplication::processEvents();CHECK(w.grab().save(directory+"/weight-balance-carbon.png"));
+    // Covering edits change mass, but never invalidate the Assembly solids.
+    const auto sourceFingerprint=w.assemblySourceFingerprint_;const auto wingShape=w.assemblyOriginals_.wing;
+    toolbar->actions()[1]->trigger();bool found=false;
+    for(auto* action:w.componentToolBar_->actions())if(action->text()=="Fiberglass"){CHECK(action->isEnabled());action->trigger();found=true;}
+    CHECK(found&&w.fiberglassPanels_[0]->isVisible()&&w.graphicsTabs_->currentIndex()==0);
+    auto covering=w.fiberglassPanels_[0]->state();covering.sketch.layers[0]=rectangle(20,60,160,200);covering.patches[0].name="Root reinforcement";covering.patches[0].wrap=false;
+    w.fiberglassPanels_[0]->restore(covering);w.planViewport_->fitInView(QRectF{0,0,600,400},Qt::KeepAspectRatio);QApplication::processEvents();CHECK(w.grab().save(directory+"/fiberglass-wing.png"));
+    toolbar->actions()[7]->trigger();w.updateWeightBalance();
+    CHECK(w.assemblySourceFingerprint_==sourceFingerprint&&w.assemblyOriginals_.wing.IsEqual(wingShape));
+    CHECK(w.balanceMassCache_&&w.balanceMassCache_->fiberglass.size()==1);CHECK(w.balanceMassCache_->fiberglass[0].areaMm2>0);
+    const auto measuredArea=w.balanceMassCache_->fiberglass[0].areaMm2;const int beforeClothEdit=calculations;
+    covering.patches[0].clothGm2=100;w.fiberglassPanels_[0]->restore(covering);w.updateProjectTitle();
+    CHECK(calculations==beforeClothEdit);CHECK(closeEnough(w.balanceMassCache_->fiberglass[0].clothGrams,measuredArea*.0001));
+    CHECK(closeEnough(*w.statistics_.weightGrams,calculateBalance(panel->state(),*w.balanceMassCache_).grams));
+    bool clothRow=false,resinRow=false;for(int row=0;row<breakdown->rowCount();++row){const auto label=breakdown->item(row,0)->text();clothRow=clothRow||label.contains("Root reinforcement / Fiberglass");resinRow=resinRow||label.contains("Root reinforcement / Resin");}CHECK(clothRow&&resinRow);
+    CHECK(w.grab().save(directory+"/weight-balance-fiberglass.png"));
+    // Undo/redo includes patch material and sketch inputs.
+    w.resetEditHistory();covering.patches[0].name="Renamed covering";w.fiberglassPanels_[0]->restore(covering);w.captureEdit();CHECK(w.undoAction_->isEnabled());
+    w.undoAction_->trigger();CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Root reinforcement");w.redoAction_->trigger();CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Renamed covering");
+    CHECK(w.saveProjectFile(file,error));CHECK(w.openProjectFile(file,error));CHECK(w.projectDocument().fiberglass[0].patches[0].name=="Renamed covering");CHECK(!w.projectModified());
+    CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_);
     w.resetProject();CHECK(panel->state().carbonFiberDensityKgM3==1540);CHECK(panel->state().parts.empty());CHECK(panel->state().densityKgM3==25.63);CHECK(!toolbar->actions()[7]->isEnabled());
   }
 };

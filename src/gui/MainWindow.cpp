@@ -1,6 +1,8 @@
 #include "gui/InspectPanel.h"
 #include "gui/WingCalibration.h"
 #include "gui/WeightBalancePanel.h"
+#include "gui/FiberglassPanel.h"
+#include "geometry/Fiberglass.h"
 #include "geometry/WeightBalance.h"
 #include "gui/MainWindow.h"
 #include <QCryptographicHash>
@@ -202,6 +204,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   weightBalancePanel_=new WeightBalancePanel{*planViewport_,dataContents_};
   dataLayout->addWidget(weightBalancePanel_,1);weightBalancePanel_->hide();
   weightBalancePanel_->changed=[this]{if(!restoringProject_)updateProjectTitle();};
+  for(int i=0;i<4;++i) {
+    fiberglassPanels_[i]=new FiberglassPanel{planViewport_->fiberglassEditor(i),i,dataContents_};dataLayout->addWidget(fiberglassPanels_[i]);
+    fiberglassPanels_[i]->hide();
+    fiberglassPanels_[i]->changed=[this]{if(!restoringProject_)updateProjectTitle();};
+  }
   // Panel footers consume available list/tab height, above bottom actions.
   for(int i=0;i<dataLayout->count();++i) {
     auto* panel=dataLayout->itemAt(i)->widget();if(!panel||panel==weightBalancePanel_||panel==assemblyPanel_||panel==exportPanel_)continue;
@@ -270,6 +277,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
   connect(&planViewport_->fuselageSketchEditor(),&SketchEditor::stationsChanged,this,[this]{if(!restoringProject_)updateFuselageProgress();});
   connect(&planViewport_->fuselageProfileEditor(),&SketchEditor::changed,this,[this]{if(!restoringProject_)updateFuselageProgress();});
   connect(graphicsTabs_, &QTabWidget::currentChanged, this, [this](int index) {
+    for(int i=0;i<4;++i)fiberglassPanels_[i]->setActive(index==0&&dataPanel_->property("workspaceIndex").toInt()==i+1&&dataPanel_->property("activeTool").toString()=="Fiberglass");
     const bool fuselageOutline=dataPanel_->property("workspaceIndex").toInt()==2 && dataPanel_->property("activeTool").toString()=="Outline";
     fuselageOutlinePanel_->setActive(fuselageOutline&&index==0,!restoringProject_);
     updateFuselageStationMode();
@@ -346,10 +354,10 @@ void MainWindow::selectWorkspace(int index) {
   componentToolBar_->clear();
   const std::array<QStringList, 9> tools{{
       {},
-      {"Outline", "Airfoil Stations", "Airfoils", "Dihedral", "Ailerons/Flaps", "Spars", "Lightening"},
-      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes"},
-      {"Outline", "Airfoil", "Hinge Line", "Cut"},
-      {"Outline", "Airfoil", "Hinge Line", "Cut"},
+      {"Outline", "Airfoil Stations", "Airfoils", "Dihedral", "Ailerons/Flaps", "Spars", "Lightening", "Fiberglass"},
+      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes", "Fiberglass"},
+      {"Outline", "Airfoil", "Hinge Line", "Cut", "Fiberglass"},
+      {"Outline", "Airfoil", "Hinge Line", "Cut", "Fiberglass"},
       {},
       {},
       {},
@@ -367,6 +375,7 @@ void MainWindow::selectWorkspace(int index) {
     if(fuselageGroup){action->setCheckable(true);fuselageGroup->addAction(action);action->setEnabled(name=="Outline" || (name=="Profile Stations"&&fuselageOutlinePanel_->outlinesDefined()));}
     connect(action, &QAction::triggered, this, [this, name] {
       dataPanel_->setProperty("activeTool", name);
+      if(name=="Fiberglass")graphicsTabs_->setCurrentWidget(planViewport_);
       if ((dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && (name=="Outline" || name=="Hinge Line" || name=="Cut")) graphicsTabs_->setCurrentWidget(planViewport_);
       if(dataPanel_->property("workspaceIndex").toInt()==2&&(name=="Outline"||name=="Profile Stations"||name=="Edit Profiles"||name=="Cut"||name=="Servo Tray"||name=="Formers"||name=="Holes"))graphicsTabs_->setCurrentWidget(planViewport_);
       if(dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken")fuselageThickenPanel_->enter(fuselageWingLeadingEdge());
@@ -390,6 +399,7 @@ void MainWindow::selectWorkspace(int index) {
           : (dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && name=="Airfoil" ? "Load one DAT airfoil for this stabilizer; open 3D View to generate its model"
           : (dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && name=="Hinge Line" ? "Draw connected hinge segments; the vertical fin uses the segment closest to span direction, and the horizontal stabilizer uses the longest segment for Tape or Standard relief"
           : (dataPanel_->property("workspaceIndex").toInt()==3 || dataPanel_->property("workspaceIndex").toInt()==4) && name=="Cut" ? "Add closed Cut Shapes to remove material through the stabilizer; select a shape to edit or delete"
+          : name=="Fiberglass" ? "Draw fiberglass coverage for Weight and Balance only; select a patch to edit its material and surface."
           : name + ": editor not implemented yet");
       updateEditorVisibility();
     });
@@ -454,7 +464,13 @@ void MainWindow::updateWeightBalance(bool frameSide) {
     for(const auto offset:assemblyState_.offsets){placement.append(offset.x());placement.append(offset.y());}
     for(const auto angle:assemblyState_.rotationDegrees)placement.append(angle);
     placement.append(assemblyState_.cuts);placement.append(QString::number(projectEpoch_));
-    const auto key=fingerprint+QJsonDocument{placement}.toJson(QJsonDocument::Compact);
+    const auto project=projectDocument();auto covering=encodeProject(project,false)["fiberglass"].toArray();
+    for(int i=0;i<covering.size();++i) {
+      auto component=covering[i].toObject();auto sketch=component["sketch"].toObject();
+      sketch.remove("selected");sketch.remove("editing");sketch.remove("active");if(sketch["pending"].toArray().isEmpty())sketch.remove("tool");component["sketch"]=sketch;
+      auto patches=component["patches"].toArray();for(int j=0;j<patches.size();++j){const auto patch=patches[j].toObject();patches[j]=QJsonObject{{"side",patch["side"]},{"wrap",patch["wrap"]}};}component["patches"]=patches;covering[i]=component;
+    }
+    const auto key=fingerprint+QJsonDocument{placement}.toJson(QJsonDocument::Compact)+QJsonDocument{covering}.toJson(QJsonDocument::Compact);
     const auto& source=assemblyState_.cuts?*assemblyCutParts_:assemblyOriginals_;
     std::vector<TopoDS_Shape> shapes{source.fuselage,source.wing,source.horizontal,source.vertical,source.elevator,source.rudder};
     for(const auto& insert:source.inserts)shapes.push_back(insert.shape);
@@ -464,9 +480,19 @@ void MainWindow::updateWeightBalance(bool frameSide) {
     if(!balanceMassCache_ || balanceMassFingerprint_!=key || !sameShapes) {
       balanceMassCache_.reset();
       ProcessingScope processing{this,"Calculating Weight and Balance foam, plywood and Carbon Fiber statistics..."};
-      balanceMassCache_=geometry::foamMassProperties(*exportAssemblyParts());
+      auto mass=geometry::foamMassProperties(*exportAssemblyParts());
+      mass.fiberglass=geometry::fiberglassMassProperties(project,assemblyOriginals_,*exportAssemblyParts());
+      balanceMassCache_=std::move(mass);
       balanceMassFingerprint_=key;balanceMassSources_=std::move(shapes);
       statusBar()->clearMessage();
+    }
+    // Material edits reuse measured areas and centroids, just as density edits
+    // reuse solid volumes. Separate overlapping patches intentionally add mass.
+    const QString componentNames[]{"Wing","Fuselage","Horiz Stab","Vert Stab"};std::size_t coveredIndex=0;
+    for(int component=0;component<4;++component)for(std::size_t i=0;i<project.fiberglass[component].patches.size();++i) {
+      if(project.fiberglass[component].sketch.layers[i].curves.empty())continue;
+      const auto& patch=project.fiberglass[component].patches[i];auto& measured=balanceMassCache_->fiberglass.at(coveredIndex++);
+      measured.name=componentNames[component]+" / "+patch.name;measured.clothGrams=measured.areaMm2*patch.clothGm2*1e-6;measured.resinVolumeMm3=measured.areaMm2*resinThickness(patch);
     }
     const double sourceLeadingEdge=geometry::wingRootLeadingEdgeX(planViewport_->sketchEditor().layers(),
         planViewport_->sketchEditor().stationEditor().lines(),reference.toScale?std::nullopt:reference.wingspanMm);
@@ -486,9 +512,9 @@ void MainWindow::updateWeightBalance(bool frameSide) {
       double low=profile.front().y,high=low;
       for(const auto point:profile){low=std::min(low,point.y);high=std::max(high,point.y);}
       const double height=(low+.2*(high-low))*calibration.rootChordMm;
-      const auto placement=geometry::assemblyComponentPlacement(assemblyOriginals_,assemblyState_,0);
-      const auto a=gp_Pnt{sourceLeadingEdge,0,height}.Transformed(placement);
-      const auto b=gp_Pnt{sourceLeadingEdge+calibration.rootChordMm,0,height}.Transformed(placement);
+      const auto wingPlacement=geometry::assemblyComponentPlacement(assemblyOriginals_,assemblyState_,0);
+      const auto a=gp_Pnt{sourceLeadingEdge,0,height}.Transformed(wingPlacement);
+      const auto b=gp_Pnt{sourceLeadingEdge+calibration.rootChordMm,0,height}.Transformed(wingPlacement);
       weightBalancePanel_->setCgHeightLine(QLineF{{a.X(),a.Z()},{b.X(),b.Z()}});
     }
   } catch(const Standard_Failure& error){statusBar()->clearMessage();weightBalancePanel_->setFoam({}, {}, QString::fromUtf8(error.what()));}
@@ -498,7 +524,9 @@ void MainWindow::updateWeightBalance(bool frameSide) {
 QByteArray MainWindow::statisticsMassKey() const {
   QJsonArray placement;for(const auto offset:assemblyState_.offsets){placement.append(offset.x());placement.append(offset.y());}
   for(const auto angle:assemblyState_.rotationDegrees)placement.append(angle);placement.append(assemblyState_.cuts);
-  return QCryptographicHash::hash("airplane-statistics-v1"+assemblyFingerprint()+QJsonDocument{placement}.toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex();
+  auto patches=encodeProject(projectDocument(),false)["fiberglass"].toArray();
+  for(int i=0;i<patches.size();++i){auto component=patches[i].toObject();auto sketch=component["sketch"].toObject();sketch.remove("selected");sketch.remove("editing");sketch.remove("active");if(sketch["pending"].toArray().isEmpty())sketch.remove("tool");component["sketch"]=sketch;patches[i]=component;}
+  return QCryptographicHash::hash("airplane-statistics-v2"+assemblyFingerprint()+QJsonDocument{placement}.toJson(QJsonDocument::Compact)+QJsonDocument{patches}.toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex();
 }
 void MainWindow::updateStatistics() {
   if(restoringProject_||statisticsLabels_.empty())return;
@@ -589,7 +617,7 @@ void MainWindow::updateFuselageProgress() {
   const bool hasProfiles=std::any_of(profiles.begin(),profiles.end(),[](const auto& layer){return !layer.curves.empty();});
   const bool complete=hasStations&&fuselageProfilePanel_->allProfilesClosed();
   for(auto* action:componentToolBar_->actions()) {
-    const bool enabled=action->text()=="Outline" || (action->text()=="Profile Stations"?ready:action->text()=="Edit Profiles"?(hasStations||hasProfiles):complete);
+    const bool enabled=action->text()=="Outline" || (action->text()=="Fiberglass"?ready:action->text()=="Profile Stations"?ready:action->text()=="Edit Profiles"?(hasStations||hasProfiles):complete);
     action->setEnabled(enabled);
     if(!enabled&&action->isChecked()) {
       componentToolBar_->actions().front()->setChecked(true);
@@ -710,6 +738,10 @@ void MainWindow::updateEditorVisibility() {
   if(fuselageOutline)fuselageOutlinePanel_->setActive(graphicsTabs_->currentIndex()==0,!restoringProject_);
   updateFuselageStationMode();
   updateStabilizerEditors();
+  for(int i=0;i<4;++i) {
+    fiberglassPanels_[i]->configure(projectReference().units);
+    fiberglassPanels_[i]->setActive(dataPanel_->property("workspaceIndex").toInt()==i+1&&dataPanel_->property("activeTool").toString()=="Fiberglass"&&graphicsTabs_->currentIndex()==0);
+  }
   updateWingModel();
 }
 
@@ -1111,6 +1143,7 @@ void MainWindow::resetProject() {
   inspectPreparing_=false;inspectFitAfterBuild_=false;inspectPanel_->restore({});
   statistics_={};
   weightBalancePanel_->restore({});weightBalancePanel_->setFoam({}, {}, "Generate Assembly to calculate the complete model.");
+  for(int i=0;i<4;++i)fiberglassPanels_[i]->restore(ProjectDocument{}.fiberglass[i]);
   assemblyState_={};assemblyOriginals_={};assemblyCutParts_.reset();fuselageModel_={};stabilizerModels_={};
   assemblySourceFingerprint_.clear();assemblyAttemptFingerprint_.clear();assemblySelected_=-1;
   for(auto* button:assemblySelect_)button->setChecked(false);
@@ -1167,6 +1200,7 @@ ProjectDocument MainWindow::projectDocument() const {
   p.statistics=statistics_;
   p.componentNames=inspectPanel_->names();
   p.weightBalance=weightBalancePanel_->state();
+  for(int i=0;i<4;++i)p.fiberglass[i]=fiberglassPanels_[i]->state();
   p.assembly=assemblyState_;
   p.reference=projectReference();
   p.wingspanText=findChild<QLineEdit*>("referenceWingspan")->text();
@@ -1198,6 +1232,9 @@ QByteArray MainWindow::projectFingerprint() const {
   auto tray=snapshot["servoTray"].toObject();if(tray["first"].isNull())tray.remove("drawing");snapshot["servoTray"]=tray;
   snapshot.remove("airplaneStatistics"); // Derived cache is not an edit or undo step.
   snapshot.remove("ui"); // Still saved/restored, but navigation is not a document edit.
+  auto fiberglass=snapshot["fiberglass"].toArray();
+  for(int i=0;i<fiberglass.size();++i){auto component=fiberglass[i].toObject();auto sketch=component["sketch"].toObject();sketch.remove("selected");sketch.remove("editing");if(sketch["pending"].toArray().isEmpty()){sketch.remove("tool");sketch.remove("active");}component["sketch"]=sketch;fiberglass[i]=component;}
+  snapshot["fiberglass"]=fiberglass;
   for (const char* key : {"wingOutline", "airfoilSketches", "fuselageOutline", "fuselageProfiles", "fuselageCuts", "fuselageHoles", "horizontalStabilizerOutline", "verticalStabilizerOutline", "horizontalStabilizerHinge", "verticalStabilizerHinge", "horizontalStabilizerCuts", "verticalStabilizerCuts"}) {
     auto sketch = snapshot[key].toObject();
     sketch.remove("selected"); sketch.remove("editing");
@@ -1414,6 +1451,7 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
     auto stabCuts=p.stabilizerCuts[i];stabCuts.editing=workspace==i+3&&p.tool=="Cut"&&p.viewport==0;
     planViewport_->stabilizerCutEditor(i).restoreState(stabCuts);stabilizerCutPanels_[i]->restoreControls();
   }
+  for(int i=0;i<4;++i){auto state=p.fiberglass[i];state.sketch.editing=workspace==i+1&&p.tool=="Fiberglass"&&p.viewport==0;fiberglassPanels_[i]->restore(state);}
   if(workspace==3 || workspace==4)stabilizerCameras_[workspace-3]=p.camera;
   else if(workspace==2)restoredFuselageCamera_=p.camera;else restoredWingCamera_=p.camera;
   // Establish the saved reference scale after restoring the former rectangles;
@@ -1526,4 +1564,3 @@ void MainWindow::pasteFocusedText() {
 }
 
 } // namespace designrc::gui
-

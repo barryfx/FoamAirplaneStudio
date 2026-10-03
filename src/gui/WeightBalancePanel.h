@@ -48,6 +48,7 @@ private:
   QDoubleSpinBox* density_{};
   QDoubleSpinBox* plywoodDensity_{};
   QDoubleSpinBox* carbonFiberDensity_{};
+  QDoubleSpinBox* resinDensity_{};
   QPushButton *edit_{},*delete_{};
   QLabel* results_{};
   QTableWidget* breakdown_{};

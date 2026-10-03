@@ -105,7 +105,9 @@ static QJsonObject encodeStatistics(const AirplaneStatistics& s) {
   QJsonObject out;for(const auto& [name,field]:statisticFields)out[name]=length(s.*field);
   if(s.balance) {
     const auto& b=*s.balance;const auto& m=b.materials;
+    QJsonArray covering;for(const auto& patch:m.fiberglass)covering.append(QJsonObject{{"name",patch.name},{"areaMm2",patch.areaMm2},{"clothGrams",patch.clothGrams},{"resinVolumeMm3",patch.resinVolumeMm3},{"centerMm",point(patch.centroidMm)}});
     out["balance"]=QJsonObject{{"sourceKey",QString::fromLatin1(b.sourceKey)},{"leadingEdgeMm",b.leadingEdgeMm},
+      {"fiberglass",covering},
       {"volumesMm3",QJsonArray{m.volumeMm3,m.plywoodVolumeMm3,m.carbonFiberVolumeMm3}},
       {"centersMm",QJsonArray{point(m.centroidMm),point(m.plywoodCentroidMm),point(m.carbonFiberCentroidMm)}}};
   }
@@ -124,7 +126,12 @@ static AirplaneStatistics decodeStatistics(const QJsonValue& value) {
     if(volumes.size()!=3||centers.size()!=3)bad("statistics materials");
     auto& m=cache.materials;m.volumeMm3=number(volumes[0],"foam volume",0,1e24);
     m.plywoodVolumeMm3=number(volumes[1],"plywood volume",0,1e24);m.carbonFiberVolumeMm3=number(volumes[2],"carbon volume",0,1e24);
-    m.centroidMm=point(centers[0]);m.plywoodCentroidMm=point(centers[1]);m.carbonFiberCentroidMm=point(centers[2]);s.balance=cache;
+    m.centroidMm=point(centers[0]);m.plywoodCentroidMm=point(centers[1]);m.carbonFiberCentroidMm=point(centers[2]);
+    if(b.contains("fiberglass"))for(const auto value:array(b["fiberglass"],"statistics fiberglass",4000)) {
+      const auto patch=object(value,"statistics fiberglass patch");
+      m.fiberglass.push_back({string(patch["name"],"statistics fiberglass name",240),number(patch["areaMm2"],"fiberglass area",0,1e24),number(patch["clothGrams"],"fiberglass mass",0,1e24),number(patch["resinVolumeMm3"],"resin volume",0,1e24),point(patch["centerMm"])});
+    }
+    s.balance=cache;
   }
   return s;
 }
@@ -214,8 +221,16 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
       {"name",part.name},{"widthMm",part.widthMm},{"heightMm",part.heightMm},{"lengthMm",part.lengthMm},
       {"grams",part.grams},{"centerMm",point(part.centerMm)},{"ounces",part.ounces}});
   QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"carbonFiberDensityKgM3",p.weightBalance.carbonFiberDensityKgM3},{"parts",balanceParts}};
+  balance["resinDensityKgM3"]=p.weightBalance.resinDensityKgM3;
+  QJsonArray fiberglass;
+  for(const auto& component:p.fiberglass) {
+    QJsonArray patches;for(const auto& patch:component.patches)patches.append(QJsonObject{
+      {"name",patch.name},{"wrap",patch.wrap},{"side",static_cast<int>(patch.side)},{"clothGm2",patch.clothGm2},
+      {"imperialCloth",patch.imperialCloth},{"automaticResin",patch.automaticResin},{"resinThicknessMm",patch.resinThicknessMm}});
+    fiberglass.append(QJsonObject{{"sketch",sketch(component.sketch)},{"patches",patches}});
+  }
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
-  return {{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",31},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  return {{"fiberglass",fiberglass},{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",32},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
@@ -228,8 +243,26 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>31)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>32)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
+  if(version>=32) {
+    const auto components=array(json["fiberglass"],"fiberglass",4);if(components.size()!=4)bad("fiberglass component count");
+    for(int i=0;i<4;++i) {
+      const auto component=object(components[i],"fiberglass component");auto& out=p.fiberglass[i];
+      out.sketch=sketch(component["sketch"],1000,true);out.patches.clear();
+      for(const auto value:array(component["patches"],"fiberglass patches",1000)) {
+        const auto o=object(value,"fiberglass patch");FiberglassPatch patch;
+        patch.name=string(o["name"],"fiberglass name",160).trimmed();if(patch.name.isEmpty())bad("fiberglass name");
+        patch.wrap=boolean(o["wrap"],"fiberglass wrap");patch.side=static_cast<CoverSide>(integer(o["side"],"fiberglass side",0,3));
+        if((i==0||i==2)&&static_cast<int>(patch.side)>1)bad("fiberglass horizontal surface");
+        if(i==3&&static_cast<int>(patch.side)<2)bad("fiberglass vertical surface");
+        patch.clothGm2=number(o["clothGm2"],"cloth weight",.001,1e7);patch.imperialCloth=boolean(o["imperialCloth"],"cloth units");
+        patch.automaticResin=boolean(o["automaticResin"],"automatic resin");patch.resinThicknessMm=number(o["resinThicknessMm"],"resin thickness",.000001,2540);
+        out.patches.push_back(patch);
+      }
+      if(out.patches.size()!=out.sketch.layers.size())bad("fiberglass shape metadata count");
+    }
+  } else p.fiberglass[3].patches[0].side=CoverSide::Left;
   if(version>=27) {
     const auto names=object(json["componentNames"],"component names");
     if(names.size()>10000)bad("component names");
@@ -243,6 +276,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   if(version>=26) {
     const auto balance=object(json["weightBalance"],"weight and balance");
     p.weightBalance.densityKgM3=number(balance["densityKgM3"],"foam density",.001,10000);
+    if(version>=32)p.weightBalance.resinDensityKgM3=number(balance["resinDensityKgM3"],"resin density",.001,10000);
     if(version>=29)p.weightBalance.carbonFiberDensityKgM3=number(balance["carbonFiberDensityKgM3"],"carbon fiber density",.001,10000);
     p.weightBalance.plywoodDensityKgM3=number(balance["plywoodDensityKgM3"],"plywood density",.001,10000);
     for(auto value:array(balance["parts"],"balance parts",1000)) {

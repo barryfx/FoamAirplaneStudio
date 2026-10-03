@@ -10,12 +10,14 @@ action is disabled. Definition state unlocks actions cumulatively:
 | Definitions present | Enabled tools |
 | --- | --- |
 | None | Outline |
-| Outline | Outline, Airfoil Stations |
-| Outline and stations | Outline, Airfoil Stations, Airfoils |
-| Outline, stations, and airfoils | Outline, Airfoil Stations, Airfoils, Dihedral |
-| All above plus Dihedral | All seven tools, including Ailerons/Flaps, Spars, Lightening |
+| Outline | Outline, Airfoil Stations, Fiberglass |
+| Outline and stations | Outline, Airfoil Stations, Airfoils, Fiberglass |
+| Outline, stations, and airfoils | Outline, Airfoil Stations, Airfoils, Dihedral, Fiberglass |
+| All above plus Dihedral | All eight tools, including Ailerons/Flaps, Spars, Lightening |
 
-Earlier steps remain editable. Sequential progress selects the next incomplete
+Earlier steps remain editable. Fiberglass is an optional Weight and Balance input, unlocked by a complete
+outline; it does not become a prerequisite for other tools. See fiberglass.md.
+Sequential progress selects the next incomplete
 step. After Dihedral, all three remaining tools are enabled together; no optional
 tool is selected automatically. An incomplete prerequisite disables all dependent
 actions even if downstream definition flags remain set.

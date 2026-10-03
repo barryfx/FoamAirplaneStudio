@@ -45,6 +45,7 @@ class DihedralPanel;
 class LighteningPanel;
 class ExportPanel;
 class WeightBalancePanel;
+class FiberglassPanel;
 class InspectPanel;
 struct ProjectReference;
 enum class CameraView;
@@ -95,6 +96,7 @@ private:
   std::string exportProjectName() const;
   void updateWeightBalance(bool frameSide=false);
   WeightBalancePanel* weightBalancePanel_{};
+  std::array<FiberglassPanel*,4> fiberglassPanels_{};
   QLabel* balanceStatus_{};
   QByteArray balanceMassFingerprint_;
   std::vector<TopoDS_Shape> balanceMassSources_;

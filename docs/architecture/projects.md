@@ -1,5 +1,10 @@
 # Project lifecycle and restoration
 
+Format 32 adds four independent Fiberglass sketch/metadata collections and resin
+density. Older versions load empty coverings with the default resin density.
+They participate in project save/restore, reference remapping, dirty tracking and
+undo/redo, but do not invalidate generated component solids. See fiberglass.md.
+
 File > New creates an empty Reference project. Open reads `.foam` files. Save
 writes the current filename (or asks for one); Save As writes a new file and
 adopts that filename. Close Project clears and disables the editing area while
@@ -40,12 +45,12 @@ files but do not count as unsaved data changes. Draft geometry and entered value
 do count. Explicit Save writes both data and the latest view state. See ADR-0008.
 
 Control-surface flags, hinge choices, rectangles and drawing drafts are included
-in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 31;
+in all lifecycle operations. Version-1 and version-2 projects migrate on Save to version 32;
 see control-surfaces.md and ADR-0009.
 
 Version 3 adds spar options to the same snapshot, restoration and data/geometry
 fingerprint paths. Versions 1/2 open with spars disabled; current saves
-use version 31. See spars.md and ADR-0011.
+use version 32. See spars.md and ADR-0011.
 
 Version 4 stores spars per outline panel and the selected spar tab. The tab is
 view state; the per-panel arrays are data/geometry inputs. Version-3 global
@@ -119,7 +124,7 @@ obsolete field. Saving never clears the current session caches. See ADR-0035.
 
 Version 24 adds per-former Rotation Angle in degrees about the Side View mask
 center; negative angles rotate counter-clockwise. Earlier projects load zero
-angles. See formers.md and ADR-0036. Current saves use version 31.
+angles. See formers.md and ADR-0036. Current saves use version 32.
 
 Export uses session Assembly geometry (export.md). Saving from Export retains
 that workspace choice, but opening returns to Fuselage Side View in 2D, as for
@@ -139,7 +144,7 @@ Version 28 adds circular profile curves. Version 29 adds carbon-fiber density
 and spar tube dimensions, plus an optional derived airplane-statistics cache.
 Version 30 adds independent explicit nose and tail opening settings, with legacy
 station-based choices resolved on load. Version 31 expands Cut to Top/Bottom/Left/Right,
-migrating legacy Side paths and drafts to Left. Current saves use version 31 and
-the reader accepts versions 1–31. See weight-and-balance.md, inspect.md and the format
+migrating legacy Side paths and drafts to Left. Current saves use version 32 and
+the reader accepts versions 1–32. See weight-and-balance.md, inspect.md and the format
 specification. Opening from Inspect returns to Fuselage Side View in 2D,
 preserving its design inputs without regenerating models.

@@ -83,7 +83,7 @@ and Tape/Standard relief on the segment closest to vertical span for fins, or th
 Matching horizontal halves join across the centerline, leaving one solid without
 a hinge or separate fixed/elevator solids with one. Cut Shapes apply afterward
 and may create additional pieces (stabilizer-cuts.md, ADR-0031). Versions 19 and
-20 persist hinges and Cut Shapes respectively; current saves use version 31.
+20 persist hinges and Cut Shapes respectively; current saves use version 32.
 Only successfully published stabilizer results become cache entries. Assembly is enabled after complete component definitions; Export enables after successful current Assembly generation.
 
 Assembly preparation and cuts use independent background jobs and preserve source

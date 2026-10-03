@@ -13,7 +13,7 @@ class QPainter;
 
 namespace designrc::gui {
 enum class SketchTool { None, Line, Spline, Circle };
-enum class SketchAppearance { Outline, Cut, Hole };
+enum class SketchAppearance { Outline, Cut, Hole, Fiberglass };
 struct SketchCurve {
   SketchTool type;
   std::vector<std::size_t> points;

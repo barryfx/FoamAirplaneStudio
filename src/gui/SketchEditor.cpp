@@ -322,7 +322,8 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
   painter.save();
   const bool semantic = appearance_ != SketchAppearance::Outline;
   const QColor color = appearance_ == SketchAppearance::Cut ? QColor{230,220,0}
-      : appearance_ == SketchAppearance::Hole ? QColor{112,80,224} : QColor{80,200,255};
+      : appearance_ == SketchAppearance::Hole ? QColor{112,80,224}
+      : appearance_ == SketchAppearance::Fiberglass ? QColor{0,155,140} : QColor{80,200,255};
   const QColor borderColor = appearance_ == SketchAppearance::Cut ? QColor{75,65,0}
       : appearance_ == SketchAppearance::Hole ? QColor{35,20,80} : QColor{20,65,95};
   const double radius = 4.0 / std::max(1e-9, view_->transform().m11());

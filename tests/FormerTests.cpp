@@ -239,7 +239,7 @@ int main(int argc,char** argv) {
     click(editor.state().rectangles[1].center());QKeyEvent del{QEvent::KeyPress,Qt::Key_Delete,Qt::NoModifier};QApplication::sendEvent(view,&del);CHECK(editor.state().rectangles.size()==1);
     add->click();CHECK(editor.state().rectangles.size()==2);
     CHECK(window.projectModified());CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(editor.state().rectangles.size()==2);
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==31);auto old=encoded;old["version"]=14;legacyCutViews(old);old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==32);auto old=encoded;old["version"]=14;legacyCutViews(old);old.remove("formers");CHECK(decodeProject(old).formers.rectangles.empty());
     auto v23=encoded;v23["version"]=23;legacyCutViews(v23);auto legacyFormers=v23["formers"].toObject();legacyFormers.remove("rotationDegrees");v23["formers"]=legacyFormers;CHECK(decodeProject(v23).formers.rotationDegrees==std::vector<double>(2,0));
     auto invalidAngle=encoded;auto angleFields=invalidAngle["formers"].toObject();angleFields["rotationDegrees"]=QJsonArray{400,0};invalidAngle["formers"]=angleFields;
     bool angleRejected=false;try{decodeProject(invalidAngle);}catch(const std::exception&){angleRejected=true;}CHECK(angleRejected);

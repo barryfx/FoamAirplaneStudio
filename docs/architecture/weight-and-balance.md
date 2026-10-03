@@ -4,7 +4,7 @@ Weight and Balance follows Inspect and precedes Export on the primary toolbar. I
 a physical scale and the fuselage Side View is closed. In Specify Dimensions,
 the wing outline and stations establish the shared Wingspan calibration first.
 It is a 2D-only workspace
-with instructions, Add Part, a named-part selector, Edit/Delete, density fields,
+with instructions, Add Part, a named-part selector, Edit/Delete, a Material Densities button,
 and totals at the bottom of the data panel and window. Parts appear only here.
 Entering frames the Side View and placed parts; wheel zoom and scrolling remain available.
 
@@ -37,7 +37,9 @@ all row weights without repeating CAD integration. Stale Assembly data clears
 the geometry rows. The breakdown is derived and is not saved in the project.
 Default densities are 25.63 kg/m³ XPS, 680 kg/m³ birch aircraft plywood and
 1540 kg/m³ Carbon Fiber composite; users can change all three to match their
-actual stock. The Carbon Fiber field follows Aero Plywood density. See ADR-0039
+actual stock. The Material Densities dialog contains Foam, Aero Plywood, Carbon
+Fiber and Resin (1180 kg/m³ by default). OK applies all values; Cancel changes
+none. The Carbon Fiber field follows Aero Plywood density. See ADR-0039
 and ADR-0046 for sources. CF density applies to material only, excluding bores.
 
 For volume V in mm³ and density rho in kg/m³, mass in grams is V × rho × 10⁻⁶.
@@ -60,7 +62,10 @@ the application's busy cursor before measuring foam, plywood and carbon spars. I
 status synchronously without dispatching user input, and restores the cursor on
 success or failure. The per-component cache is transient; aggregate measurements may be saved separately for the shared statistics summary.
 Part shapes are mass envelopes only, with uniform mass at their centers; they
-do not cut foam. Add covering and other unmodeled weights as parts; do not add the automatically counted wing spars again.
+do not cut foam. Use the component Fiberglass tabs for cloth and resin covering;
+see [Fiberglass estimates](fiberglass.md). Each patch adds cloth and resin rows,
+covered area, and contributions to total mass and CG. Add other unmodeled weights
+as parts; do not add automatically counted spars or fiberglass a second time.
 
 Wing Loading is also displayed when total mass and nominal full wing area are
 available, in g/dm² for metric Reference units or oz/ft² for inches. The shared

@@ -89,6 +89,7 @@ target_include_directories(designrc_domain
 target_compile_features(designrc_domain PUBLIC cxx_std_23)
 
 add_library(foam_sketch
+  src/gui/FiberglassPanel.cpp src/gui/FiberglassPanel.h
   src/gui/WeightBalancePanel.cpp src/gui/WeightBalancePanel.h
   src/gui/SketchBoundary.cpp src/gui/SketchBoundary.h
   src/gui/FormerEditor.cpp src/gui/FormerEditor.h src/gui/FormerPanel.h
@@ -120,7 +121,7 @@ add_library(foam_airfoils src/gui/StabilizerAirfoilPanel.cpp src/gui/StabilizerA
 set_target_properties(foam_airfoils PROPERTIES AUTOMOC ON)
 target_link_libraries(foam_airfoils PUBLIC foam_sketch foam_dialogs designrc_domain)
 
-add_library(foam_wing src/geometry/FuselageSymmetry.cpp src/geometry/FuselageEndRegistration.cpp src/geometry/WeightBalance.cpp src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
+add_library(foam_wing src/geometry/Fiberglass.cpp src/geometry/FuselageSymmetry.cpp src/geometry/FuselageEndRegistration.cpp src/geometry/WeightBalance.cpp src/geometry/Assembly.cpp src/geometry/FuselageAlignment.cpp src/geometry/StabilizerCut.cpp src/geometry/StabilizerHingeCut.cpp src/geometry/StabilizerSolidBuilder.cpp src/geometry/StabilizerSolidBuilder.h src/geometry/Formers.cpp src/geometry/ServoTray.cpp src/geometry/FuselageHoles.cpp src/geometry/FuselageCut.cpp src/geometry/FuselageWall.cpp src/geometry/FuselageSolidBuilder.cpp src/geometry/MeshOrientation.cpp src/geometry/LighteningCut.cpp src/geometry/SparCut.cpp src/geometry/ControlSurfaceCut.cpp src/geometry/WingSolidBuilder.cpp src/geometry/WingSolidBuilder.h)
 target_include_directories(foam_wing PUBLIC src ${OpenCASCADE_INCLUDE_DIR})
 target_link_libraries(foam_wing PUBLIC Threads::Threads foam_airfoils TKernel TKMath TKG3d TKGeomBase TKGeomAlgo TKBRep TKTopAlgo TKPrim TKBO TKOffset TKMesh)
 add_library(foam_project src/gui/ProjectDocument.cpp src/gui/ProjectDocument.h src/gui/AirplaneStatistics.cpp)
@@ -348,6 +349,12 @@ if(DESIGNRC_BUILD_TESTS)
   target_include_directories(weight_balance_tests PRIVATE src ${OpenCASCADE_INCLUDE_DIR})
   target_link_libraries(weight_balance_tests PRIVATE ${_foam_project_app_libraries})
   add_test(NAME weight_balance_tests COMMAND weight_balance_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  add_executable(fiberglass_tests tests/FiberglassTests.cpp src/gui/PlanViewport.cpp)
+  target_link_libraries(fiberglass_tests PRIVATE foam_wing foam_project TKV3d TKService)
+  add_test(NAME fiberglass_tests COMMAND fiberglass_tests "${CMAKE_CURRENT_BINARY_DIR}")
+  if(NOT WIN32)
+    set_tests_properties(fiberglass_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+  endif()
   if(NOT WIN32)
     set_tests_properties(weight_balance_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
   endif()

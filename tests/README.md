@@ -26,3 +26,8 @@ ctest --test-dir build/release -C Release --output-on-failure
 
 Follow AGENTS.md for generation-test authorization. Run GUI tests sequentially
 unless they have been explicitly isolated for concurrent execution.
+
+`fiberglass_tests` uses analytical OCCT primitives, editor inputs and project
+snapshots; it does not invoke Wing/Fuselage generation. `weight_balance_tests`
+also covers covering mass/CG, the Material Densities dialog and area-cache reuse
+using injected Assembly fixtures. Their screenshots go to the Debug build folder.

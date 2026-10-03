@@ -34,6 +34,7 @@ public:
   FormerEditor& formerEditor() { return *formerEditor_; }
   ServoTrayEditor& servoTrayEditor() { return *servoTrayEditor_; }
   SketchEditor& fuselageHoleEditor() { return *fuselageHoleEditor_; }
+  SketchEditor& fiberglassEditor(int index) { return *fiberglassEditors_.at(index); }
   SketchEditor& fuselageCutEditor() { return *fuselageCutEditor_; }
   SketchEditor& fuselageProfileEditor() { return *fuselageProfileEditor_; }
   SketchEditor& fuselageSketchEditor() { return *fuselageSketchEditor_; }
@@ -60,6 +61,7 @@ private:
   SketchEditor* fuselageProfileEditor_{};
   SketchEditor* fuselageCutEditor_{};
   SketchEditor* fuselageHoleEditor_{};
+  std::array<SketchEditor*,4> fiberglassEditors_{};
   ServoTrayEditor* servoTrayEditor_{};
   FormerEditor* formerEditor_{};
   SketchEditor* airfoilSketchEditor_{};
@@ -78,5 +80,4 @@ private:
 };
 
 } // namespace designrc::gui
-
 

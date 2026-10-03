@@ -24,6 +24,12 @@ int main(int argc, char** argv) {
     }
   };
   check({}, {true,false,false,false,false,false,false}, 0);
+  toolbar.addAction("Fiberglass");
+  TEST_CHECK(applyWingWorkflow(toolbar,{})==0);TEST_CHECK(!toolbar.actions()[7]->isEnabled());
+  TEST_CHECK(applyWingWorkflow(toolbar,{true})==1);TEST_CHECK(toolbar.actions()[7]->isEnabled());
+  toolbar.actions()[7]->trigger();TEST_CHECK(toolbar.actions()[7]->isChecked());TEST_CHECK(!toolbar.actions()[1]->isChecked());
+  populate();
+  check({}, {true,false,false,false,false,false,false}, 0);
   // Selecting a tool does not define geometry or unlock a dependent tool.
   toolbar.actions()[0]->trigger();
   TEST_CHECK(!toolbar.actions()[1]->isEnabled());

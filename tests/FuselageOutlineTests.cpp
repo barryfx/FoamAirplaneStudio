@@ -50,7 +50,7 @@ int main(int argc,char** argv) {
       CHECK(preview.grab().save(qEnvironmentVariable("FOAM_ENDS_GUI_CAPTURE")));
       std::cout<<"Project end controls displayed correctly\n";return 0;
     }
-    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==31);
+    auto p=fixture();auto canonical=encodeProject(p);CHECK(canonical["version"]==32);
     CHECK(decodeProject(canonical).fuselageNoseOpen.value());
     auto explicitEnds=canonical;explicitEnds["fuselageNoseOpen"]=true;explicitEnds["fuselageTailOpen"]=false;
     CHECK(decodeProject(explicitEnds).fuselageNoseOpen.value());CHECK(!decodeProject(explicitEnds).fuselageTailOpen.value());
