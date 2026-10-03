@@ -4,12 +4,15 @@ Version 32 adds `fiberglass`, an array ordered Wing, Fuselage, Horiz Stab, Vert
 Stab. Each entry has `sketch` (the usual layered sketch state, including Circle)
 and a matching `patches` array. Every patch stores nonempty `name`, `wrap`,
 `side` (Top=0, Bottom=1, Left=2, Right=3), positive `clothGm2`, `imperialCloth`,
-`automaticResin`, and positive `resinThicknessMm`. The latter is the manual
-override; automatic resin thickness is derived from cloth weight. Each component
+`automaticResin`, optional `projectClothUnits` (default true), and positive `resinThicknessMm`. The latter is the manual
+override; automatic resin thickness is derived from cloth weight.
+When `projectClothUnits` is true, display follows Reference units; otherwise
+`imperialCloth` selects the explicit override. Older version-32 records without
+the optional flag follow project units. Physical cloth weight stays in g/m². Each component
 has 1–1000 layers/metadata entries; empty initial layers carry no material.
 Horizontal components accept Top/Bottom, Vert Stab accepts Left/Right, and
 Fuselage accepts all four. Open drafts are valid saved inputs; coverage is
-validated when measuring. `weightBalance.resinDensityKgM3` defaults to 1180.
+validated when measuring. `weightBalance.resinDensityKgM3` defaults to 1500 kg/m³ (1.5 g/cm³).
 Versions 1–31 initialize empty patches and that density. Derived statistics
 balance records optionally contain fiberglass area, cloth mass, resin volume and
 centroid entries, covered by the new mass-source key. See ADR-0050.

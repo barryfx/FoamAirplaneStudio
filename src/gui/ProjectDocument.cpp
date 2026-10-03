@@ -226,7 +226,7 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   for(const auto& component:p.fiberglass) {
     QJsonArray patches;for(const auto& patch:component.patches)patches.append(QJsonObject{
       {"name",patch.name},{"wrap",patch.wrap},{"side",static_cast<int>(patch.side)},{"clothGm2",patch.clothGm2},
-      {"imperialCloth",patch.imperialCloth},{"automaticResin",patch.automaticResin},{"resinThicknessMm",patch.resinThicknessMm}});
+      {"imperialCloth",patch.imperialCloth},{"projectClothUnits",patch.projectClothUnits},{"automaticResin",patch.automaticResin},{"resinThicknessMm",patch.resinThicknessMm}});
     fiberglass.append(QJsonObject{{"sketch",sketch(component.sketch)},{"patches",patches}});
   }
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
@@ -257,6 +257,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
         if((i==0||i==2)&&static_cast<int>(patch.side)>1)bad("fiberglass horizontal surface");
         if(i==3&&static_cast<int>(patch.side)<2)bad("fiberglass vertical surface");
         patch.clothGm2=number(o["clothGm2"],"cloth weight",.001,1e7);patch.imperialCloth=boolean(o["imperialCloth"],"cloth units");
+        if(o.contains("projectClothUnits"))patch.projectClothUnits=boolean(o["projectClothUnits"],"project cloth units");
         patch.automaticResin=boolean(o["automaticResin"],"automatic resin");patch.resinThicknessMm=number(o["resinThicknessMm"],"resin thickness",.000001,2540);
         out.patches.push_back(patch);
       }

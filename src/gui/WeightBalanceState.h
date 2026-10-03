@@ -16,7 +16,7 @@ struct WeightBalanceState {
   double plywoodDensityKgM3=680; // Birch aircraft plywood, including tray/formers.
   std::vector<BalancePart> parts;
   double carbonFiberDensityKgM3=1540; // Carbon/epoxy composite material, excluding the tube bore.
-  double resinDensityKgM3=1180; // Solvent-free cured laminating epoxy starting value.
+  double resinDensityKgM3=1500; // User-selected default: 1.5 g/cm³.
 };
 struct ComponentVolume {
   QString name;

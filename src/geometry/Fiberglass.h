@@ -12,7 +12,7 @@ struct FiberglassProjection {
 };
 QPainterPath fiberglassRegion(gui::SketchLayer layer,const QPainterPath& outline);
 gui::FoamMassProperties::Covering measureFiberglass(const TopoDS_Shape& shape,
-    const QPainterPath& region,const FiberglassProjection& projection,bool wrap);
+    const QPainterPath& region,const FiberglassProjection& projection,bool wrap,bool parallelMesh=true);
 std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
-    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed);
+    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers=0);
 }

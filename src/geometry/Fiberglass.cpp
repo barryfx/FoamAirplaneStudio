@@ -1,4 +1,5 @@
 #include "geometry/Fiberglass.h"
+#include "processing/IndexedTasks.h"
 #include "gui/SketchPaths.h"
 #include "gui/WingCalibration.h"
 #include "geometry/FuselageSolidBuilder.h"
@@ -53,11 +54,11 @@ QPainterPath fiberglassRegion(SketchLayer layer,const QPainterPath& outline) {
 }
 
 gui::FoamMassProperties::Covering measureFiberglass(const TopoDS_Shape& source,
-    const QPainterPath& region,const FiberglassProjection& projection,bool wrap) {
+    const QPainterPath& region,const FiberglassProjection& projection,bool wrap,bool parallelMesh) {
   gui::FoamMassProperties::Covering result;if(source.IsNull()||region.isEmpty())return result;
   // Meshing must never modify cached/displayed Assembly topology or meshes.
   const auto shape=BRepBuilderAPI_Copy{source,true,false}.Shape();
-  BRepMesh_IncrementalMesh mesh{shape,0.1,false,0.15,true};
+  BRepMesh_IncrementalMesh mesh{shape,0.1,false,0.15,parallelMesh};
   if(!mesh.IsDone())throw std::runtime_error("Could not mesh fiberglass surface.");
   alignMeshOrientation(shape);
   IntCurvesFace_ShapeIntersector visibility;visibility.Load(shape,1e-7);
@@ -144,16 +145,19 @@ gui::FoamMassProperties::Covering measureFiberglass(const TopoDS_Shape& source,
 }
 
 std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
-    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed) {
+    const gui::ProjectDocument& project,const AssemblyParts& originals,const AssemblyParts& placed,unsigned workers) {
   std::vector<gui::FoamMassProperties::Covering> result;
   bool any=false;for(const auto& component:project.fiberglass){any=any||!component.sketch.pending.empty();for(const auto& layer:component.sketch.layers)any=any||!layer.curves.empty();}
   if(!any)return result;
   const auto calibration=gui::wingCalibration(project.wing.layers,project.stations.lines,project.reference.toScale?std::nullopt:project.reference.wingspanMm);
   const double scale=calibration.scale;const QString names[]{"Wing","Fuselage","Horiz Stab","Vert Stab"};
-  for(int component=0;component<4;++component) {
+  std::array<std::vector<gui::FoamMassProperties::Covering>,4> measured;
+  // Each component owns its projection, copied mesh and visibility classifier.
+  // Keep OCCT meshing serial inside workers to bound nested thread counts.
+  processing::runIndexedTasks(4,[&](std::size_t component,std::stop_token) {
     const auto& state=project.fiberglass[component];
     bool present=!state.sketch.pending.empty();for(const auto& layer:state.sketch.layers)present=present||!layer.curves.empty();
-    if(!present)continue;
+    if(!present)return;
     if(!state.sketch.pending.empty())throw std::runtime_error((names[component]+": finish the pending fiberglass curve first.").toStdString());
     gp_Trsf placement;if(component!=1)placement=assemblyComponentPlacement(originals,project.assembly,component==0?0:component-1);
     const auto inverse=placement.Inverted();
@@ -217,11 +221,12 @@ std::vector<gui::FoamMassProperties::Covering> fiberglassMassProperties(
           projection.outward=[=](const gp_Pnt&){return (component==2?gp_Dir{0,0,sign}:gp_Dir{0,sign,0}).Transformed(placement);};
         }
         const auto region=fiberglassRegion(state.sketch.layers[i],outline);
-        auto covered=measureFiberglass(shape,region,projection,patch.wrap);covered.name=names[component]+" / "+patch.name;
-        covered.clothGrams=covered.areaMm2*patch.clothGm2*1e-6;covered.resinVolumeMm3=covered.areaMm2*gui::resinThickness(patch);result.push_back(covered);
+        auto covered=measureFiberglass(shape,region,projection,patch.wrap,false);covered.name=names[component]+" / "+patch.name;
+        covered.clothGrams=covered.areaMm2*patch.clothGm2*1e-6;covered.resinVolumeMm3=covered.areaMm2*gui::resinThickness(patch);measured[component].push_back(covered);
       } catch(const std::exception& error){throw std::runtime_error((names[component]+" / "+patch.name+": "+error.what()).toStdString());}
     }
-  }
+  },{},workers);
+  for(auto& component:measured)for(auto& patch:component)result.push_back(std::move(patch));
   return result;
 }
 }

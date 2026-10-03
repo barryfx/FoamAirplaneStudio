@@ -49,7 +49,7 @@ WeightBalancePanel::WeightBalancePanel(PlanViewport& view,QWidget* parent):QWidg
   carbonFiberDensity_->setToolTip("Carbon/epoxy composite starting value: 1540 kg/m³. Adjust for your spar stock; tube bores are excluded from material volume.");
   form->addRow("Carbon Fiber density",carbonFiberDensity_);
   resinDensity_=new QDoubleSpinBox{dialog};resinDensity_->setObjectName("balanceResinDensity");resinDensity_->setDecimals(3);resinDensity_->setRange(.001,10000);resinDensity_->setSuffix(" kg/m³");
-  resinDensity_->setToolTip("1180 kg/m³: cured solvent-free laminating epoxy. Adjust to your foam-compatible resin's cured density.");form->addRow("Resin density",resinDensity_);
+  resinDensity_->setToolTip("1500 kg/m³ (1.5 g/cm³) default. Adjust to your foam-compatible resin's cured density.");form->addRow("Resin density",resinDensity_);
   auto* dialogButtons=new QDialogButtonBox{QDialogButtonBox::Ok|QDialogButtonBox::Cancel,dialog};dialogLayout->addWidget(dialogButtons);
   connect(dialogButtons,&QDialogButtonBox::accepted,dialog,&QDialog::accept);connect(dialogButtons,&QDialogButtonBox::rejected,dialog,&QDialog::reject);
   connect(materials,&QPushButton::clicked,this,[this,dialog]{
@@ -173,7 +173,7 @@ void WeightBalancePanel::updateResults() {
     for(const auto& patch:foam_->fiberglass) {
       const double resinGrams=patch.resinVolumeMm3*state_.resinDensityKgM3*1e-6;
       row(patch.name+QString{" / Fiberglass (%1 cm²)"}.arg(patch.areaMm2/100,0,'f',2),{},patch.clothGrams);
-      row(patch.name+" / Resin",patch.resinVolumeMm3,resinGrams);cloth+=patch.clothGrams;resin+=resinGrams;
+      row(patch.name+QString{" / Resin (%1 cm²)"}.arg(patch.areaMm2/100,0,'f',2),patch.resinVolumeMm3,resinGrams);cloth+=patch.clothGrams;resin+=resinGrams;
     }
     if(!foam_->fiberglass.empty()){row("Fiberglass cloth subtotal",{},cloth);row("Resin subtotal",{},resin);}
   }

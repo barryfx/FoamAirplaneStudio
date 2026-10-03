@@ -15,6 +15,10 @@
 #include <QJsonArray>
 #include <QLineEdit>
 #include <QMouseEvent>
+#include <QMessageBox>
+#include <QTimer>
+#include <QEventLoop>
+#include <QElapsedTimer>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QVBoxLayout>
@@ -55,7 +59,7 @@ static void geometryChecks() {
   auto curved=geometry::measureFiberglass(cylinder,region,projection,true);
   TEST_CHECK(closeEnough(curved.areaMm2,2*std::numbers::pi*10*20,10));TEST_CHECK(closeEnough(curved.centroidMm.x(),30,.05));
   FoamMassProperties mass;wrap.clothGrams=wrap.areaMm2*100*1e-6;wrap.resinVolumeMm3=wrap.areaMm2*.1;mass.fiberglass.push_back(wrap);
-  WeightBalanceState state;auto balance=calculateBalance(state,mass);TEST_CHECK(closeEnough(balance.grams,.44+.5192));TEST_CHECK(closeEnough(balance.centerMm.x(),30));
+  WeightBalanceState state;auto balance=calculateBalance(state,mass);TEST_CHECK(closeEnough(balance.grams,.44+.66));TEST_CHECK(closeEnough(balance.centerMm.x(),30));
   mass.fiberglass.push_back(wrap);TEST_CHECK(closeEnough(calculateBalance(state,mass).grams,2*balance.grams));
   state.resinDensityKgM3=1000;TEST_CHECK(closeEnough(calculateBalance(state,mass).grams,1.76));
   TEST_CHECK(defaultResinThickness(100)>defaultResinThickness(50));
@@ -64,8 +68,11 @@ static void persistenceChecks() {
   std::cout<<"Persistence"<<std::endl;
   ProjectDocument p;p.fiberglass[1].sketch.layers[0]=loop({{-10,-10},{-10,50},{110,50},{110,-10}},false);
   auto& patch=p.fiberglass[1].patches[0];patch.name="Side reinforcement";patch.wrap=false;patch.side=CoverSide::Left;patch.clothGm2=80;patch.imperialCloth=true;patch.automaticResin=false;patch.resinThicknessMm=.08;p.weightBalance.resinDensityKgM3=1200;
+  patch.projectClothUnits=false;
   const auto json=encodeProject(p);TEST_CHECK(json["version"]==32);auto decoded=decodeProject(json);TEST_CHECK(encodeProject(decoded)==json);
-  auto legacy=json;legacy["version"]=31;legacy.remove("fiberglass");auto old=decodeProject(legacy);TEST_CHECK(old.fiberglass[1].sketch.layers[0].curves.empty());TEST_CHECK(old.weightBalance.resinDensityKgM3==1180);
+  auto previous=json;auto previousComponents=previous["fiberglass"].toArray();auto previousComponent=previousComponents[1].toObject();auto previousPatches=previousComponent["patches"].toArray();auto previousPatch=previousPatches[0].toObject();previousPatch.remove("projectClothUnits");previousPatches[0]=previousPatch;previousComponent["patches"]=previousPatches;previousComponents[1]=previousComponent;previous["fiberglass"]=previousComponents;
+  const auto migrated=decodeProject(previous);TEST_CHECK(migrated.fiberglass[1].patches[0].projectClothUnits);TEST_CHECK(migrated.fiberglass[1].patches[0].clothGm2==80);TEST_CHECK(migrated.weightBalance.resinDensityKgM3==1200);
+  auto legacy=json;legacy["version"]=31;legacy.remove("fiberglass");auto old=decodeProject(legacy);TEST_CHECK(old.fiberglass[1].sketch.layers[0].curves.empty());TEST_CHECK(old.weightBalance.resinDensityKgM3==1500);
   auto bad=json;auto components=bad["fiberglass"].toArray();auto component=components[1].toObject();component["patches"]=QJsonArray{};components[1]=component;bad["fiberglass"]=components;
   bool rejected=false;try{decodeProject(bad);}catch(const std::exception&){rejected=true;}TEST_CHECK(rejected);
   StatisticsBalance cached;cached.sourceKey=QByteArray(64,'a');cached.materials.fiberglass.push_back({"Patch",2000,.1,100,{20,30}});p.statistics.balance=cached;
@@ -112,12 +119,40 @@ static void placementChecks() {
     TEST_CHECK(closeEnough(results[0].centroidMm.y(),side==0?10:side==1?-10:0,.01));
     fuselage.patches[0].wrap=true;results=geometry::fiberglassMassProperties(p,originals,geometry::placeAssembly(originals,p.assembly));TEST_CHECK(closeEnough(results[0].areaMm2,4000,.01));
   }
+  // Open U in Side View: both endpoints below the outline. Cover the lower
+  // 5 mm of each side and the connecting 80 mm bottom, never the top.
+  fuselage.sketch.layers[0]=loop({{100,110},{100,95},{120,95},{120,110}},false);
+  fuselage.patches[0].side=CoverSide::Left;fuselage.patches[0].wrap=true;
+  const auto placed=geometry::placeAssembly(originals,p.assembly);
+  results=geometry::fiberglassMassProperties(p,originals,placed);
+  TEST_CHECK(closeEnough(results[0].areaMm2,2*20*5+20*80,.01));
+  TEST_CHECK(closeEnough(results[0].centroidMm.x(),60,.01));
+  TEST_CHECK(closeEnough(results[0].centroidMm.y(),(200*(-7.5)+1600*(-10))/1800.,.01));
+  // The same open boundary can mix a fitted spline with line segments.
+  fuselage.sketch.layers[0].points.push_back({100,102.5});
+  fuselage.sketch.layers[0].curves[0]={SketchTool::Spline,{0,4,1}};
+  const auto spline=geometry::fiberglassMassProperties(p,originals,placed);
+  TEST_CHECK(closeEnough(spline[0].areaMm2,results[0].areaMm2,.01));TEST_CHECK((spline[0].centroidMm-results[0].centroidMm).manhattanLength()<.01);
+  fuselage.patches[0].wrap=false;
+  auto oneSide=geometry::fiberglassMassProperties(p,originals,placed);
+  TEST_CHECK(closeEnough(oneSide[0].areaMm2,100,.01));
+  TEST_CHECK(closeEnough(oneSide[0].centroidMm.y(),-7.5,.01));
+  // Exercise multiple independent component workers and deterministic ordering.
+  p.fiberglass[2].sketch.layers[0]=loop({{210,40},{230,40},{230,80},{210,80}});
+  p.fiberglass[3].sketch.layers[0]=p.fiberglass[2].sketch.layers[0];p.fiberglass[3].patches[0].side=CoverSide::Left;
+  QElapsedTimer timer;timer.start();const auto serial=geometry::fiberglassMassProperties(p,originals,placed,1);const auto serialMs=timer.nsecsElapsed()/1e6;
+  timer.restart();const auto parallel=geometry::fiberglassMassProperties(p,originals,placed,4);const auto parallelMs=timer.nsecsElapsed()/1e6;
+  TEST_CHECK(serial.size()==3&&parallel.size()==serial.size());
+  for(std::size_t i=0;i<serial.size();++i){TEST_CHECK(serial[i].name==parallel[i].name);TEST_CHECK(closeEnough(serial[i].areaMm2,parallel[i].areaMm2));TEST_CHECK(closeEnough(serial[i].resinVolumeMm3,parallel[i].resinVolumeMm3));TEST_CHECK(closeEnough(serial[i].clothGrams,parallel[i].clothGrams));TEST_CHECK((serial[i].centroidMm-parallel[i].centroidMm).manhattanLength()<1e-5);}
+  std::cout<<"Fiberglass serial/4-worker parity: "<<serialMs<<" / "<<parallelMs<<" ms (analytic fixtures)"<<std::endl;
 }
 static void guiChecks(QApplication& app,const QString& directory) {
   std::cout<<"Editor GUI"<<std::endl;
   QWidget window;auto* layout=new QHBoxLayout{&window};auto* view=new PlanViewport{&window};auto* panel=new FiberglassPanel{view->fiberglassEditor(1),1,&window};
   panel->setFixedWidth(360);layout->addWidget(panel);layout->addWidget(view,1);window.resize(1300,800);window.show();panel->configure(ProjectUnits::Inches);panel->setActive(true);app.processEvents();
   auto& editor=view->fiberglassEditor(1);
+  // Initial patches in every tab follow project units before Add is clicked.
+  for(int component=0;component<4;++component){FiberglassPanel other{view->fiberglassEditor(component),component};for(auto projectUnits:{ProjectUnits::Inches,ProjectUnits::Millimeters,ProjectUnits::Inches}){const auto before=other.state().patches[0].clothGm2;other.configure(projectUnits);TEST_CHECK(other.findChild<QComboBox*>("fiberglassClothUnits")->currentIndex()==(projectUnits==ProjectUnits::Inches?1:0));TEST_CHECK(other.state().patches[0].clothGm2==before);}}
   const auto click=[&](QPointF point){const auto local=view->mapFromScene(point);for(const auto type:{QEvent::MouseButtonPress,QEvent::MouseButtonRelease}){QMouseEvent event{type,QPointF{local},QPointF{view->viewport()->mapToGlobal(local)},Qt::LeftButton,type==QEvent::MouseButtonPress?Qt::LeftButton:Qt::NoButton,Qt::NoModifier};QApplication::sendEvent(view->viewport(),&event);}};
   panel->findChild<QPushButton*>("fiberglassAdd")->click();click({100,100});click({300,100});TEST_CHECK(editor.layers()[0].curves.size()==1);
   auto* name=panel->findChild<QLineEdit*>("fiberglassName");name->setText("Nose reinforcement");QMetaObject::invokeMethod(name,"editingFinished");TEST_CHECK(panel->state().patches[0].name=="Nose reinforcement");
@@ -130,6 +165,18 @@ static void guiChecks(QApplication& app,const QString& directory) {
   panel->setActive(false);TEST_CHECK(!editor.state().editing);panel->setActive(true);app.processEvents();
   if(!directory.isEmpty())TEST_CHECK(window.grab().save(directory+"/fiberglass-editor.png"));
   panel->findChild<QPushButton*>("fiberglassDelete")->click();TEST_CHECK(editor.layers().size()==1);TEST_CHECK(panel->state().patches[0].name=="Nose reinforcement");
+  panel->drawingViews=[] {return std::array<SketchLayer,2>{loop({{0,0},{500,0},{500,50},{0,50}}),loop({{0,80},{500,80},{500,180},{0,180}})};};
+  auto warningState=panel->state();warningState.sketch.layers[0]={};warningState.sketch.pending.clear();warningState.patches[0].side=CoverSide::Top;warningState.sketch.editing=true;warningState.sketch.tool=SketchTool::Line;panel->restore(warningState);
+  int warnings=0;QString warningText;QTimer closer;closer.setInterval(10);
+  QObject::connect(&closer,&QTimer::timeout,&window,[&]{if(auto* dialog=qobject_cast<QMessageBox*>(QApplication::activeModalWidget())){++warnings;warningText=dialog->text();dialog->accept();}});closer.start();
+  const auto drain=[] {QEventLoop wait;QTimer::singleShot(250,&wait,&QEventLoop::quit);wait.exec();};
+  click({100,100});click({300,100});drain();TEST_CHECK(warnings==1);
+  TEST_CHECK(warningText=="Drawing Surface is Top (Fuselage Top View), but the lines appear over the Fuselage Side View.");
+  QMetaObject::invokeMethod(&editor,"changed");drain();TEST_CHECK(warnings==1); // No repeated warnings while extending the same wrong-view patch.
+  panel->findChild<QComboBox*>("fiberglassSide")->setCurrentIndex(2);drain();TEST_CHECK(warnings==1);
+  warningState.sketch.layers[0]=loop({{100,10},{300,10}},false);warningState.patches[0].side=CoverSide::Right;panel->restore(warningState);
+  QMetaObject::invokeMethod(&editor,"changed");drain();TEST_CHECK(warnings==2);
+  TEST_CHECK(warningText=="Drawing Surface is Right (Fuselage Side View), but the lines appear over the Fuselage Top View.");
 }
 int main(int argc,char** argv) {
   QApplication app{argc,argv};app.setStyle("Fusion");

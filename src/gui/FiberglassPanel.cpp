@@ -1,4 +1,9 @@
 #include "gui/FiberglassPanel.h"
+#include "gui/SketchPaths.h"
+#include <QApplication>
+#include <QMessageBox>
+#include <QPainterPathStroker>
+#include <QTimer>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
@@ -13,6 +18,8 @@ namespace designrc::gui {
 FiberglassPanel::FiberglassPanel(SketchEditor& editor,int component,QWidget* parent)
     : QWidget{parent},editor_{editor},component_{component} {
   setObjectName(QString{"fiberglassPanel%1"}.arg(component));
+  warningTimer_=new QTimer{this};warningTimer_->setSingleShot(true);warningTimer_->setInterval(150);
+  connect(warningTimer_,&QTimer::timeout,this,[this]{warnDrawingView();});
   editor_.setClosedLoopMode(true);editor_.setSnapAcrossLayers(false);editor_.setLayerSelectionMode(true);
   auto* layout=new QVBoxLayout{this};layout->setContentsMargins(0,0,0,0);
   auto* text=new QLabel{"Fiberglass is only for Weight and Balance; it does not change manufactured parts. "
@@ -62,11 +69,11 @@ FiberglassPanel::FiberglassPanel(SketchEditor& editor,int component,QWidget* par
   connect(cloth_,&QDoubleSpinBox::valueChanged,this,[this]{edit();});
   connect(resin_,&QDoubleSpinBox::valueChanged,this,[this]{edit();});
   connect(automatic_,&QCheckBox::toggled,this,[this]{edit();});
-  connect(clothUnits_,&QComboBox::currentIndexChanged,this,[this](int i){if(refreshing_)return;patches_.at(editor_.activeLayer()).imperialCloth=i==1;refresh();if(changed)changed();});
-  connect(&editor_,&SketchEditor::changed,this,[this]{refresh();if(changed)changed();});refresh();
+  connect(clothUnits_,&QComboBox::currentIndexChanged,this,[this](int i){if(refreshing_)return;auto& patch=patches_.at(editor_.activeLayer());patch.imperialCloth=i==1;patch.projectClothUnits=(patch.imperialCloth==(units_==ProjectUnits::Inches));refresh();if(changed)changed();});
+  connect(&editor_,&SketchEditor::changed,this,[this]{refresh();warningTimer_->start();if(changed)changed();});refresh();
 }
 FiberglassState FiberglassPanel::state() const {return {editor_.state(),patches_};}
-void FiberglassPanel::restore(const FiberglassState& state) {patches_=state.patches;editor_.restoreState(state.sketch);refresh();}
+void FiberglassPanel::restore(const FiberglassState& state) {warningTimer_->stop();lastWarning_.clear();patches_=state.patches;editor_.restoreState(state.sketch);refresh();}
 void FiberglassPanel::configure(ProjectUnits units) {
   units_=units;
   refresh();
@@ -77,20 +84,40 @@ void FiberglassPanel::edit() {
   auto& patch=patches_.at(editor_.activeLayer());
   patch.name=name_->text().trimmed();if(patch.name.isEmpty())patch.name=QString{"Patch %1"}.arg(editor_.activeLayer()+1);
   patch.wrap=wrap_->isChecked();patch.side=static_cast<CoverSide>(side_->currentData().toInt());
-  if(sender()==cloth_)patch.clothGm2=cloth_->value()*(patch.imperialCloth?gramsPerSquareMeterPerOzYard:1);
+  if(sender()==cloth_)patch.clothGm2=cloth_->value()*(imperialCloth(patch)?gramsPerSquareMeterPerOzYard:1);
   patch.automaticResin=automatic_->isChecked();
   if(!patch.automaticResin&&(sender()==resin_||sender()==automatic_))patch.resinThicknessMm=resin_->value()*(units_==ProjectUnits::Inches?25.4:1);
-  refresh();if(changed)changed();
+  refresh();warningTimer_->start();if(changed)changed();
 }
 void FiberglassPanel::refresh() {
   if(refreshing_)return;refreshing_=true;
   list_->clear();for(const auto& patch:patches_)list_->addItem(patch.name);list_->setCurrentIndex(editor_.activeLayer());
   const auto& patch=patches_.at(editor_.activeLayer());name_->setText(patch.name);wrap_->setChecked(patch.wrap);oneSide_->setChecked(!patch.wrap);
   side_->setCurrentIndex(side_->findData(static_cast<int>(patch.side)));
-  clothUnits_->setCurrentIndex(patch.imperialCloth?1:0);cloth_->setValue(patch.clothGm2/(patch.imperialCloth?gramsPerSquareMeterPerOzYard:1));
+  clothUnits_->setCurrentIndex(imperialCloth(patch)?1:0);cloth_->setValue(patch.clothGm2/(imperialCloth(patch)?gramsPerSquareMeterPerOzYard:1));
   automatic_->setChecked(patch.automaticResin);resin_->setEnabled(!patch.automaticResin);resin_->setSuffix(units_==ProjectUnits::Inches?" in":" mm");
   resin_->setValue(resinThickness(patch)/(units_==ProjectUnits::Inches?25.4:1));
   for(auto* button:findChildren<QPushButton*>())if(button->property("fiberglassTool").isValid())button->setChecked(button->property("fiberglassTool").toInt()==static_cast<int>(editor_.tool()));
   refreshing_=false;
+}
+bool FiberglassPanel::imperialCloth(const FiberglassPatch& patch) const {
+  return patch.projectClothUnits?units_==ProjectUnits::Inches:patch.imperialCloth;
+}
+void FiberglassPanel::warnDrawingView() {
+  if(component_!=1||!isVisible()||!editor_.state().editing||!drawingViews)return;
+  // Do not interrupt a point drag or show a modal warning for every mouse move.
+  if(QApplication::mouseButtons()!=Qt::NoButton){warningTimer_->start();return;}
+  const auto views=drawingViews();const auto& patch=patches_.at(editor_.activeLayer());
+  const bool top=patch.side==CoverSide::Top||patch.side==CoverSide::Bottom;
+  const auto& layer=editor_.layers().at(editor_.activeLayer());QPainterPath lines;
+  for(const auto& curve:layer.curves){std::vector<QPointF> points;for(auto id:curve.points)points.push_back(layer.points[id]);lines.addPath(SketchEditor::fittedPath(points,curve.type));}
+  QPainterPathStroker stroke;stroke.setWidth(1e-6);auto footprint=stroke.createStroke(lines);
+  if(const auto boundary=closedSketchBoundary(layer))footprint=footprint.united(sketchPolygon(*boundary));
+  const auto overlaps=[&](int view){const auto boundary=closedSketchBoundary(views[view]);return boundary&&sketchPolygon(*boundary).intersects(footprint);};
+  if(!overlaps(top?1:0)||overlaps(top?0:1)){lastWarning_.clear();return;}
+  const QString message=QString{"Drawing Surface is %1 (Fuselage %2 View), but the lines appear over the Fuselage %3 View."}
+      .arg(side_->currentText(),top?"Top":"Side",top?"Side":"Top");
+  const auto key=QString::number(editor_.activeLayer())+message;if(lastWarning_==key)return;lastWarning_=key;
+  QMessageBox::warning(this,"Fiberglass drawing view",message);
 }
 }

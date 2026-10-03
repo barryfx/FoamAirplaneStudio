@@ -60,6 +60,11 @@ static geometry::AssemblyParts parts() {
 }
 static void mathematics() {
   auto mass=geometry::foamMassProperties(parts());
+  const auto serial=geometry::foamMassProperties(parts(),1);
+  CHECK(closeEnough(serial.volumeMm3,mass.volumeMm3));CHECK(serial.centroidMm==mass.centroidMm);
+  CHECK(closeEnough(serial.plywoodVolumeMm3,mass.plywoodVolumeMm3));CHECK(serial.plywoodCentroidMm==mass.plywoodCentroidMm);
+  CHECK(serial.components.size()==mass.components.size());
+  for(std::size_t i=0;i<serial.components.size();++i){CHECK(serial.components[i].name==mass.components[i].name);CHECK(closeEnough(serial.components[i].volumeMm3,mass.components[i].volumeMm3));}
   CHECK(closeEnough(mass.volumeMm3,2e6,.001));CHECK(closeEnough(mass.centroidMm.x(),100));
   CHECK(closeEnough(mass.plywoodVolumeMm3,2e5,.001));CHECK(closeEnough(mass.plywoodCentroidMm.x(),255));
   CHECK(mass.components.size()==8);double foamSum=0,plywoodSum=0;
@@ -284,11 +289,15 @@ public:
     QApplication::processEvents();CHECK(w.grab().save(directory+"/weight-balance-carbon.png"));
     // Covering edits change mass, but never invalidate the Assembly solids.
     const auto sourceFingerprint=w.assemblySourceFingerprint_;const auto wingShape=w.assemblyOriginals_.wing;
+    const int beforeFiberglass=calculations;
     toolbar->actions()[1]->trigger();bool found=false;
     for(auto* action:w.componentToolBar_->actions())if(action->text()=="Fiberglass"){CHECK(action->isEnabled());action->trigger();found=true;}
     CHECK(found&&w.fiberglassPanels_[0]->isVisible()&&w.graphicsTabs_->currentIndex()==0);
     auto covering=w.fiberglassPanels_[0]->state();covering.sketch.layers[0]=rectangle(20,60,160,200);covering.patches[0].name="Root reinforcement";covering.patches[0].wrap=false;
     w.fiberglassPanels_[0]->restore(covering);w.planViewport_->fitInView(QRectF{0,0,600,400},Qt::KeepAspectRatio);QApplication::processEvents();CHECK(w.grab().save(directory+"/fiberglass-wing.png"));
+    w.updateProjectTitle();w.updateWeightBalance();CHECK(calculations==beforeFiberglass);
+    CHECK(!w.statistics_.weightGrams&&!w.statistics_.cgFromLeadingEdgeMm&&!w.statistics_.wingLoadingGramsPerDm2);
+    CHECK(w.fiberglassPanels_[0]->findChild<QLabel*>("airplaneStatistics")->text().count(QString::fromUtf8("—"))==3);
     toolbar->actions()[7]->trigger();w.updateWeightBalance();
     CHECK(w.assemblySourceFingerprint_==sourceFingerprint&&w.assemblyOriginals_.wing.IsEqual(wingShape));
     CHECK(w.balanceMassCache_&&w.balanceMassCache_->fiberglass.size()==1);CHECK(w.balanceMassCache_->fiberglass[0].areaMm2>0);
@@ -296,7 +305,7 @@ public:
     covering.patches[0].clothGm2=100;w.fiberglassPanels_[0]->restore(covering);w.updateProjectTitle();
     CHECK(calculations==beforeClothEdit);CHECK(closeEnough(w.balanceMassCache_->fiberglass[0].clothGrams,measuredArea*.0001));
     CHECK(closeEnough(*w.statistics_.weightGrams,calculateBalance(panel->state(),*w.balanceMassCache_).grams));
-    bool clothRow=false,resinRow=false;for(int row=0;row<breakdown->rowCount();++row){const auto label=breakdown->item(row,0)->text();clothRow=clothRow||label.contains("Root reinforcement / Fiberglass");resinRow=resinRow||label.contains("Root reinforcement / Resin");}CHECK(clothRow&&resinRow);
+    QString clothArea,resinArea;for(int row=0;row<breakdown->rowCount();++row){const auto label=breakdown->item(row,0)->text();if(label.contains("Root reinforcement / Fiberglass"))clothArea=label.mid(label.indexOf('('));if(label.contains("Root reinforcement / Resin"))resinArea=label.mid(label.indexOf('('));}CHECK(!clothArea.isEmpty()&&clothArea==resinArea);
     CHECK(w.grab().save(directory+"/weight-balance-fiberglass.png"));
     // Undo/redo includes patch material and sketch inputs.
     w.resetEditHistory();covering.patches[0].name="Renamed covering";w.fiberglassPanels_[0]->restore(covering);w.captureEdit();CHECK(w.undoAction_->isEnabled());

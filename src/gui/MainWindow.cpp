@@ -208,6 +208,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
     fiberglassPanels_[i]=new FiberglassPanel{planViewport_->fiberglassEditor(i),i,dataContents_};dataLayout->addWidget(fiberglassPanels_[i]);
     fiberglassPanels_[i]->hide();
     fiberglassPanels_[i]->changed=[this]{if(!restoringProject_)updateProjectTitle();};
+    fiberglassPanels_[i]->drawingViews=[this]{const auto& layers=planViewport_->fuselageSketchEditor().layers();return std::array<SketchLayer,2>{layers[0],layers[1]};};
   }
   // Panel footers consume available list/tab height, above bottom actions.
   for(int i=0;i<dataLayout->count();++i) {
@@ -432,6 +433,7 @@ void MainWindow::selectWorkspace(int index) {
 }
 
 void MainWindow::updateWeightBalance(bool frameSide) {
+  if(dataPanel_->property("workspaceIndex").toInt()!=7)return;
   weightBalancePanel_->setCgHeightLine({});
   try {
     if(projectLengthScale()<=0)throw std::runtime_error("Complete the wing outline and stations to establish the project scale.");
@@ -531,14 +533,16 @@ QByteArray MainWindow::statisticsMassKey() const {
 void MainWindow::updateStatistics() {
   if(restoringProject_||statisticsLabels_.empty())return;
   const int workspace=dataPanel_->property("workspaceIndex").toInt();
-  if(workspace==5||workspace==6) {
-    // Placement edits refresh the title frequently. Invalidate stale saved mass,
-    // but defer solid integration until a workspace displaying statistics needs it.
-    // Export also has no statistics footer and must never trigger mass integration.
+  if(workspace!=7) {
+    // Retain valid measured inputs, but leave weighted totals unavailable in
+    // every other workspace. Editing a covering must never integrate surfaces.
     if(!statistics_.balance||statistics_.balance->sourceKey!=statisticsMassKey()) {
       statistics_.balance.reset();statistics_.weightGrams.reset();
       statistics_.cgFromLeadingEdgeMm.reset();statistics_.wingLoadingGramsPerDm2.reset();
     }
+    auto next=outlineStatistics(projectDocument());next.balance=statistics_.balance;
+    statistics_=std::move(next);const auto text=statisticsText(statistics_,projectReference().units);
+    for(auto* label:statisticsLabels_){if(label->text()!=text)label->setText(text);label->setVisible(!text.isEmpty());}
     return;
   }
   auto balance=statistics_.balance;

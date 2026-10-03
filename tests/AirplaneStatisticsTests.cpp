@@ -55,7 +55,7 @@ static void measurements() {
   p=fixture();p.reference.toScale=true;p.reference.image.physicalSizeMm=QSizeF{1000,1000};
   p.reference.image.pages.push_back({QImage{1,1,QImage::Format_RGB32},QSizeF{1000,1000}});
   s=outlineStatistics(p);CHECK(closeEnough(*s.wingspanMm,1000));CHECK(closeEnough(*s.wingAreaMm2,200000));
-  CHECK(statisticsText({},ProjectUnits::Millimeters).isEmpty());
+  CHECK(statisticsText({},ProjectUnits::Millimeters).count(QString::fromUtf8("—"))==3);
 }
 namespace designrc::gui {
 class AirplaneStatisticsTest {
@@ -65,9 +65,11 @@ public:
   CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_&&!w.stabilizerProcessing());
   CHECK(w.statistics_.wingspanMm&&closeEnough(*w.statistics_.wingAreaMm2,200000));
   auto* referenceStats=w.referencePanel_->findChild<QLabel*>("airplaneStatistics");CHECK(referenceStats&&referenceStats->isVisible());
-  CHECK(referenceStats->text().contains("Wingspan")&&!referenceStats->text().contains("Weight"));
+  CHECK(referenceStats->text().contains("Wingspan")&&referenceStats->text().count(QString::fromUtf8("—"))==3);
   StatisticsBalance balance;balance.materials.volumeMm3=1e6;balance.materials.centroidMm={100,0};balance.leadingEdgeMm=0;
   balance.sourceKey=w.statisticsMassKey();w.statistics_.balance=balance;w.updateStatistics();
+  CHECK(!w.statistics_.weightGrams&&!w.statistics_.cgFromLeadingEdgeMm&&!w.statistics_.wingLoadingGramsPerDm2);
+  w.selectWorkspace(7);w.updateStatistics();
   CHECK(closeEnough(*w.statistics_.weightGrams,1000)&&closeEnough(*w.statistics_.cgFromLeadingEdgeMm,100));
   CHECK(closeEnough(*w.statistics_.wingLoadingGramsPerDm2,50));
   w.selectWorkspace(1);
@@ -93,15 +95,16 @@ public:
   for(auto* action:w.componentToolBar_->actions())if(action->text()=="Airfoils")action->trigger();
 
   QString error;const auto file=directory+"/airplane-statistics.foam";CHECK(w.saveProjectFile(file,error));CHECK(!w.projectModified());
-  auto saved=readProject(file,error);CHECK(saved&&saved->statistics.balance&&closeEnough(*saved->statistics.weightGrams,1000));
-  CHECK(w.openProjectFile(file,error));CHECK(w.statistics_.balance&&closeEnough(*w.statistics_.weightGrams,1000));CHECK(!w.projectModified());
+  auto saved=readProject(file,error);CHECK(saved&&saved->statistics.balance&&!saved->statistics.weightGrams);
+  CHECK(w.openProjectFile(file,error));CHECK(w.statistics_.balance&&!w.statistics_.weightGrams);CHECK(!w.projectModified());
   CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_&&!w.stabilizerProcessing());
   auto massState=w.weightBalancePanel_->state();massState.densityKgM3=50;w.weightBalancePanel_->restore(massState);w.updateProjectTitle();
-  CHECK(closeEnough(*w.statistics_.weightGrams,1024.37));CHECK(closeEnough(*w.statistics_.wingLoadingGramsPerDm2,51.2185));
+  CHECK(!w.statistics_.weightGrams&&!w.statistics_.wingLoadingGramsPerDm2);
   auto units=w.projectDocument();units.reference.units=ProjectUnits::Inches;w.restoreProject(units);
-  CHECK(w.statistics_.balance);CHECK(statisticsText(w.statistics_,ProjectUnits::Inches).contains("oz/ft²"));
+  CHECK(w.statistics_.balance);CHECK(statisticsText(w.statistics_,ProjectUnits::Inches).count(QString::fromUtf8("—"))==3);
   w.selectWorkspace(7);QApplication::processEvents();CHECK(!w.weightBalancePanel_->findChild<QLabel*>("airplaneStatistics"));
   w.weightBalancePanel_->setFoam(balance.materials,0,{});w.updateStatistics();
+  CHECK(closeEnough(*w.statistics_.weightGrams,1024.37));CHECK(closeEnough(*w.statistics_.wingLoadingGramsPerDm2,51.2185));
   auto* results=w.weightBalancePanel_->findChild<QLabel*>("balanceResults");CHECK(results->text().contains("Wing Loading:"));CHECK(results->text().contains("oz/ft²"));
   CHECK(results->text().contains(QString::number(1024.37/gramsPerOunce/(200000/(304.8*304.8)),'f',2)));
   CHECK(w.grab().save(directory+"/airplane-statistics-balance.png"));
@@ -122,19 +125,20 @@ public:
   w.balanceMassCache_=sentinel;w.balanceMassFingerprint_="unmeasured sentinel";
   balance.sourceKey=w.statisticsMassKey();w.statistics_.balance=balance;
   w.statistics_.weightGrams=1000;w.statistics_.cgFromLeadingEdgeMm=100;w.statistics_.wingLoadingGramsPerDm2=50;
-  w.dataPanel_->setProperty("workspaceIndex",5);
-  for(int i=0;i<3;++i) {
+  for(int workspace:{0,1,2,3,4,5,6,8}) {
+    w.dataPanel_->setProperty("workspaceIndex",workspace);
     w.assemblyState_.offsets[0]+=QPointF{1,0};w.assemblyState_.rotationDegrees[0]+=.5;
     w.updateProjectTitle();w.updateStatistics();
     CHECK(w.balanceMassCache_&&w.balanceMassCache_->volumeMm3==123456);
     CHECK(w.balanceMassFingerprint_=="unmeasured sentinel");
     CHECK(!w.statistics_.balance&&!w.statistics_.weightGrams&&!w.statistics_.cgFromLeadingEdgeMm&&!w.statistics_.wingLoadingGramsPerDm2);
+    CHECK(referenceStats->text().count(QString::fromUtf8("—"))==3);
     CHECK(!w.modelJob_&&!w.fuselageJob_&&!w.assemblyPrepareJob_&&!w.stabilizerProcessing());
   }
   // Leaving Assembly resumes the statistics footer without starting generation.
   w.assemblyOriginals_={};w.dataPanel_->setProperty("workspaceIndex",0);w.updateStatistics();
   CHECK(referenceStats->text().contains("Wingspan"));
-  w.resetProject();CHECK(referenceStats->isHidden()&&!w.statistics_.weightGrams);
+  w.resetProject();CHECK(referenceStats->text().count(QString::fromUtf8("—"))==3&&!w.statistics_.weightGrams);
  }
 };
 }

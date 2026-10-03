@@ -8,6 +8,7 @@ class QLineEdit;
 class QRadioButton;
 class QCheckBox;
 class QDoubleSpinBox;
+class QTimer;
 namespace designrc::gui {
 class FiberglassPanel final : public QWidget {
 public:
@@ -17,7 +18,13 @@ public:
   void configure(ProjectUnits units);
   void setActive(bool active);
   std::function<void()> changed;
+  // Fuselage Top and Side reference outlines, supplied by the owning workspace.
+  std::function<std::array<SketchLayer,2>()> drawingViews;
 private:
+  bool imperialCloth(const FiberglassPatch& patch) const;
+  void warnDrawingView();
+  QTimer* warningTimer_{};
+  QString lastWarning_;
   void refresh();
   void edit();
   SketchEditor& editor_;

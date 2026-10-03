@@ -23,11 +23,17 @@ Cache area/centroid independently of material values. Store resin-only equivalen
 thickness per patch, with an automatic default and a manual override. Material
 density edits are accepted atomically through a modal dialog; Cancel changes none.
 
-Use 1180 kg/m³ resin density: the cured specific gravity of the solvent-free
+Initial resin default was 1180 kg/m³ (superseded below): the cured specific gravity of the solvent-free
 [WEST SYSTEM 105/206 epoxy](https://www.westsystem.com/app/uploads/2022/12/105-206-Epoxy-Resin.pdf)
 is 1.18. Its data sheet identifies foam and reinforcing fabrics among substrates.
 This is a starting value for foam-compatible laminating epoxy, not a guarantee
 about every foam/resin combination.
+
+Follow-up decision, 2026-10-03: use the user-requested 1500 kg/m³ (1.5 g/cm³)
+resin default. Preserve explicitly saved densities. Only Weight and Balance
+updates weighted statistics; other modes display dashes. Optional project-unit
+following metadata is additive within format 32. Reuse bounded indexed workers
+for independent material and covering measurements with ordered reduction.
 
 Assume glass density 2550 kg/m³ and bulk cloth density 900 kg/m³ for the automatic
 thickness estimate. The bulk estimate gives approximately 0.151 mm for 4 oz/yd²,

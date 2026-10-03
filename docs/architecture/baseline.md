@@ -93,9 +93,10 @@ The primary toolbar ends with Inspect, Weight and Balance, then Export. Inspect
 provides normal 3D navigation, component visibility and persistent export names
 (inspect.md). Weight and Balance supplies RC part placement, mass/CG and wing
 loading from cached foam/plywood/carbon-fiber statistics (weight-and-balance.md).
-Other panels show available dimensions and mass statistics in a shared footer
-(airplane-statistics.md). Assembly and Export omit that footer and defer mass
-integration; Weight and Balance has its own totals. The current persistence format is 31.
+Other panels show available dimensions and dashes for mass/CG/loading in a shared
+footer (airplane-statistics.md). Only Weight and Balance calculates these totals.
+Assembly and Export omit the footer. Fiberglass adds cloth and resin covering
+estimates to Weight and Balance (fiberglass.md). The current persistence format is 32.
 
 ## Application icon
 

@@ -78,7 +78,12 @@ QString statisticsText(const AirplaneStatistics& s,ProjectUnits units) {
   const QString suffix=inches?" in":" mm",areaSuffix=inches?" in²":" mm²";
   QStringList rows;
   const auto row=[&](const char* label,std::optional<double> value,double divisor,QString ending,int decimals=2,bool sign=false) {
-    if(!value)return;
+    if(!value) {
+      const QLatin1StringView name{label};
+      if(name==u"Weight"||name==u"Wing Loading"||name==u"CG from wing LE")
+        rows<<QString{"<tr><td>%1</td><td align=right>—</td></tr>"}.arg(label);
+      return;
+    }
     rows<<QString{"<tr><td>%1</td><td align=right>%2%3%4</td></tr>"}.arg(label).arg(sign&&*value>=0?"+":"").arg(*value/divisor,0,'f',decimals).arg(ending);
   };
   row("Wingspan",s.wingspanMm,unit,suffix);row("Wing Area",s.wingAreaMm2,unit*unit,areaSuffix);

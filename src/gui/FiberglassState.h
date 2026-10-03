@@ -13,6 +13,7 @@ struct FiberglassPatch {
   CoverSide side=CoverSide::Top;
   double clothGm2=50;
   bool imperialCloth=false;
+  bool projectClothUnits=true; // imperialCloth applies only to an explicit override.
   bool automaticResin=true;
   double resinThicknessMm=0.046;
 };

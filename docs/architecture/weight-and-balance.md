@@ -38,7 +38,7 @@ the geometry rows. The breakdown is derived and is not saved in the project.
 Default densities are 25.63 kg/m³ XPS, 680 kg/m³ birch aircraft plywood and
 1540 kg/m³ Carbon Fiber composite; users can change all three to match their
 actual stock. The Material Densities dialog contains Foam, Aero Plywood, Carbon
-Fiber and Resin (1180 kg/m³ by default). OK applies all values; Cancel changes
+Fiber and Resin (1500 kg/m³, or 1.5 g/cm³, by default). OK applies all values; Cancel changes
 none. The Carbon Fiber field follows Aero Plywood density. See ADR-0039
 and ADR-0046 for sources. CF density applies to material only, excluding bores.
 
@@ -69,13 +69,11 @@ as parts; do not add automatically counted spars or fiberglass a second time.
 
 Wing Loading is also displayed when total mass and nominal full wing area are
 available, in g/dm² for metric Reference units or oz/ft² for inches. The shared
-statistics footer is intentionally omitted here. Other panels save and display
-an independently validated summary cache; see airplane-statistics.md.
+statistics footer is intentionally omitted here. Other panels display dashes for weight, loading and CG and do not measure mass; see airplane-statistics.md.
 
 Assembly movement and rotation do not trigger mass integration. The Assembly
 panel omits the shared statistics footer, and stale saved totals are cleared
-without measuring solids there. Enter Weight and Balance (or another statistics
-panel) to refresh totals for the current placement.
+without measuring solids there. Enter Weight and Balance to refresh totals for the current placement.
 
 The user-facing results and bottom status summary label the balance point Center of Gravity.
 
@@ -88,3 +86,9 @@ wing reference for the marker, not a claim about the actual vertical CG.
 The bundled `graphics/CG Symbol.png` draws at 28 logical pixels, independent of
 zoom. Part/density edits update its position using cached mass properties;
 stale model data hides it without generating geometry.
+
+Volume integration runs in bounded workers across independent components and
+plywood inserts; fiberglass area integration runs across component workers.
+Workers own their accumulators and covering meshes; deterministic reductions
+preserve component order and mass/CG results. Both cloth and resin entries show
+the same covered surface area; the resin row also retains its material volume.
