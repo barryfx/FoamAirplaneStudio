@@ -39,15 +39,17 @@ and valid as cross-platform filename stems. Identifiers are at most 240 characte
 at most 10,000 overrides are accepted. Versions 1–26 load an empty name map.
 Inspect checkbox visibility remains session-only. See ADR-0041.
 
-Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 29`.
+Files use `.foam`, UTF-8 JSON, `format: "FoamAirplaneStudio"`, `version: 31`.
 All lengths ending in `Mm` are millimetres. Sketch coordinates remain scene
 coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 
 | Field | Meaning |
 | --- | --- |
-| weightBalance | Foam and Aero Plywood densities and named parts with physical dimensions, masses and X/Z centers |
+| weightBalance | Foam, Aero Plywood and Carbon Fiber densities and named parts with physical dimensions, masses and X/Z centers |
+| componentNames | Persistent export-name overrides keyed by source component identifier |
+| airplaneStatistics | Optional derived dimensions and validated aggregate material measurements; no geometry |
 | reference | Original filename, embedded ordered PNG pages, per-page/combined physical size, native/project units, scale mode, full wingspan and its text; legacy fuselage length/text fields retained for compatibility |
-| assembly | Positioned flag, three physical X/Z translations and cut/uncut intent |
+| assembly | Positioned flag, three physical X/Z translations, three root-pivot rotation angles and cut/uncut intent |
 | stabilizerAirfoils | Two entries in horizontal/vertical order: null for bundled NACA009, or embedded DAT name and normalized coordinates |
 | horizontalStabilizerOutline / verticalStabilizerOutline | Independent single-layer open sketches, tools, selections and pending points |
 | horizontalStabilizerHinge / verticalStabilizerHinge | Independent single-layer connected Line sketches and drafts |
@@ -56,7 +58,8 @@ coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 | wingOutline | Numbered wing-panel sketch layers, active layer, current tool, selected curve, pending points and editing flag |
 | formers | Positive Side View rectangles, per-former rotationDegrees and next-former thicknessMm |
 | servoTray | Side View rectangle [x,y,width,height], optional first corner, and drawing flag |
-| fuselageCuts | Top/Side cut sketch layers with active view/tool, selection, editing and pending points |
+| fuselageCuts | Four cut sketch layers in Top/Bottom/Left/Right order with active view/tool, selection, editing and pending points |
+| fuselageNoseOpen / fuselageTailOpen | Independent end-opening booleans; legacy null choices are resolved once by the GUI |
 | fuselageHoles | Top/Bottom/Left/Right closed-loop sketch layers with active wall/tool, selection, editing and pending points |
 | fuselageThickening | Boolean initialized by complete-model generation or Thicken entry; retained across modes |
 | fuselageStations | Vertical Side View sections with top/bottom curve anchors, optional profile slot, optional thicknessMm and selected index |
@@ -72,7 +75,8 @@ coordinates (pixels in manual-reference mode; millimetres in actual-scale mode).
 | ui | Workspace index, active toolbar label, viewport tab, 2D zoom/center, optional 3D camera and splitter sizes |
 
 Sketch layers contain `[x,y]` points and curves referencing zero-based point
-indices. Curve/tool values are 0 None (tool only), 1 Line, 2 fitted Spline.
+indices. Curve/tool values are 0 None (tool only), 1 Line, 2 fitted Spline,
+and 3 Circle (fuselage profiles only).
 Station anchors contain a layer index, curve index, displayed arc-length fraction
 from 0 through 1, and current scene position. Alignment values are 0 Free,
 1 Horizontal, 2 Vertical. Station airfoil indices refer to the ordered shared
@@ -396,7 +400,7 @@ Applications supporting only earlier formats reject current version 31. Original
 ## Retired model caches (version 22) and input-only saving (version 23)
 
 Version 22 embedded generated OCCT geometry and meshes in a `models` object.
-Version 23 no longer writes that field. The current reader accepts versions 1–28
+Version 23 no longer writes that field. The current reader accepts versions 1–31
 and ignores `models` entirely, including malformed or corrupt cache payloads.
 It performs no base64 decoding, decompression, checksum validation or BREP reads
 for obsolete caches. Normal design input validation and the 512 MiB file limit
@@ -445,8 +449,8 @@ both densities affect dirty state, but not component-generation fingerprints.
 
 Workspace 7 is Weight and Balance. Part selection/drag gestures, measured model
 volumes and calculated totals are transient. Versions 1–25 initialize default
-densities and no parts; original files change only on Save. New files use version
-26, and older applications reject them rather than silently dropping these data.
+densities and no parts; original files change only on Save. These fields were
+introduced in version 26; current saves use version 31.
 
 The Reference UI now uses Wingspan for all manual project scaling. Legacy
 `fuselageLengthMm` and `fuselageText` remain readable but do not control geometry.
@@ -463,7 +467,7 @@ Smoothed copies use the existing imported-profile representation with embedded
 normalized coordinates. Originals and station assignments remain unchanged.
 Preview strength is transient; no persistent field or version change is needed.
 
-## Optional airplane statistics cache (format 30)
+## Optional airplane statistics cache (introduced in format 29)
 
 `airplaneStatistics` stores nullable finite numeric fields `wingspanMm`,
 `wingAreaMm2`, `rootChordMm`, `aspectRatio`, `fuselageLengthMm`,

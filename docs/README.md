@@ -3,7 +3,7 @@
 The [project website](architecture/project-website.md) is checked into `website/`
 and deployed from `main` through GitHub Pages.
 
-Current state: September 29, 2026.
+Current state: October 3, 2026 (application 0.1.0, project format 31).
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
@@ -66,7 +66,7 @@ Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.
 
 The latest documentation audit is recorded in
-[documentation audit](baseline/documentation-audit-2026-09-29.md).
+[documentation audit](baseline/documentation-audit-2026-10-03.md).
 Historical test commands are evidence, not authorization to rerun generation:
 follow the current restrictions in `../AGENTS.md`.
 

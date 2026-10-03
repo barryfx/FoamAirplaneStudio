@@ -36,7 +36,8 @@ isolation failure instead of asserting that the drawing is wrong.
 Holes are applied to the supported, reflected halves after rails and before Cut
 and alignment. They stop at the original inner cavity and do not remove
 internal supports or separate former/tray inserts. Alignment avoids the resulting
-openings. Existing Cut still splits through both walls and retains cut-out bodies.
+openings. Cut retains detached bodies: boundary-crossing paths split both walls,
+while closed interior paths split only the selected wall (fuselage-cuts.md).
 
 Project format 25 saves four fuselageHoles layers, tools and pending drafts.
 Older files load empty holes. Hole geometry invalidates Fuselage and Assembly

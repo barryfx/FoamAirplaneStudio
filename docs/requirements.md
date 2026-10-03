@@ -2,8 +2,8 @@
 
 This document includes implemented behavior and planned product scope. See
 `README.md` and `architecture/` for current implementation status. Later accepted
-ADRs refine earlier requirements; the manufacturing split below follows ADR-0029
-and ADR-0032.
+ADRs refine earlier requirements; current fuselage construction, end closure and
+cuts follow ADR-0045, ADR-0048 and ADR-0049, retaining ADR-0032 alignment features.
 
 ## 1. Purpose
 
@@ -44,7 +44,7 @@ The software shall support designing an aircraft from imported reference drawing
 
 - Reference mode shall show Load Image and the loaded file path.
 - Load Image shall support PNG, JPG/JPEG, and PDF backgrounds in the 2D view.
-- The user shall choose between User Reference Image Scale and Specify Dimensions.
+- The user shall choose between Use Reference Image Scale and Specify Dimensions.
 - Actual-scale mode shall derive physical image/page dimensions and project units
   from the source metadata. Missing physical metadata requires manual dimensions.
 - Specify Dimensions shall show a Project Units selector for inches/millimeters
@@ -150,8 +150,8 @@ The software shall support designing an aircraft from imported reference drawing
 
 - Outline shall be a checked secondary-toolbar action when selected.
 - Instructions shall describe tracing Top and Side views and all drawing controls.
-- Top View and Side View shall be checkable buttons. Selecting one disables the
-  other and reveals its Line/Spline controls directly below it; clicking the active
+- Top View and Side View shall remain enabled checkable buttons. Selecting either
+  switches directly and reveals its Line/Spline controls; clicking the active
   view again releases it. Sketch interaction shall match Wing outline editing.
 - Each view shall contain one closed loop. Leaving Outline shall warn by view name
   for incomplete/invalid loops while preserving the sketches and permitting exit.
@@ -167,8 +167,8 @@ The software shall support designing an aircraft from imported reference drawing
 - Station selection, Delete, and endpoint movement shall follow Wing station controls,
   while retaining vertical alignment. Ambiguous and zero-height sections are rejected.
 - Cross-section planes shall be perpendicular to the fuselage longitudinal direction.
-- Profile stations shall be numbered sequentially.
-- Profile 1 shall be located at the nose of the fuselage.
+- Profile stations shall be numbered from nose to tail. Profile 1 is the
+  foremost placed station; an exact nose station is not required for explicit end closure.
 
 ### 4.3 (SECTION DELETED)
 
@@ -188,11 +188,13 @@ The software shall support designing an aircraft from imported reference drawing
   station's position relative to the Side View wing leading edge: 8 mm at or
   forward of it and 5 mm aft, as refined by ADR-0022 and ADR-0026.
 - The user shall be able to modify these thickness values.
-- Each end is open when the Top/Side outlines terminate at its outermost profile;
-  it is closed when the outlines extend beyond that profile. Model-only registration
-  makes straight end edges vertical within 2 degrees and 0.5 mm axial drift; the
-  outermost station within 0.5 mm of a qualifying end opens it. Preserve input
-  drawings and retain strict endpoint handling for pointed/curved/sloping ends.
+- Outline shall provide independent Nose Open/Closed and Tail Open/Closed choices,
+  defaulting to Nose Open and Tail Closed. Preserve saved choices across edits.
+  Legacy projects resolve the former station-based rule once on GUI load.
+- Explicit open straight Side View ends less than 45 degrees from vertical shall
+  retain their drawn slope through temporary extension, hollowing and trimming.
+  Pointed or undersized openings require enough space for the selected wall thickness.
+  Preserve source sketches; see ADR-0048 and architecture/fuselage-thickness.md.
 - Entering Thicken or generating a complete fuselage shall initialize missing
   station wall values and enable hollow generation while preserving explicit values.
   Generation shall not require visiting Thicken first.
@@ -222,24 +224,31 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 4.8 User-Defined Fuselage Part Separation
 
-- The user shall be able to specify a separation line over the top or side fuselage reference view.
-- These lines shall be used to cut the fuselage into two separate solid bodies.
+- Cut shall offer Top, Bottom, Left and Right surfaces. Top/Bottom use the Top
+  outline; Left/Right use the Side outline.
+- Paths reaching or crossing the outline shall cut through both opposite walls.
+  Wholly interior closed paths shall detach only the selected wall, stopping at
+  the inner cavity. Open through-paths must reach both outline edges.
+- Retain all detached pieces as separate components with no kerf or material loss.
+  Reject single-wall cuts whose footprint interferes with a parallel wall (ADR-0049).
 
 ### 4.9 Fuselage Manufacturing Split
 
-- After user-defined part-separation cuts, split the largest remaining body into
-  left/right halves at the registered longitudinal Y=0 plane (ADR-0029, replacing
-  the original top/bottom requirement). Preserve other cut-out pieces, the servo
-  tray and formers whole. Reject an ambiguous largest body or an invalid split.
+- Construct the right fuselage half and reflect it into a separate left half
+  at the registered Y=0 plane (ADR-0045). After user cuts, identify the main body
+  by greatest combined volume of pieces connected across the seam. Keep its halves
+  separate and rejoin only detached pieces across that seam. Preserve whole tray
+  and former inserts; reject ambiguous main-body identification or invalid geometry.
 - Add four alignment pins, two top and two bottom, with 3 mm projection and
   3.5 mm-deep matching sockets. Diameter is 4 mm capped by local wall thickness
   and available skin; reject insufficient support (ADR-0032).
 
 ### 4.10 User-Defined Fuselage Add/Cut
 
-- The may specify closed loops made from lines and/or splines for regions that may be cut from the fuselage.
-- The may specify closed loops made from lines and/or splines for regions that may be added to the inside of the
-  fuselage.  The width of the region shall be specified by the user.
+- Holes implements closed Line/Spline loops that remove material from one wall;
+  Cut retains the detached material as described above.
+- Planned: the user may specify closed Line/Spline loops and a width for material
+  added inside the fuselage. Arbitrary additive regions are not implemented.
 
 ## 5. Horizontal and Vertical Stabilizer Design
 
@@ -340,13 +349,13 @@ The software shall support designing an aircraft from imported reference drawing
 
 - Export shall be available only after the current Assembly has successfully
   generated and shall use its placed 3D components, including active Assembly cuts.
-- The data panel shall show instructions, exclusive Formers STEP/DXF/STL choices,
+- The data panel shall show instructions, exclusive Formers STEP/DXF/SVG/STL choices,
   exclusive Components STEP/STL choices, All, former/component checkboxes, and
-  a bottom Export Components button. All selects or clears every entry.
+  a bottom Export Components button. All parts start selected; All selects or clears every entry.
 - Formers shall be listed first as Former N, numbered from the nose toward the tail.
 - Export Components shall ask for an output directory and remember that directory.
   Selected components shall share one STEP file or use individual STL files;
-  formers shall default to STEP in that same file, with individual DXF or STL
+  formers shall default to STEP in that same file, with individual DXF, SVG or STL
   available through their radio group. Formers and the servo tray shall remain
   standalone solids, never joined to the fuselage by Assembly.
 
@@ -357,8 +366,8 @@ The software shall support designing an aircraft from imported reference drawing
 
 ### 8.2 Formers and Servo Tray Export
 
-Current Assembly Export implements former STEP/DXF/STL and servo-tray STEP/STL.
-SVG and servo-tray DXF below remain planned.
+Current Assembly Export implements former STEP/DXF/SVG/STL and servo-tray STEP/STL.
+Servo-tray DXF/SVG below remain planned.
 
 - The former and servo tray outlines/profiles shall be exportable as a two-dimensional file in:
   - SVG (`.svg`)
@@ -437,11 +446,11 @@ Every uninitialized station at or forward of the wing LE defaults to 8 mm; stati
 aft of it default to 5 mm. List station fields in ascending station-number
 order and retain edited physical values when units change.
 
-Fuselage Cut uses connected Line/Spline paths in Top or Side View with standard
-sketch selection, movement and Delete. Paths may be open; endpoints must reach
-the body boundary to separate a section. Cut through the full perpendicular
-extent, preserving each resulting body. Keep paths visible in other 2D modes and
-save them with the project for regeneration. Include operation text above tools.
+Fuselage Cut uses connected Line/Spline paths on Top/Bottom/Left/Right surfaces
+with standard sketch selection, movement and Delete. Boundary-crossing paths cut
+through the body; closed interior paths detach one wall against the inner cavity.
+Preserve each resulting body, keep paths visible in other 2D modes, and save them
+for regeneration. Include operation text above tools.
 
 Servo Tray: enter Width and Height in Reference units (explicit mm/in accepted).
 Create the dimensioned rectangle and drag it on Side View; height defines thickness.
@@ -481,16 +490,17 @@ the overlay, overlap checks, fitted solid and retaining rails; save it per forme
 - Record decimal width, height, length and weight in grams/ounces. Draw length
   horizontally, height vertically, with width into the screen; label each part.
 - Start parts centrally and allow selection/dragging, with visibility only in this mode.
-- Combine generated foam and Aero Plywood former/tray volumes and centroids with
-  entered part masses and centers. Default XPS to 25.63 kg/m³ and plywood to 680 kg/m³;
-  permit density edits to match actual stock.
+- Combine generated foam, Aero Plywood former/tray and Carbon Fiber spar volumes
+  and centroids with entered part masses and centers. Default XPS to 25.63 kg/m³,
+  plywood to 680 kg/m³ and Carbon Fiber to 1540 kg/m³; permit density edits.
+  Count spar material automatically, excluding tube bores, without adding export solids.
 - Update total weight and longitudinal center of mass after every part or density edit.
   Display center relative to the placed wing root LE in Reference units, positive aft.
 - Persist parts/densities and report unavailable complete results without current Assembly.
 
 ### Inspect
 
-- Inspect shall follow Weight and Balance on the primary toolbar.
+- Inspect shall follow Assembly and precede Weight and Balance on the primary toolbar.
 - It shall show current component solids in 3D with 2D disabled and standard camera/navigation commands.
 - Each component shall have a checked-by-default visibility checkbox and an editable persistent name.
 - Names shall be shared with Export labels and per-part filenames. Combined STEP shall use the project basename.

@@ -14,7 +14,7 @@ Assembly and Export defer mass integration entirely, including when entering
 Export with no cached Weight and Balance measurement.
 
 Sketch-only calculations require a physical Reference scale. Wingspan is the
-entered full span in Specify Dimensions or the calibrated outline span in User
+entered full span in Specify Dimensions or the calibrated outline span in Use
 Reference Image Scale. A complete single panel can establish its root from the
 two open endpoints before airfoil stations exist. Multi-panel roots use the same
 frame as generation. Root chord is measured between the root endpoints.

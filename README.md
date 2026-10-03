@@ -171,7 +171,8 @@ remain yours.
 
 ## Linux: build from source and create packages
 
-Use CMake 3.24+, Ninja, a C++23 compiler, Qt 6.4+ with PDF, and **OCCT 8.0**.
+Use CMake 3.25+ for the checked-in presets and DEB packaging script (direct
+configuration requires 3.24+), Ninja, a C++23 compiler, Qt 6.4+ with PDF, and **OCCT 8.0**.
 Ubuntu validation uses GCC 13.3/Qt 6.4.2; Fedora uses GCC 16.1/Qt 6.11.2.
 Fedora 44's system OCCT 7.9.3 is too old. Build OCCT 8 on each target distribution;
 do not reuse Ubuntu binaries on Fedora.

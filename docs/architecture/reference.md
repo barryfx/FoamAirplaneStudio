@@ -1,7 +1,7 @@
 # Reference workflow
 
 Reference begins with instructions explaining PDF/PNG tracing, automatic model
-scaling from Wingspan, and using reference physical dimensions instead. It shows Load Image, the loaded path, and mutually exclusive scale choices.
+scaling from Wingspan, and using reference physical dimensions instead. It shows Load Image, the loaded path, and mutually exclusive Use Reference Image Scale and Specify Dimensions choices.
 PNG, JPG/JPEG, and PDF are supported. All PDF pages load in document order, stacked vertically.
 Load failures/cancellation preserve the previous reference. Selecting Reference
 brings the 2D viewport forward. Backgrounds stay available when changing workspaces.
@@ -28,7 +28,7 @@ Historical validation before Wingspan-only scaling (Windows Debug, 2026-09-13): 
 passed (2/2, 0.41 seconds). Coverage includes the initial toolbar, one versus both
 manual dimensions, unit changes, invalid/cleared values, New, image-only input,
 scaled PNG/PDF, missing per-page scale metadata and unchanged downstream gating.
-Debug was rebuilt and launched. Linux/macOS remain untested.
+Debug was rebuilt and launched. Linux/macOS were not tested in that run.
 
 Use Reference Image Scale uses embedded physical resolution or PDF page size, sets the
 project display units from the source metadata convention, and hides manual fields.
@@ -61,7 +61,9 @@ unit decisions.
 
 Validation: Windows Debug built and launched; a loaded PDF was visually inspected
 in the running app. The focused reference and viewport test suites now pass on Windows Debug; see
-docs/baseline/reference-test-results.md. Linux/macOS remain unvalidated.
+docs/baseline/reference-test-results.md. Subsequent Ubuntu reference/editor checks
+are recorded in [Linux package validation](../baseline/linux-package-validation.md).
+macOS remains unvalidated.
 
 ## Width fitting and scrolling
 

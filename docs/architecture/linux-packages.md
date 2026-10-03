@@ -5,6 +5,9 @@ Packaging follows the sibling DesignRC layout, isolated in
 unchanged. The internal application target remains `designrc`; installed commands,
 paths, metadata and desktop integration use FoamAirplaneStudio.
 
+The checked-in schema-6 presets, including the DEB script's Release preset,
+require CMake 3.25 or newer. Direct CMake configuration has a 3.24 minimum.
+
 CPack produces native x86-64 DEB/RPM packages. The launcher sets OCCT resource paths
 and a private library path. The binary uses inherited ELF RPATH so transitive OCCT
 libraries resolve beside it. Qt Core/Gui/Widgets/DBus/Network/Pdf/XcbQpa, XCB and

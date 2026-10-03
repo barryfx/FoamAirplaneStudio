@@ -11,7 +11,7 @@ changed. Cancel or a failed save leaves the current project intact. Invalid Open
 files are rejected before this prompt, so they never discard the current state.
 The window title shows the filename/Untitled and a modification marker.
 
-ProjectDocument captures all current models and UI state; ProjectDocument.cpp
+ProjectDocument captures design inputs, derived statistics and UI state; ProjectDocument.cpp
 encodes, validates and atomically writes the versioned format. MainWindow applies
 validated snapshots while suppressing intermediate workflow callbacks. It loads
 the reference and editor data, recomputes readiness, restores the selected modes,
@@ -128,8 +128,8 @@ in QSettings independently of the project.
 
 Version 25 adds four fuselage hole layers (Top/Bottom/Left/Right), including
 drafts. Holes participate in input-only persistence, remapping, dirty checks and
-fuselage/Assembly invalidation. Older projects load empty holes. Cut retains its
-existing two layers while providing whole connected-path selection and deletion.
+fuselage/Assembly invalidation. Older projects load empty holes. At version 25,
+Cut retained its two layers while adding whole connected-path selection and deletion.
 
 Project editors share transient Undo/Redo history; see editor-history.md and ADR-0043. This does not change the .foam format.
 
@@ -138,6 +138,8 @@ adds persistent component export names; Inspect visibility remains transient.
 Version 28 adds circular profile curves. Version 29 adds carbon-fiber density
 and spar tube dimensions, plus an optional derived airplane-statistics cache.
 Version 30 adds independent explicit nose and tail opening settings, with legacy
-station-based choices resolved on load. Current saves use version 31 and the reader accepts versions 1–31. See weight-and-balance.md, inspect.md and the format
+station-based choices resolved on load. Version 31 expands Cut to Top/Bottom/Left/Right,
+migrating legacy Side paths and drafts to Left. Current saves use version 31 and
+the reader accepts versions 1–31. See weight-and-balance.md, inspect.md and the format
 specification. Opening from Inspect returns to Fuselage Side View in 2D,
 preserving its design inputs without regenerating models.
