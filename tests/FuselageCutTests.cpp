@@ -224,8 +224,8 @@ int main(int argc,char** argv) {
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[2]->trigger();CHECK(!editor.state().editing);CHECK(!window.projectModified());
     view->fitInView(QRectF{0,0,900,500},Qt::KeepAspectRatio);app.processEvents();
     const auto pixels=view->viewport()->grab().toImage();const auto midpoint=(editor.layers()[0].points[0]+editor.layers()[0].points[1])*.5;
-    const auto local=view->mapFromScene(midpoint);const QPoint at{qRound(local.x()*pixels.devicePixelRatio()),qRound(local.y()*pixels.devicePixelRatio())};bool blue=false;
-    for(int y=-3;y<=3;++y)for(int x=-3;x<=3;++x)if(pixels.rect().contains(at+QPoint{x,y})){const auto c=pixels.pixelColor(at+QPoint{x,y});if(c.blue()>c.red()+40&&c.green()>c.red()+30)blue=true;}CHECK(blue);
+    const auto local=view->mapFromScene(midpoint);const QPoint at{qRound(local.x()*pixels.devicePixelRatio()),qRound(local.y()*pixels.devicePixelRatio())};bool yellow=false;
+    for(int y=-3;y<=3;++y)for(int x=-3;x<=3;++x)if(pixels.rect().contains(at+QPoint{x,y})){const auto c=pixels.pixelColor(at+QPoint{x,y});if(c==QColor(230,220,0))yellow=true;}CHECK(yellow);
     toolbar->actions()[4]->trigger();const auto capture=qEnvironmentVariable("FOAM_CUT_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
     tabs->setCurrentIndex(1);waitForModel(window);
     if(!tabs->widget(1)->property("fuselageModelReady").toBool())std::cerr<<window.statusBar()->currentMessage().toStdString()<<std::endl;

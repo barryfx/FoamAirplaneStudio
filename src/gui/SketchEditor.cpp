@@ -24,7 +24,8 @@ bool isSketchEndpoint(const SketchLayer& layer, std::size_t index) {
     }
   return degree==1;
 }
-SketchEditor::SketchEditor(QGraphicsView* view) : QObject{view}, view_{view}, stations_{*view, *this} {
+SketchEditor::SketchEditor(QGraphicsView* view, SketchAppearance appearance)
+    : QObject{view}, view_{view}, appearance_{appearance}, stations_{*view, *this} {
   view_->viewport()->installEventFilter(this);
   view_->installEventFilter(this);
 }
@@ -319,22 +320,32 @@ void SketchEditor::setHighlightedLayer(int index) {
 }
 void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
   painter.save();
+  const bool semantic = appearance_ != SketchAppearance::Outline;
+  const QColor color = appearance_ == SketchAppearance::Cut ? QColor{230,220,0}
+      : appearance_ == SketchAppearance::Hole ? QColor{112,80,224} : QColor{80,200,255};
+  const QColor borderColor = appearance_ == SketchAppearance::Cut ? QColor{75,65,0}
+      : appearance_ == SketchAppearance::Hole ? QColor{35,20,80} : QColor{20,65,95};
   const double radius = 4.0 / std::max(1e-9, view_->transform().m11());
   for (int i = 0; i < static_cast<int>(layers_.size()); ++i) {
     if(activeOnly && i!=active_)continue;
     const auto& layer = layers_[i];
-    // Keep completed outlines equally legible outside Outline mode. The dark
-    // border separates light blue from white paper; blue stands out on ink.
-    const bool highlighted=i==highlightedLayer_;
-    QPen pen{highlighted || (layerSelectionMode_ && editing_ && i==active_) ? QColor{255,140,0} : QColor{80,200,255}};
+    // Keep the component's color in every mode; borders separate it from
+    // reference ink and white paper, and white halos indicate selection.
+    const bool activeSelection=layerSelectionMode_ && editing_ && i==active_;
+    const bool highlighted=i==highlightedLayer_ || (semantic && activeSelection);
+    QPen pen{!semantic && (highlighted || activeSelection) ? QColor{255,140,0} : color};
     pen.setCosmetic(true); pen.setWidthF(3);
-    QPen border{highlighted?QColor{Qt::white}:QColor{20,65,95}};
-    border.setCosmetic(true); border.setWidthF(highlighted?7:5);
+    QPen border{highlighted && !semantic ? QColor{Qt::white} : borderColor};
+    border.setCosmetic(true); border.setWidthF(highlighted && !semantic ? 7 : 5);
     painter.setBrush(Qt::NoBrush);
     for (const auto& curve : layer.curves) {
       std::vector<QPointF> points;
       for (auto id : curve.points) points.push_back(layer.points[id]);
       const auto path = fittedPath(points, curve.type);
+      if (highlighted && semantic) {
+        QPen halo{Qt::white}; halo.setCosmetic(true); halo.setWidthF(9);
+        painter.setPen(halo); painter.drawPath(path);
+      }
       painter.setPen(border); painter.drawPath(path);
       painter.setPen(pen); painter.drawPath(path);
     }
@@ -360,13 +371,17 @@ void SketchEditor::paint(QPainter& painter, bool activeOnly) const {
     for (auto id : curve.points) points.push_back(layer.points[id]);
     const auto path = fittedPath(points, curve.type);
     painter.setBrush(Qt::NoBrush);
-    QPen halo{Qt::white}; halo.setCosmetic(true); halo.setWidthF(7);
+    QPen halo{Qt::white}; halo.setCosmetic(true); halo.setWidthF(semantic ? 9 : 7);
     painter.setPen(halo); painter.drawPath(path);
-    QPen highlight{QColor{255, 65, 0}}; highlight.setCosmetic(true); highlight.setWidthF(4);
+    if (semantic) {
+      QPen border{borderColor}; border.setCosmetic(true); border.setWidthF(6);
+      painter.setPen(border); painter.drawPath(path);
+    }
+    QPen highlight{semantic ? color : QColor{255, 65, 0}}; highlight.setCosmetic(true); highlight.setWidthF(4);
     painter.setPen(highlight); painter.drawPath(path);
   }
   if (editing_) {
-    QPen pen{QColor{220, 110, 0}}; pen.setCosmetic(true); pen.setStyle(Qt::DashLine);
+    QPen pen{semantic ? color : QColor{220, 110, 0}}; pen.setCosmetic(true); pen.setStyle(Qt::DashLine);
     painter.setPen(pen); painter.setBrush(Qt::white);
     painter.drawPath(fittedPath(pending_, tool_));
     if(tool_==SketchTool::Circle&&pending_.size()==1&&circlePreview_)

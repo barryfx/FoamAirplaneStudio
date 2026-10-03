@@ -3,6 +3,8 @@
 Holes is available with the other fuselage tools once all profiles are complete.
 It opens 2D and offers Top, Bottom, Left and Right wall choices. Top/Bottom use
 the Top View outline; Left/Right use Side View. Model Left is negative Y.
+All 2D views draw holes in violet, including inactive walls and selected curves;
+see [Sketch editing](sketch-editor.md) for the shared viewport palette.
 
 Use Add Hole, Line/Spline, the hole selector and Delete Hole. Each connected
 path is independently selectable and removable. Close every loop at its starting

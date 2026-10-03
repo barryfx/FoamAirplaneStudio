@@ -6,6 +6,8 @@ outline; Left/Right use the Side outline. Add Cut, the path selector, Line/Splin
 and Delete Cut retain their existing editing behavior. Switching surfaces finishes
 the current draft. All four layers remap with the reference image and support
 undo/redo and project persistence.
+All 2D views draw these cuts in yellow, including inactive walls and selected
+curves; see [Sketch editing](sketch-editor.md) for the shared viewport palette.
 
 A connected path that reaches or crosses its outline boundary creates a cutting
 sheet through the entire body, cutting both opposite walls. A path wholly inside

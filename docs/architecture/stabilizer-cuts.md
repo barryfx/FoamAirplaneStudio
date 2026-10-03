@@ -8,6 +8,8 @@ point. Escape finishes a spline. With drawing off, click a loop or choose it fro
 the list and drag its points. Click a curve to highlight it and press Delete to
 remove that individual curve. Delete Cut Shape removes the entire selected loop. Other shapes remain
 visible. Empty shapes do not cut. Only the active component in Cut/2D accepts input.
+Both stabilizers' cut shapes use yellow in every 2D view, including during
+selection; see [Sketch editing](sketch-editor.md) for the shared viewport palette.
 
 Leaving Cut, including entering 3D, warns if any nonempty loop is not closed.
 Incomplete curves remain editable; generation refuses them rather than publishing

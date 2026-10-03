@@ -15,7 +15,7 @@ stored once and referenced by all incident curves. Other panels can supply snap
 coordinates but never share editable identities. With both tools off, left-drag
 moves a point in the selected panel and refits its incident splines. Moves creating
 duplicate curve nodes or failed fits are rejected. Every panel remains visible
-across workspace changes; only Wing / Outline permits outline edits. All completed curves
+across workspace changes; only Wing / Outline permits outline edits. Completed outline curves
 use light blue with a dark blue border, including in Airfoil Stations and other
 non-editing modes. The color and screen-space stroke width do not fade when
 editing ends. Only the selected editable panel shows point handles. Pending curves use
@@ -36,6 +36,15 @@ SketchEditor is a reusable QObject/controller and layer model. PlanViewport owns
 it and calls its foreground painter; WingOutlinePanel owns only wing controls.
 New resets the editor. Removing panels with the spinner removes their outlines;
 the spinner tooltip explains this behavior.
+
+Every 2D viewport assigns a fixed appearance to its editors: fuselage and
+horizontal/vertical stabilizer cuts use yellow (`#E6DC00`) with a dark olive
+border; fuselage holes use violet (`#7050E0`) with a dark violet border. These
+colors differ from outlines, stations, control surfaces, trays and formers.
+Cuts and holes retain their colors on all layers, outside editing, during
+selection and in dashed previews. A white halo identifies a highlighted layer;
+selected curves also have a thicker stroke. Resetting or restoring a project
+does not change the appearance, which is not part of the persistent sketch state.
 
 Airfoil Stations uses the editor's separate ConstrainedLineEditor collection;
 outlines are locked during that mode. See airfoil-stations.md and ADR-0003.

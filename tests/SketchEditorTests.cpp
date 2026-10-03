@@ -48,10 +48,69 @@ void checkRestoredView(QApplication& app) {
   TEST_CHECK(resizes.count == settled);
 }
 
+void checkCutAndHoleColors(QApplication& app) {
+  PlanViewport view;
+  view.resize(1000, 700);
+  QImage paper{800, 600, QImage::Format_RGB32}; paper.fill(Qt::white);
+  { QPainter painter{&paper}; painter.fillRect(400, 0, 400, 600, Qt::black); }
+  view.setReferenceBackground({{paper, std::nullopt}}, false);
+  view.show(); app.processEvents();
+  struct Sample { SketchEditor* editor; QColor color; };
+  const Sample samples[]{
+    {&view.sketchEditor(), QColor{80,200,255}},
+    {&view.fuselageCutEditor(), QColor{230,220,0}},
+    {&view.stabilizerCutEditor(0), QColor{230,220,0}},
+    {&view.stabilizerCutEditor(1), QColor{230,220,0}},
+    {&view.fuselageHoleEditor(), QColor{112,80,224}}
+  };
+  // Use every wall layer and both stabilizers, without generating any solids.
+  for (int mode=0; mode<3; ++mode) {
+    int row=0;
+    std::vector<std::pair<QPointF,QColor>> probes;
+    for (const auto& sample : samples) {
+      auto& editor=*sample.editor;
+      const auto count=editor.layers().size();
+      editor.reset(); // Appearance belongs to the viewport, not saved sketch state.
+      SketchState state; state.layers.resize(count);
+      state.editing=mode!=0; state.selected=mode==2 ? 0 : -1;
+      editor.setLayerSelectionMode(true);
+      editor.setHighlightedLayer(mode==1 ? 0 : -1);
+      for (auto& layer : state.layers) {
+        const double y=40+row++*45;
+        layer.points={{100,y},{700,y}};
+        layer.curves={{SketchTool::Line,{0,1}}};
+        probes.push_back({{250,y},sample.color});
+        probes.push_back({{550,y},sample.color});
+      }
+      editor.restoreState(state);
+    }
+    for (const double zoom : {0.7, 1.0}) {
+      view.setTransform(QTransform::fromScale(zoom,zoom));
+      view.centerOn(400,300); app.processEvents();
+      const auto image=view.viewport()->grab().toImage();
+      for (const auto& [point,color] : probes) {
+        // Outline selection retains its existing orange interaction colors.
+        if (mode!=0 && color==QColor(80,200,255)) continue;
+        const auto at=(QPointF{view.mapFromScene(point)}*image.devicePixelRatio()).toPoint();
+        bool found=false;
+        for (int y=-2;y<=2;++y) for (int x=-2;x<=2;++x) {
+          const auto pixel=at+QPoint{x,y};
+          if(image.rect().contains(pixel)&&image.pixelColor(pixel)==color)found=true;
+        }
+        TEST_CHECK(found);
+      }
+      const auto capture=qEnvironmentVariable("FOAM_PALETTE_CAPTURE");
+      if(!capture.isEmpty() && zoom==1.0)
+        TEST_CHECK(image.save(capture+QString::number(mode)+".png"));
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   QApplication app{argc, argv};
   QApplication::setStyle("Fusion");
   checkRestoredView(app);
+  checkCutAndHoleColors(app);
   PlanViewport view; view.resize(1000, 700); view.show(); app.processEvents();
   auto& editor = view.sketchEditor();
   WingOutlinePanel panel{editor}; panel.show(); app.processEvents();

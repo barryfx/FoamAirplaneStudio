@@ -13,6 +13,7 @@ class QPainter;
 
 namespace designrc::gui {
 enum class SketchTool { None, Line, Spline, Circle };
+enum class SketchAppearance { Outline, Cut, Hole };
 struct SketchCurve {
   SketchTool type;
   std::vector<std::size_t> points;
@@ -37,7 +38,7 @@ struct SketchState {
 class SketchEditor final : public QObject {
   Q_OBJECT
 public:
-  explicit SketchEditor(QGraphicsView* view);
+  explicit SketchEditor(QGraphicsView* view, SketchAppearance appearance = SketchAppearance::Outline);
   void setLayerCount(int count);
   void setLayerSelectionMode(bool enabled) { layerSelectionMode_=enabled; }
   void deleteActiveLayer();
@@ -78,6 +79,7 @@ private:
   void pick(QPointF position);
   void refresh();
   QGraphicsView* view_;
+  SketchAppearance appearance_;
   std::vector<SketchLayer> layers_{1};
   std::vector<QPointF> pending_;
   std::optional<QPointF> circlePreview_;

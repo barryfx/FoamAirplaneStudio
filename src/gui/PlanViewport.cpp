@@ -43,7 +43,7 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   }
   for (auto& editor : stabilizerSketchEditors_) editor = new SketchEditor{this};
   for(auto& editor:stabilizerHingeEditors_)editor=new SketchEditor{this};
-  for(auto& editor:stabilizerCutEditors_)editor=new SketchEditor{this};
+  for(auto& editor:stabilizerCutEditors_)editor=new SketchEditor{this, SketchAppearance::Cut};
   sketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_ = new SketchEditor{this};
   airfoilSketchEditor_->setClosedLoopMode(true);
@@ -55,11 +55,11 @@ PlanViewport::PlanViewport(QWidget* parent) : QGraphicsView{parent},
   fuselageProfileEditor_ = new SketchEditor{this};
   fuselageProfileEditor_->setClosedLoopMode(true);
   fuselageProfileEditor_->setSnapAcrossLayers(false);
-  fuselageCutEditor_ = new SketchEditor{this};
+  fuselageCutEditor_ = new SketchEditor{this, SketchAppearance::Cut};
   fuselageCutEditor_->setLayerCount(4);
   fuselageCutEditor_->setClosedLoopMode(true);
   fuselageCutEditor_->setSnapAcrossLayers(false);
-  fuselageHoleEditor_=new SketchEditor{this};fuselageHoleEditor_->setLayerCount(4);
+  fuselageHoleEditor_=new SketchEditor{this, SketchAppearance::Hole};fuselageHoleEditor_->setLayerCount(4);
   fuselageHoleEditor_->setClosedLoopMode(true);fuselageHoleEditor_->setSnapAcrossLayers(false);
   servoTrayEditor_=new ServoTrayEditor{*this};
   formerEditor_=new FormerEditor{*this};
@@ -333,6 +333,5 @@ void PlanViewport::wheelEvent(QWheelEvent* event) {
 }
 
 } // namespace designrc::gui
-
 
 
