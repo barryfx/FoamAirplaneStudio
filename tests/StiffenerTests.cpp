@@ -8,6 +8,7 @@
 #include "gui/OcctViewport.h"
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepAlgoAPI_Cut.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
 #include <BRepGProp.hxx>
@@ -54,6 +55,13 @@ int main(int argc,char** argv) {
     const auto cylinder=BRepPrimAPI_MakeCylinder{gp_Ax2{gp_Pnt{},gp_Dir{1,0,0}},10,200}.Shape();
     auto curvedSections=sections;for(auto& section:curvedSections){section.perimeter.clear();for(int i=0;i<64;++i){double angle=i*2*std::numbers::pi/64;section.perimeter.push_back({10*std::cos(angle),10*std::sin(angle)});}}
     stock.clear();const auto curved=geometry::cutFuselageStiffeners(cylinder,curvedSections,200,s,stock);TEST_CHECK(BRepCheck_Analyzer{curved}.IsValid()&&volume(curved)<volume(cylinder));
+    // Reused classifiers must notice a later probe leaving material after many
+    // successful probes; the other half must not mask an opening on this side.
+    const auto opened=BRepAlgoAPI_Cut{body,BRepPrimAPI_MakeBox{gp_Pnt{95,8,-3},10,4,6}.Shape()}.Shape();
+    const auto priorStock=stock.size();bool openingRejected=false;
+    try{geometry::cutFuselageStiffeners(opened,sections,200,s,stock);}
+    catch(const std::exception& error){openingRejected=std::string{error.what()}.find("opening")!=std::string::npos;}
+    TEST_CHECK(openingRejected&&stock.size()==priorStock);
     auto invalid=s;invalid.diameterMm=12;bool rejected=false;try{geometry::cutFuselageStiffeners(body,sections,200,invalid,stock);}catch(const std::exception&){rejected=true;}TEST_CHECK(rejected);
     invalid=s;invalid.stopPercent=invalid.startPercent;rejected=false;try{validateStiffeners(invalid);}catch(const std::exception&){rejected=true;}TEST_CHECK(rejected);
     auto disabled=s;disabled.count=0;stock.clear();TEST_CHECK(geometry::cutFuselageStiffeners(body,sections,200,disabled,stock).IsSame(body)&&stock.empty());

@@ -15,6 +15,11 @@ use equal fractions of local height. Outer wall sections determine the lateral
 position. Sixty-five samples check spacing, actual solid material and nominal
 wall thickness; changes in successive tangent direction above 15 degrees reject
 the range. Collinear samples are removed, then cubic lofts form smooth tools.
+Clearance checking loads one OCCT solid classifier per body solid and reuses it
+for every probe in that generation call. The body is unchanged during checking;
+mutable classifiers are local to the call and never shared between workers.
+Sampling and tolerances are unchanged. See the classifier benchmark evidence in
+`../baseline/stiffener-classifier-reuse.md`.
 This is a sampled fit check, not a carbon bend-radius guarantee. Users must move
 the range onto a smooth boom section if generation rejects a sharp transition.
 

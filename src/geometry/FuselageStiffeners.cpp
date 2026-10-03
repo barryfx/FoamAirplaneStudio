@@ -9,11 +9,10 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <TopExp_Explorer.hxx>
-#include <TopoDS.hxx>
-#include <TopoDS_Solid.hxx>
 #include <gp_Circ.hxx>
 #include <algorithm>
 #include <numbers>
+#include <memory>
 #include <stdexcept>
 namespace designrc::geometry {
 namespace {
@@ -41,6 +40,13 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
   const double depth=round?settings.diameterMm/2:settings.heightMm;
   const double start=length*settings.startPercent/100,stop=length*settings.stopPercent/100;
   NCollection_List<TopoDS_Shape> tools;std::vector<SparMaterial> stock;
+  // The body is immutable until all clearance checks finish. Load each solid
+  // once and reuse its classifier for successive probes. Classifiers hold
+  // mutable query state, so ownership stays local to this generation call.
+  std::vector<std::unique_ptr<BRepClass3d_SolidClassifier>> clearance;
+  for(TopExp_Explorer e{body,TopAbs_SOLID};e.More();e.Next()) {
+    control.checkpoint();clearance.push_back(std::make_unique<BRepClass3d_SolidClassifier>(e.Current()));
+  }
   for(int number=0;number<settings.count;++number) {
     std::vector<gp_Pnt> centers;
     for(int j=0;j<=64;++j) {
@@ -56,7 +62,7 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
       for(double dz:{-width*.49,0.,width*.49}) {
         const double inward=round?std::sqrt(std::max(0.,depth*depth-dz*dz)):depth;
         const gp_Pnt probe{sampleX,y-inward*.999,z+dz};bool inside=false;
-        for(TopExp_Explorer e{body,TopAbs_SOLID};e.More();e.Next()){BRepClass3d_SolidClassifier classifier{TopoDS::Solid(e.Current()),probe,1e-6};if(classifier.State()==TopAbs_IN||classifier.State()==TopAbs_ON){inside=true;break;}}
+        for(const auto& classifier:clearance){classifier->Perform(probe,1e-6);if(classifier->State()==TopAbs_IN||classifier->State()==TopAbs_ON){inside=true;break;}}
         if(!inside)throw std::runtime_error("Stiffener crosses an opening or leaves the side wall; adjust its range, width or depth.");
       }
     }

@@ -537,6 +537,8 @@ if(DESIGNRC_BUILD_TESTS)
   target_link_libraries(fuselage_benchmark PRIVATE foam_wing foam_project TKV3d TKService)
 
   add_executable(regeneration_benchmark tests/RegenerationBenchmark.cpp)
+  add_executable(stiffener_clearance_benchmark tests/StiffenerClearanceBenchmark.cpp)
+  target_link_libraries(stiffener_clearance_benchmark PRIVATE foam_wing)
   target_link_libraries(regeneration_benchmark PRIVATE foam_wing foam_project TKV3d TKService)
   add_executable(spar_tests tests/SparTests.cpp)
   target_link_libraries(spar_tests PRIVATE foam_wing foam_project TKV3d TKService)
