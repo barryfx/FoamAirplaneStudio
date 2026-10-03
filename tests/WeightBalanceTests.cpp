@@ -119,7 +119,7 @@ static void persistence() {
   p.spars[0][2].insideDiameterMm=5.08;p.spars[0][2].insideDiameterText=".2 in";
   p.weightBalance.carbonFiberDensityKgM3=1600;p.workspace=7;p.weightBalance.parts.push_back({"Motor",30,40,50,gramsPerOunce,{123,-45},true});
   p.weightBalance.plywoodDensityKgM3=725;p.weightBalance.densityKgM3=35;
-  auto json=encodeProject(p);CHECK(json["version"]==32);auto restored=decodeProject(json);
+  auto json=encodeProject(p);CHECK(json["version"]==33);auto restored=decodeProject(json);
   CHECK(restored.weightBalance.carbonFiberDensityKgM3==1600);
   CHECK(restored.spars[0][2].insideDiameterMm==5.08&&restored.spars[0][2].insideDiameterText==".2 in");
   auto previous=json;previous["version"]=28;legacyCutViews(previous);auto earlier=decodeProject(previous);

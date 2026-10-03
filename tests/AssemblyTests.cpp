@@ -98,7 +98,7 @@ public:
     CHECK(w.saveProjectFile(file,error));
     QFile input{file};CHECK(input.open(QIODevice::ReadOnly));
     const auto json=QJsonDocument::fromJson(input.readAll()).object();input.close();
-    CHECK(json["version"]==32&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
+    CHECK(json["version"]==33&&!json.contains("models"));CHECK(!encodeProject(w.projectDocument(),false).contains("models"));
     CHECK(!w.wingShape_.IsNull()&&w.assemblyCutParts_); // Save retains session caches.
     for(const QJsonValue obsolete:{QJsonValue{QJsonObject{{"wing",QJsonObject{{"fingerprint","bad"},{"shapes",QJsonArray{QJsonObject{{"brep","not compressed geometry"},{"sha256","bad"}}}}}}}},QJsonValue{"invalid legacy cache"},QJsonValue{}}) {
       auto legacy=json;legacy["version"]=22;legacyCutViews(legacy);legacy["models"]=obsolete;
@@ -113,7 +113,7 @@ public:
       CHECK(w.assemblyState_.cuts&&w.assemblyState_.offsets[0]==QPointF(12,34));
       CHECK(!w.projectModified());if(!w.saveProjectFile(file,error))throw std::runtime_error(error.toStdString());
       CHECK(input.open(QIODevice::ReadOnly));const auto resaved=QJsonDocument::fromJson(input.readAll()).object();input.close();
-      CHECK(resaved["version"]==32&&!resaved.contains("models"));
+      CHECK(resaved["version"]==33&&!resaved.contains("models"));
     }
     auto older=json;older["version"]=21;legacyCutViews(older);CHECK(decodeProject(older).assembly.cuts);
     auto invalid=json;invalid["assembly"]=false;bool rejected=false;
@@ -345,7 +345,7 @@ int main(int argc,char** argv) {
     CHECK(mapping.left==200&&mapping.verticalOrigin==225&&mapping.scale==.25);
     const auto physical=geometry::fuselageSideTransform(side,std::nullopt);CHECK(physical.scale==1.);
     auto doc=fixture();doc.assembly=geometry::initialAssemblyPlacement(p);doc.assembly.cuts=true;
-    auto json=encodeProject(doc);CHECK(json["version"]==32);CHECK(decodeProject(json).assembly.cuts);
+    auto json=encodeProject(doc);CHECK(json["version"]==33);CHECK(decodeProject(json).assembly.cuts);
     doc.assembly.rotationDegrees={.5,-1,179.5};json=encodeProject(doc);
     CHECK(decodeProject(json).assembly.rotationDegrees==doc.assembly.rotationDegrees);
     auto zeroAngles=json;auto oldAssembly=zeroAngles["assembly"].toObject();oldAssembly.remove("rotationDegrees");zeroAngles["assembly"]=oldAssembly;

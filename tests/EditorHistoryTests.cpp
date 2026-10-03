@@ -2,6 +2,7 @@
 #include "gui/PlanViewport.h"
 #include "gui/WeightBalancePanel.h"
 #include "gui/InspectPanel.h"
+#include "gui/StiffenerPanel.h"
 #include <QAction>
 #include <QApplication>
 #include <QKeyEvent>
@@ -94,6 +95,9 @@ public:
     roundTrip([&]{auto state=w.weightBalancePanel_->state();state.parts.clear();w.weightBalancePanel_->restore(state);});
     roundTrip([&]{w.assemblyState_.offsets[0]={12,34};});
     roundTrip([&]{w.inspectPanel_->restore({{"Wing","Main Wing"}});});
+    const auto wingBeforeStiffeners=w.wingFingerprint(),fuselageBeforeStiffeners=w.fuselageFingerprint();
+    roundTrip([&]{auto state=w.stiffenerPanel_->state();state.count=2;w.stiffenerPanel_->restore(state);});
+    CHECK(w.wingFingerprint()==wingBeforeStiffeners&&w.fuselageFingerprint()!=fuselageBeforeStiffeners);
     // Stations move as one click/hover/drop edit and restore with their source curve.
     project.wing.layers={{{{100,100},{400,100},{400,300},{100,300}},
       {{SketchTool::Line,{0,1}},{SketchTool::Line,{1,2}},{SketchTool::Line,{2,3}}}}};

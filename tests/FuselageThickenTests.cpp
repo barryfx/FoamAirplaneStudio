@@ -9,6 +9,7 @@
 #include <QGraphicsScene>
 #include <QAction>
 #include <QLineEdit>
+#include <QSpinBox>
 #include <QComboBox>
 #include <QFormLayout>
 #include <QLabel>
@@ -99,7 +100,13 @@ int main(int argc,char** argv) {
     CHECK(source.stationEditor().lines()[0].thicknessMm==8.25);CHECK(window.saveProjectFile(file,error));
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[3]->trigger();app.processEvents();app.processEvents();
     const auto capture=qEnvironmentVariable("FOAM_THICKEN_CAPTURE");if(!capture.isEmpty()){app.processEvents();CHECK(window.grab().save(capture));}
-    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==32);
+    QAction* stiffenersAction=nullptr;for(auto* action:toolbar->actions())if(action->text()=="Stiffeners")stiffenersAction=action;
+    CHECK(stiffenersAction&&stiffenersAction->isEnabled());stiffenersAction->trigger();app.processEvents();
+    auto* stiffenerCount=window.findChild<QSpinBox*>("stiffenerCount");CHECK(stiffenerCount&&stiffenerCount->isVisible());
+    stiffenerCount->setValue(2);app.processEvents();CHECK(window.projectDocument().stiffeners.count==2&&window.projectModified());
+    CHECK(window.saveProjectFile(file,error));CHECK(window.openProjectFile(file,error));CHECK(window.projectDocument().stiffeners.count==2);
+    stiffenerCount->setValue(0);app.processEvents();toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[3]->trigger();
+    auto encoded=encodeProject(window.projectDocument());CHECK(encoded["version"]==33);
     auto legacy=encoded;legacy["version"]=11;legacy.remove("fuselageThickening");CHECK(!decodeProject(legacy).fuselageThickening);CHECK(!decodeProject(legacy).fuselageStations.lines[0].thicknessMm);
     auto invalid=encoded;auto stations=invalid["fuselageStations"].toObject();auto lines=stations["lines"].toArray();auto record=lines[0].toObject();record["thicknessMm"]=-1;lines[0]=record;stations["lines"]=lines;invalid["fuselageStations"]=stations;
     bool rejected=false;try{decodeProject(invalid);}catch(const std::exception&){rejected=true;}CHECK(rejected);

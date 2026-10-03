@@ -11,6 +11,7 @@
 #include "gui/ComponentNames.h"
 #include "gui/AirplaneStatistics.h"
 #include "gui/FiberglassState.h"
+#include "gui/StiffenerState.h"
 namespace designrc::gui {
 struct ProjectDocument {
   AirplaneStatistics statistics;
@@ -34,6 +35,7 @@ struct ProjectDocument {
   FormerState formers;
   std::optional<bool> fuselageNoseOpen=true, fuselageTailOpen=false; // Null only for legacy automatic ends.
   bool fuselageThickening=false;
+  StiffenerState stiffeners;
   int fuselageView=-1;
   StationState stations, fuselageStations;
   AirfoilState airfoils;

@@ -227,7 +227,7 @@ int main(int argc,char** argv) {
     std::stop_source stop;stop.request_stop();bool stopped=false;
     try{designrc::geometry::buildStabilizerSolid({chain,defaultFoil,1,true},{},{stop.get_token()});}
     catch(const designrc::geometry::ProcessingCancelled&){stopped=true;}CHECK(stopped);
-    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==32);
+    auto p=fixture(); auto encoded=encodeProject(p); CHECK(encoded["version"]==33);
     auto legacy=encoded; legacy["version"]=15;legacyCutViews(legacy); legacy.remove("horizontalStabilizerOutline"); legacy.remove("verticalStabilizerOutline");
     CHECK(decodeProject(legacy).stabilizerOutlines[0].layers[0].curves.empty());
     for (const auto& oldTool : {"Airfoils","Airfoil Stations","Edit"}) {
@@ -282,7 +282,7 @@ int main(int argc,char** argv) {
       CHECK(cancel->parentWidget()==window.findChild<QWidget*>("dataPanel"));
       CHECK(panel->isVisible()&&editor.state().editing&&!view->stabilizerSketchEditor(1-i).state().editing);
       QStringList names; for(auto* action:toolbar->actions())names.append(action->text());
-      CHECK(names==QStringList({"Outline","Airfoil","Hinge Line","Cut"})); CHECK(toolbar->actions()[0]->isChecked());
+      CHECK(names==QStringList({"Outline","Airfoil","Hinge Line","Cut","Fiberglass"})); CHECK(toolbar->actions()[0]->isChecked());
       CHECK(!window.projectModified());
       for(int tool=1;tool<4;++tool)CHECK(!toolbar->actions()[tool]->isEnabled());
       auto* airfoilPanel=static_cast<StabilizerAirfoilPanel*>(window.findChild<QWidget*>(i==0?"horizontalStabilizerAirfoilPanel":"verticalStabilizerAirfoilPanel"));

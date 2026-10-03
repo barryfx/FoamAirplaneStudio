@@ -518,3 +518,12 @@ the overlay, overlap checks, fitted solid and retaining rails; save it per forme
   dependent data together. A drag is one edit. Selection/navigation do not add
   history; New/Open/Close clear it, Save retains it, and new edits discard redo.
 - The 3D viewport shall expose the View menu commands in a bottom-centered toolbar.
+
+## Fuselage stiffeners (implemented refinement)
+
+Fuselage / Stiffeners shall provide a per-side mirrored count, Strip/Round shape,
+start/stop percentages from the nose, strip Width/Height or round Diameter.
+One follows local mid-height; multiple routes are evenly spaced vertically.
+Generation shall produce surface grooves with smooth paths and reject abrupt
+bends or inadequate wall clearance. Weight and Balance shall include the solid
+carbon stock. See ADR-0052 and architecture/fuselage-stiffeners.md.

@@ -95,7 +95,7 @@ AssemblyParts placeAssembly(const AssemblyParts& p,const gui::AssemblyState& s) 
   const auto w=assemblyComponentPlacement(p,s,0),h=assemblyComponentPlacement(p,s,1),v=assemblyComponentPlacement(p,s,2);
   AssemblyParts result{p.fuselage,move(p.wing,w),move(p.horizontal,h),
       move(p.vertical,v),move(p.elevator,h),move(p.rudder,v),p.fuselageParts,p.inserts};
-  result.sparMaterials=p.sparMaterials;for(auto& spar:result.sparMaterials)spar.center.Transform(w);
+  result.sparMaterials=p.sparMaterials;for(auto& spar:result.sparMaterials)if(!spar.fuselage)spar.center.Transform(w);
   for(std::size_t i=0;i<3;++i)result.rootCenters[i]=p.rootCenters[i].Transformed(assemblyComponentPlacement(p,s,i));
   return result;
 }

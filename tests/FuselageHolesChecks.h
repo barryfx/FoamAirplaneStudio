@@ -72,7 +72,7 @@ inline void holeChecks(QApplication& app,const QString& directory) {
   std::cout<<"Hole scale, fixed wall thickness and wall/path diagnostics passed"<<std::endl;
   // Round-trip all wall layers and verify old projects receive empty holes.
   ProjectDocument p;p.fuselageHoles.layers=holes;
-  auto encoded=encodeProject(p);CHECK(encoded["version"]==31);
+  auto encoded=encodeProject(p);CHECK(encoded["version"]==33);
   CHECK(decodeProject(encoded).fuselageHoles.layers[0].curves.size()==1);
   auto legacy=encoded;legacy["version"]=24;legacyCutViews(legacy);legacy.remove("fuselageHoles");CHECK(decodeProject(legacy).fuselageHoles.layers.size()==4&&decodeProject(legacy).fuselageHoles.layers[0].curves.empty());
   std::cout<<"Hole persistence complete"<<std::endl;
@@ -102,7 +102,9 @@ inline void holeChecks(QApplication& app,const QString& directory) {
   QString error;const auto file=directory+"/holes.foam";CHECK(writeProject(file,p,error));
   MainWindow window;window.show();CHECK(window.openProjectFile(file,error));app.processEvents();
   auto* tabs=window.findChild<QTabWidget*>("viewportTabs");CHECK(tabs->currentIndex()==0);
-  auto* toolbar=window.findChild<QToolBar*>("componentToolBar");CHECK(!toolbar->actions().empty());CHECK(toolbar->actions().back()->text()=="Holes");CHECK(window.findChild<QPushButton*>("fuselageHolesAdd")->isVisible());
+  auto* toolbar=window.findChild<QToolBar*>("componentToolBar");CHECK(!toolbar->actions().empty());
+  bool holesSelected=false;for(auto* action:toolbar->actions())if(action->text()=="Holes")holesSelected=action->isChecked();
+  CHECK(holesSelected);CHECK(window.findChild<QPushButton*>("fuselageHolesAdd")->isVisible());
   CHECK(window.projectDocument().fuselageHoles.layers[0].curves.size()==4);
   tabs->setCurrentIndex(1);waitForModel(window);CHECK(tabs->widget(1)->property("fuselageModelReady").toBool());CHECK(tabs->widget(1)->property("wingModelRevision").toInt()==0);
   tabs->setCurrentIndex(0);app.processEvents();CHECK(window.grab().save(directory+"/holes-panel.png"));

@@ -83,7 +83,7 @@ and Tape/Standard relief on the segment closest to vertical span for fins, or th
 Matching horizontal halves join across the centerline, leaving one solid without
 a hinge or separate fixed/elevator solids with one. Cut Shapes apply afterward
 and may create additional pieces (stabilizer-cuts.md, ADR-0031). Versions 19 and
-20 persist hinges and Cut Shapes respectively; current saves use version 32.
+20 persist hinges and Cut Shapes respectively; current saves use version 33.
 Only successfully published stabilizer results become cache entries. Assembly is enabled after complete component definitions; Export enables after successful current Assembly generation.
 
 Assembly preparation and cuts use independent background jobs and preserve source
@@ -96,7 +96,7 @@ loading from cached foam/plywood/carbon-fiber statistics (weight-and-balance.md)
 Other panels show available dimensions and dashes for mass/CG/loading in a shared
 footer (airplane-statistics.md). Only Weight and Balance calculates these totals.
 Assembly and Export omit the footer. Fiberglass adds cloth and resin covering
-estimates to Weight and Balance (fiberglass.md). The current persistence format is 32.
+estimates to Weight and Balance (fiberglass.md). The current persistence format is 33.
 
 ## Application icon
 
@@ -111,3 +111,6 @@ no Python or image-conversion dependency is required to build the application.
 Startup displays the embedded `FoamAirplaneStudio.png` in a centered, aspect-preserving splash (up to 512 pixels). Main-window initialization occurs behind it. A precise, nonblocking timer keeps it visible for three seconds before revealing the maximized application; clicks do not dismiss it early. Slow initialization may extend this duration until the window is ready.
 
 Linux deployment uses CPack DEB/RPM packages with private Qt/OCCT runtimes and a desktop launcher; see [Linux packaging](linux-packages.md). Platform-specific installation evidence is recorded separately from geometry tests.
+
+Fuselage / Stiffeners configures mirrored carbon strip/round grooves and their
+material mass; see fuselage-stiffeners.md and ADR-0052.

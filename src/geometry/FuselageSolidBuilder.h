@@ -1,6 +1,8 @@
 #pragma once
 #include "gui/SketchEditor.h"
 #include "geometry/ProcessingControl.h"
+#include "gui/StiffenerState.h"
+#include "geometry/SparMaterial.h"
 #include <TopoDS_Shape.hxx>
 #include <QRectF>
 #include <functional>
@@ -18,12 +20,13 @@ struct FuselageSolidInput {
   std::vector<gui::SketchLayer> holes; // Top, Bottom, Left, Right wall loops.
   bool mirrorConstruction=true; // False: full symmetric lofts/supports for benchmark parity.
   std::optional<bool> noseOpen, tailOpen; // Absent: legacy station-based behavior.
+  gui::StiffenerState stiffeners;
 };
 // Shared drawing-to-model alignment for reference imagery and fuselage geometry.
 struct FuselageSideTransform { double left, verticalOrigin, scale; };
 FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& side,
     std::optional<double> lengthMm);
-struct FuselageBuildResult {TopoDS_Shape shape,body,servoTray,servoTrayTopFaces;std::vector<TopoDS_Shape> formers;};
+struct FuselageBuildResult {TopoDS_Shape shape,body,servoTray,servoTrayTopFaces;std::vector<TopoDS_Shape> formers;std::vector<SparMaterial> stiffeners;};
 FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,
     const std::function<void(const char*)>& progress={},const ProcessingControl& processing={});
 // 64 clockwise samples; indices 0/16/32/48 match drawn top/right/bottom/left.

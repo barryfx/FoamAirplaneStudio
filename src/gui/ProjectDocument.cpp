@@ -230,7 +230,8 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
     fiberglass.append(QJsonObject{{"sketch",sketch(component.sketch)},{"patches",patches}});
   }
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
-  return {{"fiberglass",fiberglass},{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",32},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
+  const auto& stiff=p.stiffeners;QJsonObject stiffeners{{"count",stiff.count},{"shape",static_cast<int>(stiff.shape)},{"startPercent",stiff.startPercent},{"stopPercent",stiff.stopPercent},{"widthMm",stiff.widthMm},{"heightMm",stiff.heightMm},{"diameterMm",stiff.diameterMm}};
+  return {{"stiffeners",stiffeners},{"fiberglass",fiberglass},{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",33},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
     {"horizontalStabilizerHinge",sketch(p.stabilizerHinges[0])},{"verticalStabilizerHinge",sketch(p.stabilizerHinges[1])},
@@ -243,8 +244,14 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
 ProjectDocument decodeProject(const QJsonObject& json) {
   if(json["format"]!="FoamAirplaneStudio")bad("format (expected FoamAirplaneStudio)");
   const int version=integer(json["version"],"version",1,100000);
-  if(version>32)throw std::runtime_error("This project version is not supported by this application.");
+  if(version>33)throw std::runtime_error("This project version is not supported by this application.");
   ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
+  if(version>=33) {
+    const auto s=object(json["stiffeners"],"stiffeners");auto& out=p.stiffeners;
+    out.count=integer(s["count"],"stiffener count",0,16);out.shape=static_cast<SparShape>(integer(s["shape"],"stiffener shape",0,1));
+    out.startPercent=number(s["startPercent"],"stiffener start",0,100);out.stopPercent=number(s["stopPercent"],"stiffener stop",0,100);
+    out.widthMm=number(s["widthMm"],"stiffener width",.01,100);out.heightMm=number(s["heightMm"],"stiffener height",.01,100);out.diameterMm=number(s["diameterMm"],"stiffener diameter",.01,100);validateStiffeners(out);
+  }
   if(version>=32) {
     const auto components=array(json["fiberglass"],"fiberglass",4);if(components.size()!=4)bad("fiberglass component count");
     for(int i=0;i<4;++i) {

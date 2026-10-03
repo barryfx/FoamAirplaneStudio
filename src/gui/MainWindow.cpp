@@ -2,6 +2,7 @@
 #include "gui/WingCalibration.h"
 #include "gui/WeightBalancePanel.h"
 #include "gui/FiberglassPanel.h"
+#include "gui/StiffenerPanel.h"
 #include "geometry/Fiberglass.h"
 #include "geometry/WeightBalance.h"
 #include "gui/MainWindow.h"
@@ -160,6 +161,8 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
     statusBar()->showMessage("Fuselage wall thickness updated; open 3D View to regenerate the hollow body.");
     QTimer::singleShot(0,this,[this]{updateFuselageModel();});
   };
+  stiffenerPanel_=new StiffenerPanel{dataPanel_};dataLayout->addWidget(stiffenerPanel_);
+  stiffenerPanel_->changed=[this]{if(restoringProject_)return;updateProjectTitle();QTimer::singleShot(0,this,[this]{updateFuselageModel();});};
   stationPanel_ = new QWidget{dataPanel_};
   stationPanel_->setObjectName("airfoilStationsPanel");
   auto* stationLayout = new QVBoxLayout{stationPanel_};
@@ -189,6 +192,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow{parent} {
     planViewport_->formerEditor().preserveThicknessAtScale(projectLengthScale());
     sparPanel_->setUnits(reference.units);lighteningPanel_->setUnits(reference.units);
     fuselageThickenPanel_->setUnits(reference.units);
+    stiffenerPanel_->setUnits(reference.units);
     // Unscaled images retain pixel coordinates until outlines can be calibrated
     // against the aircraft dimensions. Page width is not aircraft wingspan.
     planViewport_->setReferenceBackground(reference.image.pages, reference.toScale);
@@ -356,7 +360,7 @@ void MainWindow::selectWorkspace(int index) {
   const std::array<QStringList, 9> tools{{
       {},
       {"Outline", "Airfoil Stations", "Airfoils", "Dihedral", "Ailerons/Flaps", "Spars", "Lightening", "Fiberglass"},
-      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes", "Fiberglass"},
+      {"Outline", "Profile Stations", "Edit Profiles", "Thicken", "Cut", "Servo Tray", "Formers", "Holes", "Fiberglass", "Stiffeners"},
       {"Outline", "Airfoil", "Hinge Line", "Cut", "Fiberglass"},
       {"Outline", "Airfoil", "Hinge Line", "Cut", "Fiberglass"},
       {},
@@ -392,6 +396,7 @@ void MainWindow::selectWorkspace(int index) {
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Profile Stations" ? "Hover on Side View top/bottom; left-click once to place a vertical profile station"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Edit Profiles" ? "Select a station; draw a closed section using Line, Spline or Circle; open 3D to generate the fuselage"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Thicken" ? "Set station wall thickness in Reference units, or enter mm/in; 3D generation now hollows the fuselage"
+          : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Stiffeners" ? "Set mirrored carbon stiffeners per side and their start/stop positions; open 3D to generate grooves"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Holes" ? "Choose a wall, Add Hole, then draw a closed loop inside its outline"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Cut" ? "Choose Top, Bottom, Left or Right View; draw a cut path, then open 3D to create separate cut-out components"
           : dataPanel_->property("workspaceIndex").toInt()==2 && name=="Formers" ? "Enter former thickness, Add Former, then drag its position or top/bottom edges; overlapping placements are blocked"
@@ -657,6 +662,7 @@ void MainWindow::updateFuselageStationMode() {
       dataPanel_->property("activeTool").toString()=="Profile Stations";
   fuselageStationPanel_->setVisible(active);
   fuselageThickenPanel_->setVisible(dataPanel_->property("workspaceIndex").toInt()==2 && dataPanel_->property("activeTool").toString()=="Thicken");
+  stiffenerPanel_->setVisible(dataPanel_->property("workspaceIndex").toInt()==2 && dataPanel_->property("activeTool").toString()=="Stiffeners");
   auto& stations=planViewport_->fuselageSketchEditor().stationEditor();
   stations.setActivePanel(1);
   const bool editProfiles=dataPanel_->property("workspaceIndex").toInt()==2 && dataPanel_->property("activeTool").toString()=="Edit Profiles";
@@ -978,6 +984,7 @@ QByteArray MainWindow::fuselageFingerprint() const {
   return QJsonDocument{QJsonObject{{"noseOpen",p["fuselageNoseOpen"]},{"tailOpen",p["fuselageTailOpen"]},{"outlines",p["fuselageOutline"].toObject()["layers"]},
       {"stations",p["fuselageStations"].toObject()["lines"]},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
+      {"stiffeners",p["stiffeners"]},
       {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},{"holes",p["fuselageHoles"].toObject()["layers"]},
       {"length",projectReference().toScale?QJsonValue{}:QJsonValue{scaledFuselageLength().value_or(0.)}}}}.toJson(QJsonDocument::Compact);
 }
@@ -1006,6 +1013,7 @@ void MainWindow::updateFuselageModel() {
       planViewport_->fuselageSketchEditor().stationEditor().lines(),planViewport_->fuselageProfileEditor().layers(),
       scaledFuselageLength(),fuselageThickenPanel_->enabled(),planViewport_->fuselageCutEditor().layers(),planViewport_->servoTrayEditor().state().rectangle,planViewport_->formerEditor().state().rectangles,planViewport_->formerEditor().state().rotationDegrees,planViewport_->fuselageHoleEditor().layers()};
   input.noseOpen=fuselageOutlinePanel_->noseOpen();input.tailOpen=fuselageOutlinePanel_->tailOpen();
+  input.stiffeners=stiffenerPanel_->state();
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
@@ -1180,6 +1188,7 @@ void MainWindow::resetProject() {
   viewport_->setProperty("wingModelReady", false);
   viewport_->resetCamera();
   fuselageThickenPanel_->restore(false);
+  stiffenerPanel_->restore({});stiffenerPanel_->setUnits(ProjectUnits::Millimeters);
   fuselageThickenPanel_->setUnits(ProjectUnits::Millimeters);
   planViewport_->clearPlan();
   fuselageProfilePanel_->setActive(false);
@@ -1214,6 +1223,7 @@ ProjectDocument MainWindow::projectDocument() const {
   p.wing=planViewport_->sketchEditor().state();p.airfoilSketch=planViewport_->airfoilSketchEditor().state();
   for (int i = 0; i < 2; ++i) {p.stabilizerCuts[i]=planViewport_->stabilizerCutEditor(i).state();p.stabilizerHinges[i]=planViewport_->stabilizerHingeEditor(i).state();p.stabilizerHingeCuts[i]=stabilizerHingePanels_[i]->cut();p.stabilizerOutlines[i] = planViewport_->stabilizerSketchEditor(i).state();p.stabilizerAirfoils[i]=stabilizerAirfoilPanels_[i]->selection();}
   p.fuselageThickening=fuselageThickenPanel_->enabled();
+  p.stiffeners=stiffenerPanel_->state();
   p.fuselageProfiles=planViewport_->fuselageProfileEditor().state();
   p.fuselageCuts=planViewport_->fuselageCutEditor().state();
   p.fuselageHoles=planViewport_->fuselageHoleEditor().state();
@@ -1432,6 +1442,7 @@ void MainWindow::restoreProject(const ProjectDocument& saved) {
   }
   fuselageThickenPanel_->setUnits(p.reference.units);
   fuselageThickenPanel_->restore(p.fuselageThickening);
+  stiffenerPanel_->setUnits(p.reference.units);stiffenerPanel_->restore(p.stiffeners);
   updateFuselageProgress();
   updateFuselageStationMode();
   planViewport_->fuselageSketchEditor().stationEditor().restoreState(p.fuselageStations);

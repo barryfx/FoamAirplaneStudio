@@ -73,7 +73,7 @@ static void persistenceChecks() {
   ProjectDocument p;p.fiberglass[1].sketch.layers[0]=loop({{-10,-10},{-10,50},{110,50},{110,-10}},false);
   auto& patch=p.fiberglass[1].patches[0];patch.name="Side reinforcement";patch.wrap=false;patch.side=CoverSide::Left;patch.clothGm2=80;patch.imperialCloth=true;patch.automaticResin=false;patch.resinThicknessMm=.08;p.weightBalance.resinDensityKgM3=1200;
   patch.projectClothUnits=false;
-  const auto json=encodeProject(p);TEST_CHECK(json["version"]==32);auto decoded=decodeProject(json);TEST_CHECK(encodeProject(decoded)==json);
+  const auto json=encodeProject(p);TEST_CHECK(json["version"]==33);auto decoded=decodeProject(json);TEST_CHECK(encodeProject(decoded)==json);
   auto previous=json;auto previousComponents=previous["fiberglass"].toArray();auto previousComponent=previousComponents[1].toObject();auto previousPatches=previousComponent["patches"].toArray();auto previousPatch=previousPatches[0].toObject();previousPatch.remove("projectClothUnits");previousPatches[0]=previousPatch;previousComponent["patches"]=previousPatches;previousComponents[1]=previousComponent;previous["fiberglass"]=previousComponents;
   const auto migrated=decodeProject(previous);TEST_CHECK(migrated.fiberglass[1].patches[0].projectClothUnits);TEST_CHECK(migrated.fiberglass[1].patches[0].clothGm2==80);TEST_CHECK(migrated.weightBalance.resinDensityKgM3==1200);
   auto legacy=json;legacy["version"]=31;legacy.remove("fiberglass");auto old=decodeProject(legacy);TEST_CHECK(old.fiberglass[1].sketch.layers[0].curves.empty());TEST_CHECK(old.weightBalance.resinDensityKgM3==1500);

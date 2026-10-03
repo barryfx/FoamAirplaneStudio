@@ -74,6 +74,7 @@ geometry::AssemblyParts MainWindow::cachedModelParts() const {
   }
   if(builtFuselageFingerprint_!=fuselageFingerprint())return parts;
   parts.fuselage=fuselageModel_.body;
+  parts.sparMaterials.insert(parts.sparMaterials.end(),fuselageModel_.stiffeners.begin(),fuselageModel_.stiffeners.end());
   int bodyNumber=0;
   for(TopExp_Explorer body{parts.fuselage,TopAbs_SOLID};body.More();body.Next()) {
     const auto id="Fuselage/"+std::to_string(bodyNumber);
@@ -254,6 +255,7 @@ void MainWindow::updateAssembly(bool inspect) {
   geometry::FuselageSolidInput fuselage{p.fuselage.layers,p.fuselageStations.lines,p.fuselageProfiles.layers,
       scaledFuselageLength(),p.fuselageThickening,p.fuselageCuts.layers,p.servoTray.rectangle,p.formers.rectangles,p.formers.rotationDegrees,p.fuselageHoles.layers};
   fuselage.noseOpen=p.fuselageNoseOpen;fuselage.tailOpen=p.fuselageTailOpen;
+  fuselage.stiffeners=p.stiffeners;
   std::vector<geometry::StabilizerSolidInput> stabilizers;
   for(int i=0;i<2;++i)stabilizers.push_back({p.stabilizerOutlines[i].layers.front(),stabilizerAirfoilPanels_[i]->airfoil(),
       projectLengthScale(),i==0,p.stabilizerHinges[i].layers.front(),p.stabilizerHingeCuts[i],p.stabilizerCuts[i].layers});

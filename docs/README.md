@@ -3,14 +3,15 @@
 The [project website](architecture/project-website.md) is checked into `website/`
 and deployed from `main` through GitHub Pages.
 
-Current state: October 3, 2026 (application 0.1.0, project format 32).
+Current state: October 3, 2026 (application 0.1.0, project format 33).
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
   `wing-workflow.md`, `wing-solids.md`, and `regeneration.md`.
+  `architecture/fuselage-stiffeners.md` describes mirrored carbon grooves.
   `architecture/fiberglass.md` describes covering shapes and their weight/CG estimates.
-- `formats/foam-project.md` specifies version 32 and migration from versions 1-31.
+- `formats/foam-project.md` specifies version 33 and migration from versions 1-32.
 - `adr/` records decisions chronologically. Later decisions supersede affected
   portions of earlier ones; introductory version numbers and validation sections
   describe each decision at the time, not necessarily current behavior.

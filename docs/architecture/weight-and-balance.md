@@ -24,9 +24,9 @@ New/Close reset parts and densities. Format 26 preserves all entered data.
 The current Assembly snapshot supplies foam body volumes and centers, respecting
 placement and optional interface cuts. Fuselage part records are not counted
 again. Formers and the servo tray are separately integrated as Aero Plywood.
-Enabled wing spars are automatically included as Carbon Fiber: solid surface
+Enabled fuselage stiffeners and wing spars are automatically included as Carbon Fiber: solid surface
 rods/strips and hollow mid tubes. Their cached material properties follow wing
-placement and remain intact when Assembly cuts foam interfaces.
+placement; fuselage stiffeners stay in the body frame. Both remain intact when Assembly cuts foam interfaces.
 The component breakdown lists each foam component, plywood insert and carbon spar with
 solid material volume in cm³ and weight in grams and ounces. Foam, plywood and Carbon Fiber
 subtotals use the same measurements as the overall balance calculation. Missing

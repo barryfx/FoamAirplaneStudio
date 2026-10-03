@@ -1,4 +1,5 @@
 #include "geometry/FuselageSolidBuilder.h"
+#include "geometry/FuselageStiffeners.h"
 #include "geometry/FuselageProcessing.h"
 #include "geometry/FuselageEndRegistration.h"
 #include "geometry/FuselageSymmetry.h"
@@ -316,6 +317,10 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(input.mirrorConstruction) {
     if(progress)progress("Fuselage: reflecting the completed right half as a separate left part...");
     shape=fuselagePair(shape,processing);
+  }
+  if(input.stiffeners.count) {
+    if(progress)progress("Fuselage: cutting carbon fiber stiffener grooves...");
+    shape=cutFuselageStiffeners(shape,walls,length,input.stiffeners,result.stiffeners,processing);
   }
   if(!input.holes.empty()) {
     if(progress)progress("Fuselage: cutting holes through the selected walls...");
