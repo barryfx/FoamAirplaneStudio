@@ -15,7 +15,7 @@ cmake -S "$project_root" -B "$build_dir" -G Ninja \
   -DDESIGNRC_BUILD_TESTS=OFF \
   -DFOAM_LINUX_PACKAGE_GENERATOR=RPM \
   -DOpenCASCADE_DIR="${OpenCASCADE_DIR:-$project_root/../third_party/occt/install-linux-release/cmake}"
-cmake --build "$build_dir" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-4}"
+cmake --build "$build_dir" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-8}"
 cpack --config "$build_dir/CPackConfig.cmake" \
   -G RPM -B "$package_stage"
 

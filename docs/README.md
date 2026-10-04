@@ -3,7 +3,7 @@
 The [project website](architecture/project-website.md) is checked into `website/`
 and deployed from `main` through GitHub Pages.
 
-Current state: October 3, 2026 (application 0.1.0, project format 33).
+Current state: October 4, 2026 (application 0.2.0, project format 33).
 
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
@@ -68,7 +68,7 @@ Fuselage half alignment pins: ADR-0032, `architecture/fuselage-cuts.md` and
 `baseline/fuselage-alignment-validation.md`.
 
 The latest documentation audit is recorded in
-[documentation audit](baseline/documentation-audit-2026-10-03.md).
+[documentation audit](baseline/documentation-audit-2026-10-04.md).
 Historical test commands are evidence, not authorization to rerun generation:
 follow the current restrictions in `../AGENTS.md`.
 
@@ -91,7 +91,7 @@ Former rotation: [design](adr/0036-former-rotation.md) and
 [Fuselage Holes](architecture/fuselage-holes.md) removes closed loops through a
 selected wall and shares path controls with Cut (ADR-0038, project version 25).
 
-[Weight and Balance](architecture/weight-and-balance.md) places RC parts in Side View and combines their masses with foam, Aero Plywood and carbon-fiber spars from current Assembly geometry, including wing loading (ADR-0039 and ADR-0046; introduced in format 26, extended in format 29).
+[Weight and Balance](architecture/weight-and-balance.md) places RC parts in Side View and combines their masses with foam, Aero Plywood, carbon-fiber spars/stiffeners and fiberglass cloth/resin from current Assembly geometry, including wing loading (ADR-0039 and ADR-0046; introduced in format 26, extended in format 29).
 
 - `architecture/inspect.md` describes component visibility and persistent export names.
 
@@ -127,6 +127,12 @@ Four-surface cuts, retained cut-outs and parallel-wall checks: [ADR-0049](adr/00
 
 Windows per-user packaging, license verification and optional desktop shortcut: [installer](architecture/windows-installer.md) and [validation](baseline/windows-installer-validation.md).
 
-Release and Debug regression evidence: [test checks](baseline/release-debug-test-checks.md). Assembly and Export omit the statistics footer and defer mass calculation; Weight and Balance displays its own totals and a small CG marker.
+Release and Debug regression evidence: [test checks](baseline/release-debug-test-checks.md). Only Weight and Balance recalculates mass statistics; other modes show dashes for weight, loading and CG. Assembly and Export omit the statistics footer; Weight and Balance displays its own totals and a small CG marker.
 
 Linux DEB/RPM packaging: [design](architecture/linux-packages.md) and [installation validation](baseline/linux-package-validation.md).
+
+Source release [0.2.0](releases/0.2.0.md) includes incremental mass caches
+([ADR-0051](adr/0051-incremental-weight-balance-measurements.md)), the support-rail
+checkpoint ([ADR-0053](adr/0053-fuselage-support-checkpoint.md)), entered distance
+units ([ADR-0054](adr/0054-entered-distance-units.md)), and straight-side stiffener
+routes ([ADR-0056](adr/0056-straight-side-stiffeners.md)).

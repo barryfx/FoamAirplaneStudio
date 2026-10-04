@@ -1,5 +1,5 @@
 param(
-  [string]$Version = '0.1.0',
+  [string]$Version = '0.2.0',
   [string]$QtBin = 'C:/Qt/6.11.1/msvc2022_64/bin',
   [string]$VisualStudio = 'C:/Program Files/Microsoft Visual Studio/18/Community',
   [string]$Iscc = "$env:LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe"

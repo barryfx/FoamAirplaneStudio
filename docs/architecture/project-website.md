@@ -17,8 +17,10 @@ owner's explicit approval so Pages and Release downloads are publicly accessible
 
 Site URL: https://barryfx.github.io/FoamAirplaneStudio/
 
-For a new release, update the displayed version, installer filenames and release
-links together. Keep platform testing statements aligned with README and the
+Display the current source version separately from the latest published installer
+version. Update installer filenames and download links only when matching assets
+exist on GitHub Releases; a source tag alone does not publish installers.
+Keep platform testing statements aligned with README and the
 validation records. Preserve the notice that no airplanes have been milled.
 
 To preview, copy `website/index.html`, `website/style.css`, and

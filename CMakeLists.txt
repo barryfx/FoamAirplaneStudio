@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(FoamAirplaneStudio VERSION 0.1.0 LANGUAGES CXX)
+project(FoamAirplaneStudio VERSION 0.2.0 LANGUAGES CXX)
 
 option(DESIGNRC_BUILD_TESTS "Build inherited baseline regression tests" ON)
 

@@ -11,7 +11,7 @@ package_stage=$(mktemp -d)
 trap 'rm -rf -- "$package_stage"' EXIT HUP INT TERM
 
 cmake --preset linux-release -S "$project_root" -B "$build_dir"
-cmake --build "$build_dir" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-4}"
+cmake --build "$build_dir" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-8}"
 cpack --config "$build_dir/CPackConfig.cmake" \
   -G DEB -B "$package_stage"
 

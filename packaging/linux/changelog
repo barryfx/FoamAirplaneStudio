@@ -1,3 +1,10 @@
+foamairplanestudio (0.2.0) stable; urgency=medium
+
+  * Add fiberglass accounting, fuselage stiffeners and incremental caches.
+  * Preserve entered distance units and improve groove diagnostics.
+
+ -- Barry Foust <barryfx@users.noreply.github.com>  Sun, 04 Oct 2026 12:00:00 -0400
+
 foamairplanestudio (0.1.0) stable; urgency=medium
 
   * Initial Ubuntu and Fedora packages.

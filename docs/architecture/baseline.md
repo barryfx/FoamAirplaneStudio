@@ -1,6 +1,6 @@
 # Baseline and current application shell
 
-Updated: 2026-10-03
+Updated: 2026-10-04
 
 The original baseline was copied read-only from DesignRC commit
 8e8bcac9e9783d35915d76d296bc45282301c2f9. The original file hashes remain in

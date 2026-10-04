@@ -20,7 +20,7 @@ suite when model-generation testing has been authorized:
 
 ```powershell
 cmake --preset windows-release -DDESIGNRC_BUILD_TESTS=ON
-cmake --build --preset windows-release --parallel 6
+cmake --build --preset windows-release --parallel 8
 ctest --test-dir build/release -C Release --output-on-failure
 ```
 

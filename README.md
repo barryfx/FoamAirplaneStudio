@@ -4,18 +4,21 @@
 
 [Project website and downloads](https://barryfx.github.io/FoamAirplaneStudio/)
 
-**Version 0.1.0 — October 1, 2026.** Desktop foam-airplane design with C++23,
+**Source version 0.2.0 — October 4, 2026.** Desktop foam-airplane design with C++23,
 Qt and Open CASCADE Technology (OCCT). Trace reference plans, generate separate
 foam and structural parts, assemble the airplane, and export manufacturing files
 for CNC routing, 3D printing and laser cutting.
 
-Projects use `.foam` format **31**; versions 1–30 remain readable. The application
+Projects use `.foam` format **33**; versions 1–32 remain readable. The application
 version and project-format version are independent. Legacy `.designrc` projects
 are not supported.
 
 ## Platforms and Release packages
 
-All three installers contain **Release builds**. Generated installers, source
+The latest published installers remain **0.1.0**; package instructions and platform
+validation below describe those binaries. Source version **0.2.0** adds the changes
+in the [release notes](docs/releases/0.2.0.md). No 0.2.0 installers are published yet.
+All three existing installers contain **Release builds**. Generated installers, source
 archives and checksums are in `dist/`; they are not committed to Git.
 
 | Platform | Installer | Validation environment |
@@ -44,29 +47,39 @@ sessions need XWayland, and WSL needs WSLg. See the exact completed checks in
   explicit nose/tail closure (Nose Open and Tail Closed by default), separate
   mirrored halves, alignment pins, cavity-fitted formers and servo tray.
   Formers can be rotated or partial height; their entered thickness stays fixed
-  when wingspan changes.
+  when wingspan changes. Stiffeners add 0–3 mirrored strip/round grooves per side,
+  straight in Side View at constant inward depth.
 - **Fuselage cuts and holes:** Top/Bottom/Left/Right surfaces. Boundary-crossing
   cuts split both opposite walls; closed interior cuts detach only the selected
   wall. Cut-outs remain separate components. Single-wall cuts that hit a parallel
   wall stop generation with an error. Holes remove selected-wall material.
 - **Stabilizers:** independent horizontal/vertical outlines and airfoils,
   separate elevator/rudder bodies, tape/standard hinge bevels and cut shapes.
+- **Fiberglass:** Wing, Fuselage and both stabilizers accept covering sketches
+  for weight and balance only, with wrap/one-sided coverage, cloth weight and resin
+  thickness. Cuts and holes use distinct colors in the 2D views.
 - **Assembly:** positioning, rotation about the root center in 0.5-degree steps,
   collision checks and reversible mating cuts, including wing seats in formers.
 - **Inspect and export:** per-component visibility and editable export names;
   former STEP/DXF/SVG/STL and component STEP/STL export, with All selected by
   default. Combined STEP files use the project name. Tray DXF is not implemented.
 - **Weight and Balance:** movable named RC parts, foam/plywood/carbon-fiber mass,
-  CG and wing loading. Editable density defaults are 25.63/680/1540 kg/m³.
+  CG and wing loading, including carbon stiffeners and fiberglass cloth/resin.
+  The Material Densities dialog defaults to 25.63/680/1540/1500 kg/m³ for foam,
+  plywood, carbon and resin. Changed measurements use up to 90% of logical
+  threads; unchanged component and fiberglass results are cached.
   Mid spars default to 6 mm OD and 5 mm ID. The CG marker is placed longitudinally
   at the calculated CG and vertically 20% up from the root airfoil's lowest point
   through its maximum thickness. CG distance is relative to the placed wing root
   leading edge, positive toward the tail.
 - **Workflow:** project-wide Undo/Redo (Ctrl+Z/Ctrl+Y), individual sketch-curve
   selection/deletion, cancellable background regeneration and model caching.
-  Available airplane statistics are saved with the project. Assembly and Export
-  omit the statistics footer and defer mass calculations; Weight and Balance
-  has its own totals. The primary toolbar ends with Inspect, Weight and Balance,
+  Entered distance units persist through Save/Open. Fuselage generation can
+  resume from its support-rail checkpoint after downstream edits. Available
+  statistics are saved with the project. Only Weight and Balance recalculates
+  mass statistics; other modes show dashes for Weight, Wing Loading and CG.
+  Assembly and Export omit the footer; Weight and Balance has its own totals.
+  The primary toolbar ends with Inspect, Weight and Balance,
   then Export.
 
 Detailed behavior and design decisions are indexed in the
@@ -91,6 +104,8 @@ Use **File > Open** to open `BabyBuzzard36.foam`, then **Save As** to a folder y
 own before editing. Linux installation directories are read-only for normal users.
 The project opens in 2D without automatically generating geometry; select 3D or
 Assembly when ready. Installed examples may be replaced during upgrades.
+The source 0.2.0 example uses format 33, includes fiberglass and a strip stiffener
+per side, and requires a current source build; the 0.1.0 installer cannot open it.
 
 ## Windows: install and run
 
@@ -120,12 +135,12 @@ required to create the Windows installer.
 ```powershell
 # Debug development build and run
 cmake --preset windows-debug
-cmake --build --preset windows-debug --target designrc --parallel 4
+cmake --build --preset windows-debug --target designrc --parallel 8
 .\build\debug\Debug\foamairplanestudio.exe
 
 # Release build, run and package
 cmake --preset windows-release
-cmake --build --preset windows-release --target designrc --parallel 4
+cmake --build --preset windows-release --target designrc --parallel 8
 .\build\release\Release\foamairplanestudio.exe
 pwsh -File packaging/windows/build-installer.ps1
 ```
@@ -201,7 +216,7 @@ cmake -S "$occt_source" -B "$HOME/build/foam-occt-release" -G Ninja \
   -DINSTALL_DIR_LAYOUT=Unix -DINSTALL_DIR_CMAKE=cmake \
   -DBUILD_MODULE_Draw=OFF -DUSE_FREETYPE=ON -DUSE_OPENGL=ON -DUSE_XLIB=ON \
   -DUSE_FFMPEG=OFF -DUSE_FREEIMAGE=OFF -DUSE_TBB=OFF -DUSE_VTK=OFF
-cmake --build "$HOME/build/foam-occt-release" --parallel 4
+cmake --build "$HOME/build/foam-occt-release" --parallel 8
 cmake --install "$HOME/build/foam-occt-release"
 
 # From the FoamAirplaneStudio repository, run the matching Release packager:
@@ -217,7 +232,7 @@ Scripts use CPack and private Qt/OCCT/ICU libraries, following DesignRC's approa
 They stage on a native Linux temporary filesystem and write the package,
 format-specific application-source archive, and SHA-256 checksums to `dist/`.
 RPM builds accept an `OpenCASCADE_DIR` environment override; both scripts accept
-`CMAKE_BUILD_PARALLEL_LEVEL` (default 4). Application-source archives do not contain
+`CMAKE_BUILD_PARALLEL_LEVEL` (default 8). Application-source archives do not contain
 dependency source trees. See [Linux packaging](docs/architecture/linux-packages.md).
 
 For a Debug application and selected non-generation editor tests:
@@ -226,7 +241,7 @@ For a Debug application and selected non-generation editor tests:
 cmake -S . -B build/linux-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
   -DOpenCASCADE_DIR="$occt_prefix/cmake" -DDESIGNRC_BUILD_TESTS=ON
 cmake --build build/linux-debug --target designrc reference_tests \
-  sketch_editor_tests file_dialog_tests --parallel 4
+  sketch_editor_tests file_dialog_tests --parallel 8
 LD_LIBRARY_PATH="$occt_prefix/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 QT_QPA_PLATFORM=offscreen ctest --test-dir build/linux-debug \
   -R '^(reference_tests|sketch_editor_tests|file_dialog_tests)$' --output-on-failure
@@ -240,7 +255,9 @@ authorization, including broader suites that generate those components internall
 Do not substitute an unfiltered CTest run for the selected editor checks above.
 The legacy `designrc_geometry_tests` target remains an intentionally skipped placeholder.
 
-See [current installer validation](docs/baseline/linux-package-validation.md),
+See [0.2.0 documentation audit](docs/baseline/documentation-audit-2026-10-04.md),
+[straight-side stiffener validation](docs/baseline/straight-side-stiffener-validation.md),
+[0.1.0 installer validation](docs/baseline/linux-package-validation.md),
 [Release/Debug regression evidence](docs/baseline/release-debug-test-checks.md),
 and [geometry validation](docs/baseline/four-surface-cut-validation.md).
 Installation smoke tests do not establish full geometry or native-desktop coverage.
