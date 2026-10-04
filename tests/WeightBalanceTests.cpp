@@ -204,9 +204,9 @@ public:
       auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(d);
       auto* buttons=d->findChild<QDialogButtonBox*>();buttons->button(QDialogButtonBox::Ok)->click();CHECK(d->isVisible());
       d->findChild<QLineEdit*>("balancePartName")->setText("Battery");
-      d->findChild<QDoubleSpinBox*>("balancePartWidth")->setValue(25);
-      d->findChild<QDoubleSpinBox*>("balancePartHeight")->setValue(30);
-      d->findChild<QDoubleSpinBox*>("balancePartLength")->setValue(80);
+      d->findChild<QLineEdit*>("balancePartWidth")->setText("25");
+      d->findChild<QLineEdit*>("balancePartHeight")->setText("30");
+      d->findChild<QLineEdit*>("balancePartLength")->setText("80");
       d->findChild<QComboBox*>("balancePartMassUnit")->setCurrentIndex(1);
       d->findChild<QDoubleSpinBox*>("balancePartWeight")->setValue(2);
       buttons->button(QDialogButtonBox::Ok)->click();
@@ -232,7 +232,7 @@ public:
     panel->findChild<QPushButton*>("balanceEditPart")->click();CHECK(panel->state().parts[0].centerMm==moved);
     QTimer::singleShot(0,&w,[&]{
       auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(d->findChild<QLineEdit*>("balancePartName")->text()=="Battery");
-      d->findChild<QLineEdit*>("balancePartName")->setText("Flight battery");d->findChild<QDoubleSpinBox*>("balancePartLength")->setValue(100);
+      d->findChild<QLineEdit*>("balancePartName")->setText("Flight battery");d->findChild<QLineEdit*>("balancePartLength")->setText("100");
       d->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->click();
     });panel->findChild<QPushButton*>("balanceEditPart")->click();
     CHECK(panel->state().parts[0].name=="Flight battery");CHECK(panel->state().parts[0].centerMm==moved);
@@ -256,7 +256,7 @@ public:
     CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains(" in from"));
     panel->setFoam(mass,1000,{});CHECK(panel->findChild<QLabel*>("balanceResults")->text().contains("Center of Gravity: -"));w.updateWeightBalance();
     QTimer::singleShot(0,&w,[&]{
-      auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(closeEnough(d->findChild<QDoubleSpinBox*>("balancePartLength")->value(),100/25.4,1e-6));d->reject();
+      auto* d=panel->findChild<QDialog*>("balancePartDialog");CHECK(d->findChild<QLineEdit*>("balancePartLength")->text()=="100 mm");d->reject();
     });panel->findChild<QPushButton*>("balanceEditPart")->click();
     // Changed Assembly cuts replace the mass source without counting originals.
     const int beforeCuts=calculations;

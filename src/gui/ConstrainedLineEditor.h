@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include <QPointF>
 #include <optional>
 #include <vector>
@@ -20,6 +21,7 @@ struct ConstrainedLine {
   std::optional<std::size_t> airfoil;
   std::optional<std::size_t> profile; // Stable fuselage sketch slot; independent of station order.
   std::optional<double> thicknessMm; // Per-station fuselage wall; initialized on first Thicken entry.
+  LengthUnit thicknessUnit=LengthUnit::Default;
 };
 struct StationState {
   std::vector<ConstrainedLine> lines;
@@ -45,7 +47,7 @@ public:
   bool selectionEnabled() const { return selectionOnly_; }
   void assignSelectedAirfoil(std::size_t airfoil);
   void assignSelectedProfile(std::optional<std::size_t> profile);
-  void setThicknessMm(int station,double thickness);
+  void setThicknessMm(int station,double thickness,std::optional<LengthUnit> unit={});
   bool event(QEvent* event, bool onViewport);
   void paint(QPainter& painter) const;
   void reset();

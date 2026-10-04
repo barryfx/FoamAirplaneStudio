@@ -40,7 +40,7 @@ void FuselageThickenPanel::rebuild() {
     auto* edit=new QLineEdit{this};edit->setObjectName(QString{"fuselageThickness%1"}.arg(index));
     edit->setPlaceholderText("e.g. 8 mm or 0.315 in");
     edit->setToolTip("Positive decimal; optional mm or in suffix. Bare numbers use Reference units.");
-    edit->setText(formattedLength(stations[index].thicknessMm.value_or(5),units_));
+    edit->setText(formattedLength(stations[index].thicknessMm.value_or(5),displayLengthUnits(stations[index].thicknessUnit,units_)));
     fields_->addRow(QString{"Station %1"}.arg(number+1),edit);
     connect(edit,&QLineEdit::editingFinished,this,[this,index,edit]{
       // A focus change must not round a stored value through its display text.
@@ -50,9 +50,10 @@ void FuselageThickenPanel::rebuild() {
       const auto mm=lengthInMm(edit->text(),units_);
       const auto previous=stations.lines()[index].thicknessMm.value_or(5);
       const bool valid=mm&&*mm>=.001&&*mm<=10000;
-      edit->setText(formattedLength(valid?*mm:previous,units_));
-      if(valid&&*mm!=previous) {
-        stations.setThicknessMm(index,*mm);
+      const auto unit=valid?enteredLengthUnit(edit->text(),units_):stations.lines()[index].thicknessUnit;
+      edit->setText(formattedLength(valid?*mm:previous,displayLengthUnits(unit,units_)));
+      if(valid) {
+        stations.setThicknessMm(index,*mm,unit);
         if(changed)changed();
       }
     });

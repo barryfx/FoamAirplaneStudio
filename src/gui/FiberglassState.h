@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include "gui/SketchEditor.h"
 #include <QString>
 #include <array>
@@ -16,6 +17,7 @@ struct FiberglassPatch {
   bool projectClothUnits=true; // imperialCloth applies only to an explicit override.
   bool automaticResin=true;
   double resinThicknessMm=0.046;
+  LengthUnit resinThicknessUnit=LengthUnit::Default;
 };
 inline double defaultResinThickness(double clothGm2) {
   // Light woven cloth: bulk density 900 kg/m³; E-glass 2550 kg/m³.

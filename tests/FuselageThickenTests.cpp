@@ -75,7 +75,7 @@ int main(int argc,char** argv) {
     commit(".5 in");CHECK(window.projectDocument().fuselageStations.lines[0].thicknessMm==12.7);
     commit("7.5");CHECK(window.projectDocument().fuselageStations.lines[0].thicknessMm==7.5);
     for(const auto& invalid:{"bad","0 mm","-1 in","10001 mm"}){commit(invalid);CHECK(window.projectDocument().fuselageStations.lines[0].thicknessMm==7.5);}
-    units->setCurrentIndex(1);app.processEvents();CHECK(field(0)->text()==formattedLength(7.5,ProjectUnits::Inches));
+    units->setCurrentIndex(1);app.processEvents();CHECK(field(0)->text()==formattedLength(7.5,ProjectUnits::Millimeters));
     commit("8.25 mm");CHECK(window.projectDocument().fuselageStations.lines[0].thicknessMm==8.25);
     auto visibleProfiles=[&] {
       // This synthetic project has no reference image to establish the canvas.
@@ -95,7 +95,7 @@ int main(int argc,char** argv) {
     CHECK(window.projectDocument().fuselageThickening);CHECK(window.saveProjectFile(file,error));CHECK(!window.projectModified());
     toolbar->actions()[3]->trigger();CHECK(!window.projectModified());CHECK(window.openProjectFile(file,error));
     CHECK(window.projectDocument().fuselageThickening&&window.projectDocument().fuselageStations.lines[0].thicknessMm==8.25);
-    app.processEvents();app.processEvents();CHECK(field(0)->text()==formattedLength(8.25,ProjectUnits::Inches));
+    app.processEvents();app.processEvents();CHECK(field(0)->text()==formattedLength(8.25,ProjectUnits::Millimeters));
     auto& source=view->fuselageSketchEditor();source.mapPoints([](QPointF pt){return pt+QPointF{1,0};});
     CHECK(source.stationEditor().lines()[0].thicknessMm==8.25);CHECK(window.saveProjectFile(file,error));
     toolbar=window.findChild<QToolBar*>("componentToolBar");toolbar->actions()[3]->trigger();app.processEvents();app.processEvents();

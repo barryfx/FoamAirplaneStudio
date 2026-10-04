@@ -36,6 +36,7 @@ private:
   QLineEdit* name_{};
   QRadioButton *wrap_{},*oneSide_{};
   QCheckBox* automatic_{};
-  QDoubleSpinBox *cloth_{},*resin_{};
+  QDoubleSpinBox *cloth_{};
+  QLineEdit* resin_{};
 };
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include <QPointF>
 #include <QString>
 #include <vector>
@@ -10,6 +11,7 @@ struct BalancePart {
   double widthMm=20, heightMm=20, lengthMm=40, grams=10;
   QPointF centerMm; // Fuselage X/Z; Y=0. Uniform part mass acts at this center.
   bool ounces=false;
+  LengthUnit widthUnit=LengthUnit::Default,heightUnit=LengthUnit::Default,lengthUnit=LengthUnit::Default;
 };
 struct WeightBalanceState {
   double densityKgM3=25.63; // User-selected foam default; editable for the actual stock.

@@ -9,7 +9,7 @@ and totals at the bottom of the data panel and window. Parts appear only here.
 Entering frames the Side View and placed parts; wheel zoom and scrolling remain available.
 
 Add/Edit opens a modal dialog for a unique nonempty name, decimal Width, Height,
-Length in Reference units, and weight in grams or ounces. Changing weight units
+Length with optional mm/in suffixes (bare numbers use Reference units), and weight in grams or ounces. Each dimension retains its entered display unit across editing, project-unit changes and Save/Open. Changing weight units
 converts the value. Cancel preserves the existing record. New parts start at the
 Side View bounding-box center. Width extends into the screen; Length and Height
 size the displayed rectangle. Drag a rectangle to move its mass center. Select

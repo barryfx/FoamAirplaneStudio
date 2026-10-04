@@ -22,7 +22,7 @@ public:
     for(auto* field:{width_,height_})connect(field,&QLineEdit::editingFinished,this,[this,field]{
       if(!field->isModified())return;
       const auto w=lengthInMm(width_->text(),units_),h=lengthInMm(height_->text(),units_);
-      if(w&&h){widthMm_=*w;heightMm_=*h;editor_.setDimensions({*w/scale_,*h/scale_},center_);}
+      if(w&&h){widthMm_=*w;heightMm_=*h;editor_.setDimensions({*w/scale_,*h/scale_},center_,enteredLengthUnit(width_->text(),units_),enteredLengthUnit(height_->text(),units_));}
       else emit editor_.message("Tray width and thickness must be greater than zero.");
       field->setModified(false);sync();
     });
@@ -39,8 +39,8 @@ public:
 private:
   void sync(){
     if(const auto r=editor_.state().rectangle){widthMm_=r->width()*scale_;heightMm_=r->height()*scale_;}
-    if(!width_->hasFocus()||!width_->isModified())width_->setText(formattedLength(widthMm_,units_));
-    if(!height_->hasFocus()||!height_->isModified())height_->setText(formattedLength(heightMm_,units_));
+    if(!width_->hasFocus()||!width_->isModified())width_->setText(formattedLength(widthMm_,displayLengthUnits(editor_.state().widthUnit,units_)));
+    if(!height_->hasFocus()||!height_->isModified())height_->setText(formattedLength(heightMm_,displayLengthUnits(editor_.state().heightUnit,units_)));
     remove_->setEnabled(editor_.state().rectangle.has_value());
     create_->setEnabled(!editor_.state().rectangle);
   }

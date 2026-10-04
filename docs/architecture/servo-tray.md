@@ -3,7 +3,7 @@
 Servo Tray opens the Side View placement workflow in 2D once the Fuselage profiles
 are complete. Instructions precede Width and Height fields, Place Rectangle and
 Delete Tray. Width is fore/aft length; Height is tray thickness. Fields use Reference
-units and accept explicit mm/in suffixes. Defaults for a new tray are 100 mm by
+units for bare entries and accept explicit mm/in suffixes. Each field retains its entered display unit, including through Save/Open and undo. Defaults for a new tray are 100 mm by
 3 mm. Editing a dimension or clicking Place Rectangle creates a rectangle centered
 on Side View. Drag inside or at an edge to move it with fixed dimensions. Change
 fields to resize about the existing center. Delete removes it; Escape deselects.

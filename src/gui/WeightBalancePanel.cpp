@@ -1,3 +1,4 @@
+#include "gui/LengthEntry.h"
 #include "gui/WeightBalancePanel.h"
 #include "gui/PlanViewport.h"
 #include <QComboBox>
@@ -116,14 +117,13 @@ void WeightBalancePanel::editPart(bool add) {
   QDialog dialog{this};dialog.setObjectName("balancePartDialog");dialog.setWindowTitle(add?"Add Part":"Edit Part");
   auto* layout=new QVBoxLayout{&dialog};auto* form=new QFormLayout;
   auto* name=new QLineEdit{part.name,&dialog};name->setObjectName("balancePartName");name->setMaxLength(200);form->addRow("Name",name);
-  const double unit=units_==ProjectUnits::Inches?25.4:1.;const QString suffix=unit==1?" mm":" in";
-  auto dimension=[&](const char* label,const char* object,double value){
-    auto* field=new QDoubleSpinBox{&dialog};field->setObjectName(object);field->setDecimals(6);field->setRange(.001/unit,10000/unit);
-    field->setSuffix(suffix);field->setValue(value/unit);form->addRow(label,field);return field;
+  auto dimension=[&](const char* label,const char* object,double value,LengthUnit unit){
+    auto* field=new QLineEdit{formattedLength(value,displayLengthUnits(unit,units_)),&dialog};field->setObjectName(object);
+    form->addRow(label,field);return field;
   };
-  auto* width=dimension("Width (into screen)","balancePartWidth",part.widthMm);
-  auto* height=dimension("Height (vertical)","balancePartHeight",part.heightMm);
-  auto* length=dimension("Length (nose to tail)","balancePartLength",part.lengthMm);
+  auto* width=dimension("Width (into screen)","balancePartWidth",part.widthMm,part.widthUnit);
+  auto* height=dimension("Height (vertical)","balancePartHeight",part.heightMm,part.heightUnit);
+  auto* length=dimension("Length (nose to tail)","balancePartLength",part.lengthMm,part.lengthUnit);
   auto* weight=new QDoubleSpinBox{&dialog};weight->setObjectName("balancePartWeight");weight->setDecimals(6);
   auto* massUnit=new QComboBox{&dialog};massUnit->setObjectName("balancePartMassUnit");massUnit->addItems({"grams","ounces"});massUnit->setCurrentIndex(part.ounces?1:0);
   double massScale=part.ounces?gramsPerOunce:1.;weight->setRange(.001/massScale,1e6/massScale);weight->setValue(part.grams/massScale);
@@ -139,8 +139,10 @@ void WeightBalancePanel::editPart(bool add) {
     for(int i=0;i<static_cast<int>(state_.parts.size());++i)if((add||i!=index)&&state_.parts[i].name.compare(text,Qt::CaseInsensitive)==0) {
       error->setText("Use a different name for each part.");return;
     }
-    part.name=text;part.widthMm=std::clamp(width->value()*unit,.001,10000.);
-    part.heightMm=std::clamp(height->value()*unit,.001,10000.);part.lengthMm=std::clamp(length->value()*unit,.001,10000.);
+    const auto w=lengthInMm(width->text(),units_),h=lengthInMm(height->text(),units_),l=lengthInMm(length->text(),units_);
+    if(!w||!h||!l||*w<.001||*h<.001||*l<.001||*w>10000||*h>10000||*l>10000){error->setText("Enter dimensions from 0.001 to 10000 mm; mm or in suffixes are accepted.");return;}
+    part.name=text;part.widthMm=*w;part.heightMm=*h;part.lengthMm=*l;
+    part.widthUnit=enteredLengthUnit(width->text(),units_);part.heightUnit=enteredLengthUnit(height->text(),units_);part.lengthUnit=enteredLengthUnit(length->text(),units_);
     part.grams=std::clamp(weight->value()*massScale,.001,1e6);part.ounces=massUnit->currentIndex()==1;dialog.accept();
   });
   if(dialog.exec()!=QDialog::Accepted)return;

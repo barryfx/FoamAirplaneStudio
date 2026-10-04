@@ -5,8 +5,7 @@ per side (0–3), mirrored left/right; zero disables the feature. Strip uses
 vertical Width and inward Height; Round uses Diameter only. Bare lengths use
 millimetres, independent of Reference units. Explicit inches remain displayed
 in inches for that field until replaced with a bare/mm entry. Project unit
-changes do not convert the fields. Display preferences are local to the panel;
-restoring a project or undo snapshot defaults the display to mm. Start/Stop are percentages of total
+changes do not convert the fields. Display units are saved per dimension and survive project/undo restoration. Start/Stop are percentages of total
 fuselage length from the nose, with Start < Stop. Defaults are 20–90%, a 3 × 1 mm
 strip or 3 mm rod. Saved inactive dimensions survive shape changes.
 
@@ -45,3 +44,12 @@ wing caches remain reusable. Older projects load count zero. See ADR-0052.
 
 Earlier format-33 projects with counts 4–16 load capped at three per side. Saved
 Start/Stop percentages remain unchanged; 20–90% applies to new/default settings.
+
+Failure diagnostics distinguish a failed OCCT Boolean, invalid resulting topology,
+and an unexpected solid count. Extra solids are reported with volume and their
+longitudinal span as percentages from the nose. Invalid faces report their span
+when identifiable. These are affected geometry extents, not an asserted exact
+break point. Kernel failures without localizable geometry report the requested
+range and explicitly say the exact position is unavailable. Sampled clearance,
+wall-depth, spacing and abrupt-bend failures identify the stiffener and sampled
+percentage. Failed cuts still publish neither geometry nor carbon stock.

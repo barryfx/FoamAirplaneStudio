@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include <QObject>
 #include <QRectF>
 #include <optional>
@@ -10,6 +11,7 @@ struct ServoTrayState {
   std::optional<QRectF> rectangle;
   std::optional<QPointF> first;
   bool drawing{};
+  LengthUnit widthUnit=LengthUnit::Default,heightUnit=LengthUnit::Default;
 };
 class ServoTrayEditor final : public QObject {
   Q_OBJECT
@@ -18,7 +20,7 @@ public:
   const ServoTrayState& state() const{return state_;}
   void restore(const ServoTrayState& state);
   void setEditing(bool enabled);
-  void setDimensions(QSizeF size,QPointF center);
+  void setDimensions(QSizeF size,QPointF center,std::optional<LengthUnit> widthUnit={},std::optional<LengthUnit> heightUnit={});
   std::function<bool(const QRectF&)> acceptRectangle;
   void cancel();
   void remove();

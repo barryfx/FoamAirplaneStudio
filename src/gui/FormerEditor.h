@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include <QObject>
 #include <QRectF>
 #include <functional>
@@ -8,7 +9,7 @@
 class QGraphicsView;
 class QPainter;
 namespace designrc::gui {
-struct FormerState { std::vector<QRectF> rectangles; double thicknessMm=3; std::vector<double> rotationDegrees; };
+struct FormerState { std::vector<QRectF> rectangles; double thicknessMm=3; std::vector<double> rotationDegrees; LengthUnit thicknessUnit=LengthUnit::Default; std::vector<LengthUnit> thicknessUnits; };
 inline bool rectanglesOverlap(const QRectF& a,const QRectF& b) {
   const auto i=a.intersected(b);return i.width()>1e-7&&i.height()>1e-7;
 }
@@ -22,7 +23,7 @@ public:
   void setEditing(bool);
   void configure(double scale,QRectF side){if(scale>0)scale_=scale;side_=side;}
   void preserveThicknessAtScale(double scale);
-  void setThickness(double mm);
+  void setThickness(double mm,std::optional<LengthUnit> unit={});
   void setRotation(double degrees);
   void add();
   void remove();

@@ -1,5 +1,6 @@
 #include "gui/FiberglassPanel.h"
 #include "gui/SketchPaths.h"
+#include "gui/LengthEntry.h"
 #include <QApplication>
 #include <QMessageBox>
 #include <QPainterPathStroker>
@@ -51,7 +52,7 @@ FiberglassPanel::FiberglassPanel(SketchEditor& editor,int component,QWidget* par
   clothUnits_=new QComboBox{this};clothUnits_->setObjectName("fiberglassClothUnits");clothUnits_->addItems({"g/m²","oz/yd²"});
   auto* clothRow=new QHBoxLayout;clothRow->addWidget(cloth_);clothRow->addWidget(clothUnits_);form->addRow("Cloth Weight",clothRow);
   automatic_=new QCheckBox{"Estimate resin thickness from cloth weight",this};automatic_->setObjectName("fiberglassAutomaticResin");form->addRow(automatic_);
-  resin_=new QDoubleSpinBox{this};resin_->setObjectName("fiberglassResinThickness");resin_->setDecimals(5);resin_->setRange(.000001,100);form->addRow("Resin thickness",resin_);
+  resin_=new QLineEdit{this};resin_->setObjectName("fiberglassResinThickness");form->addRow("Resin thickness",resin_);
   resin_->setToolTip("Equivalent resin-only thickness: cloth wet-out plus a thin coat; excludes glass volume. Uncheck estimation to enter your own value.");
   auto* remove=new QPushButton{"Delete Fiberglass Shape",this};remove->setObjectName("fiberglassDelete");layout->addWidget(remove);layout->addStretch();
   if(component==3)patches_[0].side=CoverSide::Left;
@@ -67,7 +68,7 @@ FiberglassPanel::FiberglassPanel(SketchEditor& editor,int component,QWidget* par
   connect(wrap_,&QRadioButton::toggled,this,[this]{edit();});
   connect(side_,&QComboBox::currentIndexChanged,this,[this]{edit();});
   connect(cloth_,&QDoubleSpinBox::valueChanged,this,[this]{edit();});
-  connect(resin_,&QDoubleSpinBox::valueChanged,this,[this]{edit();});
+  connect(resin_,&QLineEdit::editingFinished,this,[this]{edit();});
   connect(automatic_,&QCheckBox::toggled,this,[this]{edit();});
   connect(clothUnits_,&QComboBox::currentIndexChanged,this,[this](int i){if(refreshing_)return;auto& patch=patches_.at(editor_.activeLayer());patch.imperialCloth=i==1;patch.projectClothUnits=(patch.imperialCloth==(units_==ProjectUnits::Inches));refresh();if(changed)changed();});
   connect(&editor_,&SketchEditor::changed,this,[this]{refresh();warningTimer_->start();if(changed)changed();});refresh();
@@ -86,7 +87,10 @@ void FiberglassPanel::edit() {
   patch.wrap=wrap_->isChecked();patch.side=static_cast<CoverSide>(side_->currentData().toInt());
   if(sender()==cloth_)patch.clothGm2=cloth_->value()*(imperialCloth(patch)?gramsPerSquareMeterPerOzYard:1);
   patch.automaticResin=automatic_->isChecked();
-  if(!patch.automaticResin&&(sender()==resin_||sender()==automatic_))patch.resinThicknessMm=resin_->value()*(units_==ProjectUnits::Inches?25.4:1);
+  if(!patch.automaticResin&&(sender()==resin_||sender()==automatic_)) {
+    const auto mm=lengthInMm(resin_->text(),units_);
+    if(mm&&*mm>=.000001&&*mm<=2540){patch.resinThicknessMm=*mm;patch.resinThicknessUnit=enteredLengthUnit(resin_->text(),units_);}
+  }
   refresh();warningTimer_->start();if(changed)changed();
 }
 void FiberglassPanel::refresh() {
@@ -95,8 +99,7 @@ void FiberglassPanel::refresh() {
   const auto& patch=patches_.at(editor_.activeLayer());name_->setText(patch.name);wrap_->setChecked(patch.wrap);oneSide_->setChecked(!patch.wrap);
   side_->setCurrentIndex(side_->findData(static_cast<int>(patch.side)));
   clothUnits_->setCurrentIndex(imperialCloth(patch)?1:0);cloth_->setValue(patch.clothGm2/(imperialCloth(patch)?gramsPerSquareMeterPerOzYard:1));
-  automatic_->setChecked(patch.automaticResin);resin_->setEnabled(!patch.automaticResin);resin_->setSuffix(units_==ProjectUnits::Inches?" in":" mm");
-  resin_->setValue(resinThickness(patch)/(units_==ProjectUnits::Inches?25.4:1));
+  automatic_->setChecked(patch.automaticResin);resin_->setEnabled(!patch.automaticResin);resin_->setText(formattedLength(resinThickness(patch),displayLengthUnits(patch.resinThicknessUnit,units_)));
   for(auto* button:findChildren<QPushButton*>())if(button->property("fiberglassTool").isValid())button->setChecked(button->property("fiberglassTool").toInt()==static_cast<int>(editor_.tool()));
   refreshing_=false;
 }

@@ -981,10 +981,13 @@ void MainWindow::pollStabilizerJob(int index) {
 
 QByteArray MainWindow::fuselageFingerprint() const {
   const auto p=encodeProject(projectDocument(),false);
+  auto stations=p["fuselageStations"].toObject()["lines"].toArray();
+  for(int i=0;i<stations.size();++i){auto station=stations[i].toObject();station.remove("thicknessUnit");stations[i]=station;}
+  auto stiffeners=p["stiffeners"].toObject();for(const auto* key:{"widthUnit","heightUnit","diameterUnit"})stiffeners.remove(key);
   return QJsonDocument{QJsonObject{{"noseOpen",p["fuselageNoseOpen"]},{"tailOpen",p["fuselageTailOpen"]},{"outlines",p["fuselageOutline"].toObject()["layers"]},
-      {"stations",p["fuselageStations"].toObject()["lines"]},
+      {"stations",stations},
       {"profiles",p["fuselageProfiles"].toObject()["layers"]},
-      {"stiffeners",p["stiffeners"]},
+      {"stiffeners",stiffeners},
       {"formerAngles",p["formers"].toObject()["rotationDegrees"]},{"formers",p["formers"].toObject()["rectangles"]},{"tray",p["servoTray"].toObject()["rectangle"]},{"thicken",p["fuselageThickening"]},{"cuts",p["fuselageCuts"].toObject()["layers"]},{"holes",p["fuselageHoles"].toObject()["layers"]},
       {"length",projectReference().toScale?QJsonValue{}:QJsonValue{scaledFuselageLength().value_or(0.)}}}}.toJson(QJsonDocument::Compact);
 }

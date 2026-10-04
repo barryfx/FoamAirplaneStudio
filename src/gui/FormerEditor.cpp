@@ -8,7 +8,7 @@
 namespace designrc::gui {
 FormerEditor::FormerEditor(QGraphicsView& view):QObject{&view},view_{view}{view.viewport()->installEventFilter(this);view.installEventFilter(this);}
 void FormerEditor::refresh(bool data){view_.viewport()->update();emit controlsChanged();if(data)emit changed();}
-void FormerEditor::restore(const FormerState& state){state_=state;state_.rotationDegrees.resize(state_.rectangles.size(),0);selected_=drag_=-1;refresh();}
+void FormerEditor::restore(const FormerState& state){state_=state;state_.rotationDegrees.resize(state_.rectangles.size(),0);state_.thicknessUnits.resize(state_.rectangles.size(),LengthUnit::Default);selected_=drag_=-1;refresh();}
 void FormerEditor::setEditing(bool enabled){if(editing_==enabled)return;editing_=enabled;drag_=-1;if(!enabled)selected_=-1;refresh();}
 void FormerEditor::preserveThicknessAtScale(double scale) {
   if(!std::isfinite(scale)||scale<=0||scale==scale_)return;
@@ -26,13 +26,13 @@ bool FormerEditor::allowed(const QRectF& r,int ignore,double angle) const {
   if(tray)if(const auto t=tray();t&&formerMasksOverlap(r,angle,*t))return false;
   return true;
 }
-void FormerEditor::setThickness(double mm){
+void FormerEditor::setThickness(double mm,std::optional<LengthUnit> unit){
   if(!std::isfinite(mm)||mm<=0||mm>10000){emit message("Former thickness must be greater than zero (maximum 10000 mm).");return;}
   if(selected_>=0){auto r=state_.rectangles[selected_];const auto center=r.center();r.setWidth(mm/scale_);r.moveCenter(center);
     if(!allowed(r,selected_,formerAngle(state_.rotationDegrees,selected_))){emit message("Thickness rejected: formers cannot overlap each other or the servo tray.");refresh();return;}
-    state_.rectangles[selected_]=r;
+    state_.rectangles[selected_]=r;if(unit)state_.thicknessUnits[selected_]=*unit;
   }
-  state_.thicknessMm=mm;emit message({});refresh(true);
+  if(unit)state_.thicknessUnit=*unit;state_.thicknessMm=mm;emit message({});refresh(true);
 }
 void FormerEditor::setRotation(double degrees){
   if(selected_<0)return;
@@ -49,12 +49,12 @@ void FormerEditor::add(){
   std::sort(candidates.begin(),candidates.end(),[&](double a,double b){return std::abs(a+w/2-side_.center().x())<std::abs(b+w/2-side_.center().x());});
   for(double x:candidates){QRectF r{x,side_.top()-margin,w,side_.height()+2*margin};
     if(x>=side_.left()-1e-7&&r.right()<=side_.right()+1e-7&&allowed(r)){
-      state_.rectangles.push_back(r);state_.rotationDegrees.push_back(0);selected_=static_cast<int>(state_.rectangles.size())-1;emit message({});refresh(true);view_.setFocus();return;
+      state_.rectangles.push_back(r);state_.rotationDegrees.push_back(0);state_.thicknessUnits.push_back(state_.thicknessUnit);selected_=static_cast<int>(state_.rectangles.size())-1;emit message({});refresh(true);view_.setFocus();return;
     }
   }
   emit message("No non-overlapping position is available. Move/delete a former or reduce its thickness.");
 }
-void FormerEditor::remove(){if(selected_<0)return;state_.rectangles.erase(state_.rectangles.begin()+selected_);state_.rotationDegrees.erase(state_.rotationDegrees.begin()+selected_);selected_=drag_=-1;emit message({});refresh(true);}
+void FormerEditor::remove(){if(selected_<0)return;state_.rectangles.erase(state_.rectangles.begin()+selected_);state_.rotationDegrees.erase(state_.rotationDegrees.begin()+selected_);state_.thicknessUnits.erase(state_.thicknessUnits.begin()+selected_);selected_=drag_=-1;emit message({});refresh(true);}
 bool FormerEditor::eventFilter(QObject* object,QEvent* event){
   if(!editing_)return false;
   if(event->type()==QEvent::KeyPress){const int key=static_cast<QKeyEvent*>(event)->key();if(key==Qt::Key_Delete){remove();return true;}if(key==Qt::Key_Escape){selected_=drag_=-1;refresh();return true;}}

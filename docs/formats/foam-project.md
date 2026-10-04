@@ -510,3 +510,23 @@ No individual component geometry or breakdown is serialized. The reader validate
 numbers and array sizes; the GUI recomputes outline statistics and discards mass
 measurements whose source key no longer matches. Earlier projects omit this
 cache; earlier format-29 readers can ignore it safely. See ADR-0047.
+
+## Optional distance display units (version 33)
+
+Additive unit metadata uses 0 = field default, 1 = millimetres, 2 = inches.
+Absent metadata initializes to the field default; other values are rejected.
+Physical numeric values remain unchanged and are authoritative. Older readers
+ignore this metadata; they can open the same geometry but lose display preferences
+on resave. No file-version change is required.
+
+- Fuselage station: `thicknessUnit`.
+- Servo tray: `widthUnit`, `heightUnit`.
+- Formers: `thicknessUnit` for the next former, and `thicknessUnits` parallel to
+  `rectangles` (same length, entries follow their former on deletion).
+- Stiffeners: `widthUnit`, `heightUnit`, `diameterUnit`.
+- Fiberglass patch: `resinThicknessUnit`.
+- Weight/balance part: `widthUnit`, `heightUnit`, `lengthUnit`.
+
+These fields participate in dirty state and undo. Fuselage geometry fingerprints
+exclude display units; an equivalent value entered in another unit needs no CAD
+regeneration. Existing reference/spar/lightening explicit-text fields are unchanged.

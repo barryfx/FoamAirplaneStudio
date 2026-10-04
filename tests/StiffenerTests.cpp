@@ -9,6 +9,7 @@
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
+#include <BRepAlgoAPI_Fuse.hxx>
 #include <BRep_Builder.hxx>
 #include <TopoDS_Compound.hxx>
 #include <BRepGProp.hxx>
@@ -62,6 +63,14 @@ int main(int argc,char** argv) {
     try{geometry::cutFuselageStiffeners(opened,sections,200,s,stock);}
     catch(const std::exception& error){openingRejected=std::string{error.what()}.find("opening")!=std::string::npos;}
     TEST_CHECK(openingRejected&&stock.size()==priorStock);
+    // A protruding tab is severed by the groove: report its measured extent,
+    // not the entire requested range or a fabricated exact failure point.
+    auto tabbed=BRepAlgoAPI_Fuse{right,BRepPrimAPI_MakeBox{gp_Pnt{60,9.5,-1},80,6.5,2}.Shape()}.Shape();
+    auto tabSettings=s;tabSettings.shape=SparShape::Strip;tabSettings.widthMm=3;tabSettings.heightMm=1;
+    bool fragmentReported=false;const auto stockBefore=stock.size();
+    try{geometry::cutFuselageStiffeners(tabbed,sections,200,tabSettings,stock,{},true);}
+    catch(const std::exception& error){const std::string message=error.what();fragmentReported=message.find("2 solids; expected 1")!=message.npos&&message.find("30.00")!=message.npos&&message.find("70.00")!=message.npos;}
+    TEST_CHECK(fragmentReported&&stock.size()==stockBefore);
     auto invalid=s;invalid.diameterMm=12;bool rejected=false;try{geometry::cutFuselageStiffeners(body,sections,200,invalid,stock);}catch(const std::exception&){rejected=true;}TEST_CHECK(rejected);
     invalid=s;invalid.stopPercent=invalid.startPercent;rejected=false;try{validateStiffeners(invalid);}catch(const std::exception&){rejected=true;}TEST_CHECK(rejected);
     auto disabled=s;disabled.count=0;stock.clear();TEST_CHECK(geometry::cutFuselageStiffeners(body,sections,200,disabled,stock).IsSame(body)&&stock.empty());

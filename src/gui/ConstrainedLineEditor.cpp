@@ -80,9 +80,10 @@ void ConstrainedLineEditor::assignSelectedProfile(std::optional<std::size_t> pro
   if(lines_[selected_].profile==profile)return;
   lines_[selected_].profile=profile;notify();
 }
-void ConstrainedLineEditor::setThicknessMm(int station,double thickness) {
+void ConstrainedLineEditor::setThicknessMm(int station,double thickness,std::optional<LengthUnit> unit) {
   if(station<0 || station>=static_cast<int>(lines_.size()) || !std::isfinite(thickness) || thickness<=0)return;
-  if(lines_[station].thicknessMm==thickness)return;
+  if(lines_[station].thicknessMm==thickness&&(!unit||lines_[station].thicknessUnit==*unit))return;
+  if(unit)lines_[station].thicknessUnit=*unit;
   lines_[station].thicknessMm=thickness;notify();
 }
 void ConstrainedLineEditor::reset() {

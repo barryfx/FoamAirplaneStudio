@@ -8,7 +8,7 @@ uses the cut geometry and retains the former's local section plane for DXF.
 Formers replaces the former Firewall toolbar placeholder. It becomes available
 when every Fuselage station has a closed profile and opens Side View in 2D.
 The panel provides instructions, Width (thickness), Add Former, Rotation Angle and Delete Former.
-Reference units apply to bare decimals; explicit mm/in suffixes override them.
+Reference units apply to bare decimals; explicit mm/in suffixes override them. Each former and the next-former thickness retain their entered display unit through selection, undo and Save/Open.
 The initial thickness is 3 mm and is valid without editing. Zero thickness is
 rejected explicitly; positive thickness has no arbitrary minimum entry value. Selected formers show their own width; changing it
 resizes about the center and also sets the next added former's thickness.

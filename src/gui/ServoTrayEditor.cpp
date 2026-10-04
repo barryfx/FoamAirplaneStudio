@@ -21,13 +21,15 @@ void ServoTrayEditor::setEditing(bool enabled) {
   editing_=enabled;drag_=-1;selected_=false;
   if(!enabled)cancel();else refresh();
 }
-void ServoTrayEditor::setDimensions(QSizeF size,QPointF center) {
+void ServoTrayEditor::setDimensions(QSizeF size,QPointF center,std::optional<LengthUnit> widthUnit,std::optional<LengthUnit> heightUnit) {
   const auto previous=state_.rectangle;
   if(previous)center=previous->center();
   const QRectF candidate{center-QPointF{size.width()/2,size.height()/2},size};
   if(acceptRectangle&&!acceptRectangle(candidate)){emit message("Tray placement rejected: the servo tray cannot overlap a former.");refresh();return;}
+  const bool unitChanged=(widthUnit&&*widthUnit!=state_.widthUnit)||(heightUnit&&*heightUnit!=state_.heightUnit);
+  if(widthUnit)state_.widthUnit=*widthUnit;if(heightUnit)state_.heightUnit=*heightUnit;
   emit message({});state_.rectangle=candidate;
-  state_.first.reset();state_.drawing=false;selected_=true;refresh(previous!=state_.rectangle);
+  state_.first.reset();state_.drawing=false;selected_=true;refresh(unitChanged||previous!=state_.rectangle);
 }
 void ServoTrayEditor::cancel(){const bool draft=state_.first.has_value();state_.first.reset();state_.drawing=false;drag_=-1;selected_=false;refresh(draft);}
 void ServoTrayEditor::remove(){const bool had=state_.rectangle.has_value()||state_.first.has_value();state_={};selected_=false;drag_=-1;refresh(had);}

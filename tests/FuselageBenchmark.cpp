@@ -51,6 +51,7 @@ int main(int argc,char** argv) {
       geometry::FuselageSolidInput input{project->fuselage.layers,project->fuselageStations.lines,project->fuselageProfiles.layers,
         length,
         project->fuselageThickening,project->fuselageCuts.layers,project->servoTray.rectangle,project->formers.rectangles,project->formers.rotationDegrees,project->fuselageHoles.layers};
+      input.stiffeners=project->stiffeners;
       input.noseOpen=project->fuselageNoseOpen;input.tailOpen=project->fuselageTailOpen;
       input.mirrorConstruction=!qEnvironmentVariableIsSet("FOAM_BENCH_FULL_SYMMETRIC");
       std::cout<<"Mirrored construction: "<<input.mirrorConstruction<<std::endl;

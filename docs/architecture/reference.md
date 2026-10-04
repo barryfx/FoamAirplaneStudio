@@ -83,3 +83,15 @@ under it after scrollbar layout settles. The view may include empty margins to
 keep that point fixed when zooming out past an image edge. These margins do not
 change reference coordinates or content bounds; Fit View still fits image width.
 Saved zoom/center restoration permits the same margins.
+
+## Entered distance units
+
+Distance entries retain the unit chosen when a valid value is committed. Explicit
+mm/in (including accepted aliases) overrides the project default; a bare number
+records the current input default. Stiffener stock continues to default to mm.
+Refresh, mode changes, project-unit changes, undo and Save/Open preserve these
+choices. Each former, station, fiberglass patch and balance part retains its own
+field units. Values remain physical millimetres internally. Legacy values without
+unit metadata use the existing field default until edited; their original input
+unit cannot be recovered. Reference, spar and lightening fields retain their
+existing explicit-text storage. See ADR-0054.

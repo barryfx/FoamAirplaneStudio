@@ -1,4 +1,5 @@
 #pragma once
+#include "gui/LengthUnit.h"
 #include "gui/SparState.h"
 #include <cmath>
 #include <stdexcept>
@@ -8,6 +9,7 @@ struct StiffenerState {
   SparShape shape=SparShape::Strip;
   double startPercent=20,stopPercent=90;
   double widthMm=3,heightMm=1,diameterMm=3;
+  LengthUnit widthUnit=LengthUnit::Default,heightUnit=LengthUnit::Default,diameterUnit=LengthUnit::Default;
 };
 inline void validateStiffeners(const StiffenerState& s) {
   if(s.count<0||s.count>3||(s.shape!=SparShape::Strip&&s.shape!=SparShape::Round)||

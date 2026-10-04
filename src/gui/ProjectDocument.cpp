@@ -25,6 +25,9 @@ double number(const QJsonValue& value,const char* name,double min=-1e12,double m
 int integer(const QJsonValue& value,const char* name,int min,int max) {
   const auto n=number(value,name,min,max); if(std::floor(n)!=n) bad(name);return static_cast<int>(n);
 }
+LengthUnit lengthUnit(const QJsonObject& object,const char* field) {
+  return object.contains(field)?static_cast<LengthUnit>(integer(object[field],field,0,2)):LengthUnit::Default;
+}
 bool boolean(const QJsonValue& value,const char* name) {if(!value.isBool()) bad(name);return value.toBool();}
 QString string(const QJsonValue& value,const char* name,int maximum=4096) {
   if(!value.isString()||value.toString().size()>maximum) bad(name);return value.toString();
@@ -178,7 +181,7 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonArray profileLines;
   for(const auto& line:p.fuselageStations.lines)
     profileLines.append(QJsonObject{{"top",anchor(line.first)},{"bottom",anchor(line.second)},
-      {"thicknessMm",line.thicknessMm?QJsonValue{*line.thicknessMm}:QJsonValue{}},
+      {"thicknessUnit",static_cast<int>(line.thicknessUnit)},{"thicknessMm",line.thicknessMm?QJsonValue{*line.thicknessMm}:QJsonValue{}},
       {"profile",line.profile?QJsonValue{static_cast<qint64>(*line.profile)}:QJsonValue{}}});
   QJsonObject fuselageStations{{"lines",profileLines},{"selected",p.fuselageStations.selected}};
   QJsonValue camera;
@@ -209,16 +212,17 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   QJsonArray split;for(auto s:p.splitterSizes)split.append(s);
   QJsonValue trayRect;
   if(p.servoTray.rectangle){const auto& r=*p.servoTray.rectangle;trayRect=QJsonArray{r.x(),r.y(),r.width(),r.height()};}
-  QJsonObject tray{{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
+  QJsonObject tray{{"widthUnit",static_cast<int>(p.servoTray.widthUnit)},{"heightUnit",static_cast<int>(p.servoTray.heightUnit)},{"rectangle",trayRect},{"first",p.servoTray.first?QJsonValue{point(*p.servoTray.first)}:QJsonValue{}},{"drawing",p.servoTray.drawing}};
   QJsonArray formerRects;for(const auto& r:p.formers.rectangles)formerRects.append(QJsonArray{r.x(),r.y(),r.width(),r.height()});
   QJsonArray formerAngles;for(std::size_t i=0;i<p.formers.rectangles.size();++i)formerAngles.append(formerAngle(p.formers.rotationDegrees,i));
-  QJsonObject formers{{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
+  QJsonArray formerUnits;for(std::size_t i=0;i<p.formers.rectangles.size();++i)formerUnits.append(static_cast<int>(i<p.formers.thicknessUnits.size()?p.formers.thicknessUnits[i]:LengthUnit::Default));
+  QJsonObject formers{{"thicknessUnit",static_cast<int>(p.formers.thicknessUnit)},{"thicknessUnits",formerUnits},{"rectangles",formerRects},{"thicknessMm",p.formers.thicknessMm},{"rotationDegrees",formerAngles}};
   QJsonArray offsets;for(auto offset:p.assembly.offsets)offsets.append(point(offset));
   QJsonArray rotations;for(auto angle:p.assembly.rotationDegrees)rotations.append(angle);
   QJsonObject assembly{{"positioned",p.assembly.positioned},{"offsets",offsets},{"cuts",p.assembly.cuts},{"rotationDegrees",rotations}};
   QJsonArray balanceParts;
   for(const auto& part:p.weightBalance.parts)balanceParts.append(QJsonObject{
-      {"name",part.name},{"widthMm",part.widthMm},{"heightMm",part.heightMm},{"lengthMm",part.lengthMm},
+      {"widthUnit",static_cast<int>(part.widthUnit)},{"heightUnit",static_cast<int>(part.heightUnit)},{"lengthUnit",static_cast<int>(part.lengthUnit)},{"name",part.name},{"widthMm",part.widthMm},{"heightMm",part.heightMm},{"lengthMm",part.lengthMm},
       {"grams",part.grams},{"centerMm",point(part.centerMm)},{"ounces",part.ounces}});
   QJsonObject balance{{"densityKgM3",p.weightBalance.densityKgM3},{"plywoodDensityKgM3",p.weightBalance.plywoodDensityKgM3},{"carbonFiberDensityKgM3",p.weightBalance.carbonFiberDensityKgM3},{"parts",balanceParts}};
   balance["resinDensityKgM3"]=p.weightBalance.resinDensityKgM3;
@@ -226,11 +230,11 @@ QJsonObject encodeProject(const ProjectDocument& p,bool embedImages) {
   for(const auto& component:p.fiberglass) {
     QJsonArray patches;for(const auto& patch:component.patches)patches.append(QJsonObject{
       {"name",patch.name},{"wrap",patch.wrap},{"side",static_cast<int>(patch.side)},{"clothGm2",patch.clothGm2},
-      {"imperialCloth",patch.imperialCloth},{"projectClothUnits",patch.projectClothUnits},{"automaticResin",patch.automaticResin},{"resinThicknessMm",patch.resinThicknessMm}});
+      {"imperialCloth",patch.imperialCloth},{"projectClothUnits",patch.projectClothUnits},{"automaticResin",patch.automaticResin},{"resinThicknessMm",patch.resinThicknessMm},{"resinThicknessUnit",static_cast<int>(patch.resinThicknessUnit)}});
     fiberglass.append(QJsonObject{{"sketch",sketch(component.sketch)},{"patches",patches}});
   }
   QJsonObject names;for(auto it=p.componentNames.cbegin();it!=p.componentNames.cend();++it)names[it.key()]=it.value();
-  const auto& stiff=p.stiffeners;QJsonObject stiffeners{{"count",stiff.count},{"shape",static_cast<int>(stiff.shape)},{"startPercent",stiff.startPercent},{"stopPercent",stiff.stopPercent},{"widthMm",stiff.widthMm},{"heightMm",stiff.heightMm},{"diameterMm",stiff.diameterMm}};
+  const auto& stiff=p.stiffeners;QJsonObject stiffeners{{"widthUnit",static_cast<int>(stiff.widthUnit)},{"heightUnit",static_cast<int>(stiff.heightUnit)},{"diameterUnit",static_cast<int>(stiff.diameterUnit)},{"count",stiff.count},{"shape",static_cast<int>(stiff.shape)},{"startPercent",stiff.startPercent},{"stopPercent",stiff.stopPercent},{"widthMm",stiff.widthMm},{"heightMm",stiff.heightMm},{"diameterMm",stiff.diameterMm}};
   return {{"stiffeners",stiffeners},{"fiberglass",fiberglass},{"airplaneStatistics",encodeStatistics(p.statistics)},{"componentNames",names},{"weightBalance",balance},{"assembly",assembly},{"format","FoamAirplaneStudio"},{"version",33},{"spars",spars},{"controlSurfaces",controlState},{"reference",reference},{"wingOutline",sketch(p.wing)},
     {"stabilizerAirfoils",stabilizerAirfoils},
     {"horizontalStabilizerCuts",sketch(p.stabilizerCuts[0])},{"verticalStabilizerCuts",sketch(p.stabilizerCuts[1])},
@@ -248,6 +252,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   ProjectDocument p;p.statistics=decodeStatistics(json["airplaneStatistics"]);
   if(version>=33) {
     const auto s=object(json["stiffeners"],"stiffeners");auto& out=p.stiffeners;
+    out.widthUnit=lengthUnit(s,"widthUnit");out.heightUnit=lengthUnit(s,"heightUnit");out.diameterUnit=lengthUnit(s,"diameterUnit");
     out.count=std::min(3,integer(s["count"],"stiffener count",0,16));out.shape=static_cast<SparShape>(integer(s["shape"],"stiffener shape",0,1));
     out.startPercent=number(s["startPercent"],"stiffener start",0,100);out.stopPercent=number(s["stopPercent"],"stiffener stop",0,100);
     out.widthMm=number(s["widthMm"],"stiffener width",.01,100);out.heightMm=number(s["heightMm"],"stiffener height",.01,100);out.diameterMm=number(s["diameterMm"],"stiffener diameter",.01,100);validateStiffeners(out);
@@ -258,7 +263,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
       const auto component=object(components[i],"fiberglass component");auto& out=p.fiberglass[i];
       out.sketch=sketch(component["sketch"],1000,true);out.patches.clear();
       for(const auto value:array(component["patches"],"fiberglass patches",1000)) {
-        const auto o=object(value,"fiberglass patch");FiberglassPatch patch;
+        const auto o=object(value,"fiberglass patch");FiberglassPatch patch;patch.resinThicknessUnit=lengthUnit(o,"resinThicknessUnit");
         patch.name=string(o["name"],"fiberglass name",160).trimmed();if(patch.name.isEmpty())bad("fiberglass name");
         patch.wrap=boolean(o["wrap"],"fiberglass wrap");patch.side=static_cast<CoverSide>(integer(o["side"],"fiberglass side",0,3));
         if((i==0||i==2)&&static_cast<int>(patch.side)>1)bad("fiberglass horizontal surface");
@@ -288,7 +293,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
     if(version>=29)p.weightBalance.carbonFiberDensityKgM3=number(balance["carbonFiberDensityKgM3"],"carbon fiber density",.001,10000);
     p.weightBalance.plywoodDensityKgM3=number(balance["plywoodDensityKgM3"],"plywood density",.001,10000);
     for(auto value:array(balance["parts"],"balance parts",1000)) {
-      const auto o=object(value,"balance part");BalancePart part;
+      const auto o=object(value,"balance part");BalancePart part;part.widthUnit=lengthUnit(o,"widthUnit");part.heightUnit=lengthUnit(o,"heightUnit");part.lengthUnit=lengthUnit(o,"lengthUnit");
       part.name=string(o["name"],"part name",200).trimmed();
       if(part.name.isEmpty()||part.name.contains('\n')||part.name.contains('\r'))bad("part name");
       for(const auto& other:p.weightBalance.parts)if(other.name.compare(part.name,Qt::CaseInsensitive)==0)bad("duplicate part name");
@@ -552,6 +557,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   if(p.airfoils.sketching&&(p.workspace!=1||p.tool!="Airfoils"))bad("airfoil draft workspace");
   if(version>=14) {
     const auto tray=object(json["servoTray"],"servo tray");
+    p.servoTray.widthUnit=lengthUnit(tray,"widthUnit");p.servoTray.heightUnit=lengthUnit(tray,"heightUnit");
     if(!tray["rectangle"].isNull()) {
       const auto r=array(tray["rectangle"],"servo tray rectangle",4);if(r.size()!=4)bad("servo tray rectangle");
       p.servoTray.rectangle=QRectF{number(r[0],"tray x"),number(r[1],"tray y"),number(r[2],"tray length",1e-6,1e12),number(r[3],"tray height",0,1e12)};
@@ -563,6 +569,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
   }
   if(version>=15) {
     const auto formers=object(json["formers"],"formers");
+    p.formers.thicknessUnit=lengthUnit(formers,"thicknessUnit");
     p.formers.thicknessMm=number(formers["thicknessMm"],"former thickness",0,10000);
     if(p.formers.thicknessMm<=0)bad("zero former thickness");
     for(auto value:array(formers["rectangles"],"former rectangles",1000)) {
@@ -576,6 +583,11 @@ ProjectDocument decodeProject(const QJsonObject& json) {
       if(angles.size()!=static_cast<qsizetype>(p.formers.rectangles.size()))bad("former rotation count");
       for(auto angle:angles)p.formers.rotationDegrees.push_back(number(angle,"former rotation angle",-360,360));
     } else p.formers.rotationDegrees.resize(p.formers.rectangles.size(),0);
+    if(formers.contains("thicknessUnits")) {
+      auto units=array(formers["thicknessUnits"],"former thickness units",1000);
+      if(units.size()!=static_cast<qsizetype>(p.formers.rectangles.size()))bad("former thickness unit count");
+      for(auto unit:units)p.formers.thicknessUnits.push_back(static_cast<LengthUnit>(integer(unit,"former thickness unit",0,2)));
+    } else p.formers.thicknessUnits.resize(p.formers.rectangles.size(),LengthUnit::Default);
     for(std::size_t i=0;i<p.formers.rectangles.size();++i) {
       const auto& r=p.formers.rectangles[i];const double angle=p.formers.rotationDegrees[i];
       for(std::size_t j=0;j<i;++j)if(formerMasksOverlap(r,angle,p.formers.rectangles[j],p.formers.rotationDegrees[j]))bad("overlapping formers");
@@ -622,6 +634,7 @@ ProjectDocument decodeProject(const QJsonObject& json) {
           return std::abs(existing.first.position.x()-line.first.position.x())<1e-6;}))bad("duplicate fuselage station");
       if(version>=11&&!o["profile"].isNull())line.profile=integer(o["profile"],"fuselage profile slot",0,static_cast<int>(p.fuselageProfiles.layers.size())-1);
       if(line.profile && std::any_of(p.fuselageStations.lines.begin(),p.fuselageStations.lines.end(),[&](const auto& other){return other.profile==line.profile;}))bad("shared fuselage profile slot");
+      line.thicknessUnit=lengthUnit(o,"thicknessUnit");
       if(version>=12&&!o["thicknessMm"].isNull())line.thicknessMm=number(o["thicknessMm"],"fuselage thickness",.001,10000);
       if(p.fuselageThickening&&!line.thicknessMm)bad("missing fuselage thickness");
       p.fuselageStations.lines.push_back(line);
