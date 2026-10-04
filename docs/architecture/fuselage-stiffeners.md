@@ -9,22 +9,29 @@ changes do not convert the fields. Display units are saved per dimension and sur
 fuselage length from the nose, with Start < Stop. Defaults are 20–90%, a 3 × 1 mm
 strip or 3 mm rod. Saved inactive dimensions survive shape changes.
 
-At each longitudinal section, one route uses local mid-height; multiple routes
-use equal fractions of local height. Outer wall sections determine the lateral
-position. Sixty-five samples check spacing, actual solid material and nominal
-wall thickness; changes in successive tangent direction above 15 degrees reject
-the range. Collinear samples are removed, then ruled lofts connect consecutive
-sections for both cutting tools and carbon stock. Each span stays between its
-endpoint sections: unlike a global cubic loft, it cannot overshoot or double
-back along the fuselage. Curved routes are piecewise linear with at most 64 spans;
-this does not introduce a guaranteed material bend radius. See ADR-0055.
-Clearance checking loads one OCCT solid classifier per body solid and reuses it
-for every probe in that generation call. The body is unchanged during checking;
-mutable classifiers are local to the call and never shared between workers.
-Classifier sampling and tolerances are unchanged. See the classifier benchmark evidence in
-`../baseline/stiffener-classifier-reuse.md`.
-This is a sampled fit check, not a carbon bend-radius guarantee. Users must move
-the range onto a smooth boom section if generation rejects a sharp transition.
+Each groove is straight in Side View: at Start and Stop, one stiffener uses
+50% of local height, two use 1/3 and 2/3, and three use 1/4, 1/2 and 3/4.
+The matching endpoint heights define a line in X/Z. Intermediate fuselage
+midpoints do not alter that line. Lateral Y is taken from the skin at the line's
+height, so inward groove depth remains constant; the route can curve in Top View.
+This is deliberately not a completely straight 3D rod axis. See ADR-0056.
+
+Strip depth is its entered Height; round centerlines lie on the skin, giving a
+nominal half-diameter depth. Width/diameter sections remain in Y/Z planes. Ruled
+lofts form the cutter and stock from the same route, preventing smooth-loft
+overshoot. The initial 65 samples are supplemented by wall-section positions.
+Quarter/midpoint checks subdivide lateral spans when the interpolation error
+exceeds the lesser of 0.01 mm and 1% of nominal groove depth; excessive required
+refinement produces a diagnostic. Collinear samples are removed. This bounds the
+sampled skin approximation rather than claiming mathematically exact continuous
+surface distance. Depth is inward along Y, not normal to a sloped skin surface.
+
+Clearance probes follow this actual side-view line and reject locations outside
+the wall or through openings/cavities, with percentage diagnostics. Endpoint
+spacing, nominal wall-depth and sampled lateral bend checks remain. The body is
+immutable during checking; classifiers are local and reused rather than shared
+between workers. The historical classifier benchmark is in
+`../baseline/stiffener-classifier-reuse.md`; sample counts have since changed.
 
 Strip tools extend outward to open the surface; the carbon stock is the entered
 rectangle. Round tools are centered on the skin, making nominal half-depth

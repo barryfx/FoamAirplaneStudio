@@ -16,6 +16,7 @@
 #include <gp_Circ.hxx>
 #include <algorithm>
 #include <numbers>
+#include <functional>
 #include <memory>
 #include <stdexcept>
 namespace designrc::geometry {
@@ -36,7 +37,7 @@ double skinY(const FuselageWallSection& section,double z) {
 }
 std::string location(double first,double last,double length) {
   std::ostringstream out;out<<std::fixed<<std::setprecision(2)<<100*first/length;
-  if(std::abs(last-first)>1e-7)out<<"â€“"<<100*last/length;
+  if(std::abs(last-first)>1e-7)out<<"–"<<100*last/length;
   return out.str()+"% from the nose";
 }
 std::string shapeLocation(const TopoDS_Shape& shape,double length,const ProcessingControl& control) {
@@ -62,24 +63,50 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
     control.checkpoint();clearance.push_back(std::make_unique<BRepClass3d_SolidClassifier>(e.Current()));
   }
   for(int number=0;number<settings.count;++number) {
-    std::vector<gp_Pnt> centers;
-    for(int j=0;j<=64;++j) {
-      control.checkpoint();const double x=start+(stop-start)*j/64.;
+    const auto heightAt=[&](double x) {
+      const auto section=sectionAt(sections,x);double low=section.perimeter.front().y(),high=low;
+      for(auto p:section.perimeter){low=std::min(low,p.y());high=std::max(high,p.y());}
+      if((high-low)/(settings.count+1)<=width+1e-4)throw std::runtime_error("Stiffener "+std::to_string(number+1)+" at "+location(x,x,length)+": stiffeners are too close to each other or the top/bottom; reduce their count or width.");
+      return low+(high-low)*(number+1)/(settings.count+1);
+    };
+    const double startZ=heightAt(start),stopZ=heightAt(stop);
+    const auto centerAt=[&](double x) {
+      control.checkpoint();const double z=startZ+(stopZ-startZ)*(x-start)/(stop-start);
+      try{return gp_Pnt{x,skinY(sectionAt(sections,x),z),z};}
+      catch(const std::runtime_error& e){throw std::runtime_error("Stiffener "+std::to_string(number+1)+" at "+location(x,x,length)+": "+e.what());}
+    };
+    // X/Z follows only the endpoint chord. Y follows the skin to preserve
+    // groove depth; extra samples limit lateral approximation error (ADR-0056).
+    std::vector<double> positions;
+    for(int j=0;j<=64;++j)positions.push_back(start+(stop-start)*j/64.);
+    for(const auto& section:sections)if(section.x>start&&section.x<stop)positions.push_back(section.x);
+    std::sort(positions.begin(),positions.end());positions.erase(std::unique(positions.begin(),positions.end(),[](double a,double b){return std::abs(a-b)<1e-9;}),positions.end());
+    std::vector<gp_Pnt> centers{centerAt(start)};
+    const double fitTolerance=std::min(.01,depth*.01);
+    std::function<void(const gp_Pnt&,const gp_Pnt&,int)> refine;
+    refine=[&](const gp_Pnt& a,const gp_Pnt& b,int level) {
+      bool fits=true;
+      for(double t:{.25,.5,.75}) {
+        const auto sample=centerAt(a.X()+(b.X()-a.X())*t);
+        fits=fits&&std::abs(sample.Y()-(a.Y()+(b.Y()-a.Y())*t))<=fitTolerance;
+      }
+      if(!fits) {
+        if(level>=12||centers.size()>=8192)throw std::runtime_error("Stiffener "+std::to_string(number+1)+" near "+location(a.X(),b.X(),length)+": cannot maintain constant groove depth; simplify the side profile or shorten the range.");
+        const auto mid=centerAt((a.X()+b.X())/2);refine(a,mid,level+1);refine(mid,b,level+1);
+      } else centers.push_back(b);
+    };
+    for(std::size_t i=1;i<positions.size();++i)refine(centers.back(),centerAt(positions[i]),0);
+    for(const auto& center:centers) {
+      const double x=center.X(),y=center.Y(),z=center.Z();
       auto fail=[&](const std::string& reason){throw std::runtime_error("Stiffener "+std::to_string(number+1)+" at "+location(x,x,length)+": "+reason);};
-      FuselageWallSection section;try{section=sectionAt(sections,x);}catch(const std::runtime_error& e){fail(e.what());}
-      double low=section.perimeter.front().y(),high=low;for(auto point:section.perimeter){low=std::min(low,point.y());high=std::max(high,point.y());}
-      const double spacing=(high-low)/(settings.count+1),z=low+spacing*(number+1);
-      if(spacing<=width+1e-4)fail("Stiffeners are too close to each other or the top/bottom; reduce their count or width.");
+      const auto section=sectionAt(sections,x);
       if(section.thickness>0&&depth>=section.thickness-1e-4)fail("Stiffener groove would reach the cavity; reduce depth/diameter or increase wall thickness.");
-      double y=0;try{y=skinY(section,z);}catch(const std::runtime_error& e){fail(e.what());}centers.emplace_back(x,y,z);
-      // Check the deepest edge across the width against the actual body, not
-      // just nominal wall thickness (rounded profiles have oblique sidewalls).
       const double sampleX=std::clamp(x,start+std::min(.001,(stop-start)/100),stop-std::min(.001,(stop-start)/100));
       for(double dz:{-width*.49,0.,width*.49}) {
         const double inward=round?std::sqrt(std::max(0.,depth*depth-dz*dz)):depth;
         const gp_Pnt probe{sampleX,y-inward*.999,z+dz};bool inside=false;
         for(const auto& classifier:clearance){classifier->Perform(probe,1e-6);if(classifier->State()==TopAbs_IN||classifier->State()==TopAbs_ON){inside=true;break;}}
-        if(!inside)fail("Stiffener crosses an opening or leaves the side wall; adjust its range, width or depth.");
+        if(!inside)fail("Straight side-view stiffener crosses an opening or leaves the side wall; adjust its range, width or depth.");
       }
     }
     for(std::size_t i=2;i<centers.size();++i) {

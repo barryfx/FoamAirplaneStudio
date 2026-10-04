@@ -11,8 +11,8 @@ round stock, regardless of rod or tube construction.
 Persist one shared stiffener specification in additive project format 33; older
 projects default to disabled. Reuse spar shape types and carbon material records,
 with a body-frame flag to preserve fuselage centroids during wing placement.
-Route equal height fractions along the outer wall, form lofted tools (ruled
-spans replace the original smooth loft under ADR-0055),
+Route matching endpoint height fractions along a straight side-view line,
+following the skin laterally for constant inward depth (ADR-0056). Form ruled tools
 and cut the right half before reflection and before surface holes/cuts.
 Reflect the grooved right half and stock centroids to create the left side. Round grooves embed half the diameter, as
 wing surface spars do. Weight assumes solid carbon stock because no bore is
@@ -20,7 +20,8 @@ specified. Actual wall checks and a sampled bend guard reject unsuitable routes.
 
 ## Alternatives Considered
 Independent paths per stiffener would require a new route editor and more saved
-inputs. Straight grooves would leave curved booms. Full-depth round bores would
+inputs. A completely straight 3D groove would leave curved sides; ADR-0056 instead
+keeps the side-view projection straight at constant inward depth. Full-depth round bores would
 prevent surface insertion and differ from wing spars. Neither is used here.
 
 ## Consequences

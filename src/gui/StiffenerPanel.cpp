@@ -11,10 +11,10 @@
 namespace designrc::gui {
 StiffenerPanel::StiffenerPanel(QWidget* parent):QWidget{parent} {
   setObjectName("stiffenerPanel");auto* layout=new QVBoxLayout{this};layout->setContentsMargins(0,0,0,0);
-  auto* description=new QLabel{"Add carbon fiber stiffeners along the fuselage sides. The count is 0â€“3 per side; grooves are mirrored. Zero disables grooves. "
+  auto* description=new QLabel{"Add carbon fiber stiffeners along the fuselage sides. The count is 0–3 per side; grooves are mirrored. Zero disables grooves. "
     "Start and Stop are percentages of fuselage length measured from the nose. "
-    "One stiffener follows mid-height; multiple stiffeners are evenly spaced vertically. "
-    "Strip Width is vertical and Height is inward groove depth. Round grooves use the rod diameter. "
+    "Each groove is straight in Side View between its Start and Stop height points. One uses mid-height at both ends; multiple stiffeners use evenly spaced heights at both ends. "
+    "Depth stays constant as the groove follows the skin inward/outward, so it may curve in Top View. Strip Width is vertical and Height is inward groove depth. Round grooves use the rod diameter. "
     "Dimensions default to mm, independent of project units. Enter in explicitly to display a dimension in inches. Open 3D View to regenerate. Carbon weight is included in Weight and Balance.",this};
   description->setWordWrap(true);layout->addWidget(description);form_=new QFormLayout;layout->addLayout(form_);
   count_=new QSpinBox{this};count_->setObjectName("stiffenerCount");count_->setRange(0,3);form_->addRow("Number of Stiffeners",count_);

@@ -1,6 +1,8 @@
 # ADR-0055: Bounded fuselage stiffener lofts
-Status: Accepted
+Status: Superseded
 Date: 2026-10-04
+
+Superseded by ADR-0056 for route placement and sampling; bounded ruled lofts remain.
 
 ## Context
 The smooth cubic loft in BabyBuzzard36 doubled back and deviated tens of
