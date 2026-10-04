@@ -12402,34 +12402,86 @@
         "balance": {
             "centersMm": [
                 [
-                    184.21655551811182,
-                    48.81278450666646
+                    184.07633121162013,
+                    48.86678452630613
                 ],
                 [
-                    180.9383019685841,
-                    -17.7136824892369
+                    179.84016851481314,
+                    -17.199363495917158
                 ],
                 [
-                    114.1417528198491,
-                    65.66955063168282
+                    181.09001134238534,
+                    42.983874669740246
                 ]
             ],
+            "fiberglass": [
+                {
+                    "areaMm2": 12438.741087419085,
+                    "centerMm": [
+                        153.82991792052613,
+                        46.93714801482429
+                    ],
+                    "clothGrams": 0.6219370543709543,
+                    "name": "Wing / Dihedral",
+                    "resinVolumeMm3": 571.5316983304324
+                },
+                {
+                    "areaMm2": 24643.5772714095,
+                    "centerMm": [
+                        155.07092488810753,
+                        78.74722138555248
+                    ],
+                    "clothGrams": 1.232178863570475,
+                    "name": "Wing / Polyhedral",
+                    "resinVolumeMm3": 1132.316001424894
+                },
+                {
+                    "areaMm2": 135.8726784348775,
+                    "centerMm": [
+                        74.22657328615753,
+                        48.02581521006374
+                    ],
+                    "clothGrams": 0.006793633921743875,
+                    "name": "Fuselage / Front Dowel",
+                    "resinVolumeMm3": 6.2430387542299925
+                },
+                {
+                    "areaMm2": 589.8438087652073,
+                    "centerMm": [
+                        245.50749734917179,
+                        12.438195560110941
+                    ],
+                    "clothGrams": 0.029492190438260363,
+                    "name": "Fuselage / Rear Dowel",
+                    "resinVolumeMm3": 27.10197369685887
+                },
+                {
+                    "areaMm2": 22636.655905283777,
+                    "centerMm": [
+                        112.07688908377693,
+                        -35.3606204504222
+                    ],
+                    "clothGrams": 0.5756345541005666,
+                    "name": "Fuselage / Nose",
+                    "resinVolumeMm3": 640.2214672297157
+                }
+            ],
             "leadingEdgeMm": 70.22908812026142,
-            "sourceKey": "1f5f1e10329cb300b524a9e4f87e215caeb252132f01575f70d9281d26146fb7",
+            "sourceKey": "c416731263c8d368ffa77517e31649009bd269065378c2abfdc6559fad2f7f25",
             "volumesMm3": [
-                3001863.867269787,
-                31816.966429453623,
-                6183.202777626646
+                2999315.9999375194,
+                31804.47979605795,
+                8733.989337031342
             ]
         },
-        "cgFromLeadingEdgeMm": 55.339755018219776,
+        "cgFromLeadingEdgeMm": 55.29638264291712,
         "fuselageLengthMm": 654.0478357447936,
         "horizontalAreaMm2": 32261.962472154606,
         "rootChordMm": 170.27367289525574,
         "verticalAreaMm2": 8977.367134200716,
-        "weightGrams": 255.79544036769812,
+        "weightGrams": 264.92124394688295,
         "wingAreaMm2": 153087.67839787697,
-        "wingLoadingGramsPerDm2": 16.709080903486058,
+        "wingLoadingGramsPerDm2": 17.30519704259601,
         "wingspanMm": 914.4000000000001
     },
     "assembly": {
@@ -12499,6 +12551,331 @@
         6,
         6
     ],
+    "fiberglass": [
+        {
+            "patches": [
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": true,
+                    "name": "Dihedral",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.045973999999999994,
+                    "resinThicknessUnit": 0,
+                    "side": 0,
+                    "wrap": true
+                },
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": true,
+                    "name": "Polyhedral",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 0,
+                    "wrap": true
+                }
+            ],
+            "sketch": {
+                "active": 1,
+                "editing": false,
+                "layers": [
+                    {
+                        "curves": [
+                            {
+                                "points": [
+                                    0,
+                                    1
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    1,
+                                    2
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    0,
+                                    3
+                                ],
+                                "type": 1
+                            }
+                        ],
+                        "points": [
+                            [
+                                1629.0312501187002,
+                                963.5123857409386
+                            ],
+                            [
+                                1629.0312501187002,
+                                51.08460366225889
+                            ],
+                            [
+                                1492.8056403526766,
+                                51.08460366225889
+                            ],
+                            [
+                                1497.0626906578648,
+                                967.7694360461268
+                            ]
+                        ]
+                    },
+                    {
+                        "curves": [
+                            {
+                                "points": [
+                                    0,
+                                    1
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    1,
+                                    2
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    2,
+                                    3
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    3,
+                                    0
+                                ],
+                                "type": 1
+                            }
+                        ],
+                        "points": [
+                            [
+                                3170.0834605968435,
+                                970.607469582919
+                            ],
+                            [
+                                3168.6644438284475,
+                                28.380335367921607
+                            ],
+                            [
+                                2979.935213631769,
+                                35.47541920990201
+                            ],
+                            [
+                                3001.22046515771,
+                                983.3786204984837
+                            ]
+                        ]
+                    }
+                ],
+                "pending": [
+                ],
+                "selected": -1,
+                "tool": 0
+            }
+        },
+        {
+            "patches": [
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": true,
+                    "name": "Front Dowel",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 0,
+                    "wrap": false
+                },
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": true,
+                    "name": "Rear Dowel",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 2,
+                    "wrap": true
+                },
+                {
+                    "automaticResin": true,
+                    "clothGm2": 25.429310606174997,
+                    "imperialCloth": true,
+                    "name": "Nose",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 2,
+                    "wrap": true
+                }
+            ],
+            "sketch": {
+                "active": 1,
+                "editing": false,
+                "layers": [
+                    {
+                        "curves": [
+                            {
+                                "points": [
+                                    0,
+                                    1
+                                ],
+                                "type": 3
+                            }
+                        ],
+                        "points": [
+                            [
+                                652.3274111438412,
+                                1815.806898183976
+                            ],
+                            [
+                                640.1571236225009,
+                                1786.5982081327593
+                            ]
+                        ]
+                    },
+                    {
+                        "curves": [
+                            {
+                                "points": [
+                                    0,
+                                    1
+                                ],
+                                "type": 3
+                            }
+                        ],
+                        "points": [
+                            [
+                                1511.549710150468,
+                                2336.695204097342
+                            ],
+                            [
+                                1484.7750776035193,
+                                2297.7502840290526
+                            ]
+                        ]
+                    },
+                    {
+                        "curves": [
+                            {
+                                "points": [
+                                    0,
+                                    1
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    1,
+                                    2
+                                ],
+                                "type": 1
+                            },
+                            {
+                                "points": [
+                                    2,
+                                    3
+                                ],
+                                "type": 1
+                            }
+                        ],
+                        "points": [
+                            [
+                                306.6912455377761,
+                                2687.199484711943
+                            ],
+                            [
+                                289.65284300789966,
+                                2443.7937342851365
+                            ],
+                            [
+                                1255.9736722023213,
+                                2426.75533175526
+                            ],
+                            [
+                                1458.0004450565705,
+                                2794.298014899738
+                            ]
+                        ]
+                    }
+                ],
+                "pending": [
+                ],
+                "selected": -1,
+                "tool": 0
+            }
+        },
+        {
+            "patches": [
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": false,
+                    "name": "Patch 1",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 0,
+                    "wrap": true
+                }
+            ],
+            "sketch": {
+                "active": 0,
+                "editing": false,
+                "layers": [
+                    {
+                        "curves": [
+                        ],
+                        "points": [
+                        ]
+                    }
+                ],
+                "pending": [
+                ],
+                "selected": -1,
+                "tool": 0
+            }
+        },
+        {
+            "patches": [
+                {
+                    "automaticResin": true,
+                    "clothGm2": 50,
+                    "imperialCloth": false,
+                    "name": "Patch 1",
+                    "projectClothUnits": true,
+                    "resinThicknessMm": 0.046,
+                    "resinThicknessUnit": 0,
+                    "side": 2,
+                    "wrap": true
+                }
+            ],
+            "sketch": {
+                "active": 0,
+                "editing": false,
+                "layers": [
+                    {
+                        "curves": [
+                        ],
+                        "points": [
+                        ]
+                    }
+                ],
+                "pending": [
+                ],
+                "selected": -1,
+                "tool": 0
+            }
+        }
+    ],
     "format": "FoamAirplaneStudio",
     "formers": {
         "rectangles": [
@@ -12540,7 +12917,15 @@
             0,
             0
         ],
-        "thicknessMm": 3.175
+        "thicknessMm": 3.175,
+        "thicknessUnit": 0,
+        "thicknessUnits": [
+            0,
+            0,
+            0,
+            0,
+            0
+        ]
     },
     "fuselageCuts": {
         "active": 2,
@@ -14212,6 +14597,7 @@
                 },
                 "profile": 1,
                 "thicknessMm": 7.999999999993399,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 2,
                     "layer": 1,
@@ -14234,6 +14620,7 @@
                 },
                 "profile": 2,
                 "thicknessMm": 8,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 0,
                     "layer": 1,
@@ -14256,6 +14643,7 @@
                 },
                 "profile": 3,
                 "thicknessMm": 8,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 7,
                     "layer": 1,
@@ -14278,6 +14666,7 @@
                 },
                 "profile": 4,
                 "thicknessMm": 6.762000000001399,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 7,
                     "layer": 1,
@@ -14300,6 +14689,7 @@
                 },
                 "profile": 5,
                 "thicknessMm": 6,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 7,
                     "layer": 1,
@@ -14322,6 +14712,7 @@
                 },
                 "profile": 7,
                 "thicknessMm": 6,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 5,
                     "layer": 1,
@@ -14344,6 +14735,7 @@
                 },
                 "profile": 6,
                 "thicknessMm": 6,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 6,
                     "layer": 1,
@@ -14366,6 +14758,7 @@
                 },
                 "profile": 8,
                 "thicknessMm": 6.604,
+                "thicknessUnit": 0,
                 "top": {
                     "curve": 2,
                     "layer": 1,
@@ -14664,12 +15057,14 @@
     "servoTray": {
         "drawing": false,
         "first": null,
+        "heightUnit": 0,
         "rectangle": [
-            1014.114913539956,
-            2518.766638981305,
+            979.8938338484393,
+            2502.9722945082967,
             221.67707505840158,
             15.834076789885827
-        ]
+        ],
+        "widthUnit": 0
     },
     "spars": [
         [
@@ -15139,47 +15534,59 @@
         ],
         "selected": -1
     },
+    "stiffeners": {
+        "count": 1,
+        "diameterMm": 3,
+        "diameterUnit": 0,
+        "heightMm": 1,
+        "heightUnit": 0,
+        "shape": 1,
+        "startPercent": 20,
+        "stopPercent": 85,
+        "widthMm": 3,
+        "widthUnit": 0
+    },
     "ui": {
         "camera": {
             "center": [
-                328.0433402484159,
-                0,
-                27.30474494145065
+                328.0274707676447,
+                34.67976567737867,
+                -0.4685186706186073
             ],
             "eye": [
-                132.53158521104064,
-                -1001.6035465397898,
-                -12.173604824585261
+                -187.31134358386328,
+                -268.83941260973916,
+                273.69881638117204
             ],
             "fov": 45,
             "projection": 0,
-            "scale": 565.5472863162244,
+            "scale": 545.1336098632847,
             "up": [
-                -0.007405854487950609,
-                -0.03794007229320267,
-                0.9992525727931302
+                0.35906553749356585,
+                0.2114788831274271,
+                0.9090371949351868
             ]
         },
         "dihedralPanel": 0,
         "fuselageView": 1,
         "plan": {
             "center": [
-                1018.7183391539837,
-                2289.5745506734247
+                1844.2289554961421,
+                2603.4628132431294
             ],
-            "zoom": 0.49179442515589356
+            "zoom": 0.3806468811304099
         },
         "sparPanel": 0,
         "splitter": [
             342,
-            1190
+            1574
         ],
         "stationPanel": 1,
         "tool": "",
         "viewport": 0,
         "workspace": 7
     },
-    "version": 31,
+    "version": 33,
     "verticalStabilizerCuts": {
         "active": 0,
         "editing": false,
@@ -15440,63 +15847,78 @@
         "parts": [
             {
                 "centerMm": [
-                    49.788349970966024,
-                    -33.60829402187927
+                    38.725984511022894,
+                    -18.85847340862175
                 ],
                 "grams": 24.2,
                 "heightMm": 23.875999999999998,
+                "heightUnit": 0,
                 "lengthMm": 43.942,
+                "lengthUnit": 0,
                 "name": "ESC",
                 "ounces": false,
-                "widthMm": 9.906
+                "widthMm": 9.906,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
-                    57.50263197894183,
-                    -23.39957705113295
+                    50.6545009799294,
+                    -21.819239128283908
                 ],
                 "grams": 35,
                 "heightMm": 30.987999999999996,
+                "heightUnit": 0,
                 "lengthMm": 55.88,
+                "lengthUnit": 0,
                 "name": "Battery 2S 450mah",
                 "ounces": false,
-                "widthMm": 12.7
+                "widthMm": 12.7,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
-                    171.012132850046,
-                    -9.45112212675609
+                    162.05688462056818,
+                    -22.093825509548342
                 ],
                 "grams": 9,
                 "heightMm": 20.0000108,
+                "heightUnit": 0,
                 "lengthMm": 31.75,
+                "lengthUnit": 0,
                 "name": "Servo Rudder",
                 "ounces": false,
-                "widthMm": 20.0000108
+                "widthMm": 20.0000108,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
-                    170.51360406056534,
-                    -42.02663709191971
+                    162.08513513870392,
+                    -23.062582017731376
                 ],
                 "grams": 9,
                 "heightMm": 20.0000108,
+                "heightUnit": 0,
                 "lengthMm": 31.75,
+                "lengthUnit": 0,
                 "name": "Servo Elevator",
                 "ounces": false,
-                "widthMm": 20.0000108
+                "widthMm": 20.0000108,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
-                    120.23898826374983,
-                    -24.628815619924286
+                    105.4891676504923,
+                    -28.316270773238596
                 ],
                 "grams": 18,
                 "heightMm": 40.64,
+                "heightUnit": 0,
                 "lengthMm": 9.524999999999999,
+                "lengthUnit": 0,
                 "name": "Receiver",
                 "ounces": false,
-                "widthMm": 25.4
+                "widthMm": 25.4,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
@@ -15505,10 +15927,13 @@
                 ],
                 "grams": 17.5,
                 "heightMm": 25.4,
+                "heightUnit": 0,
                 "lengthMm": 12.7,
+                "lengthUnit": 0,
                 "name": "Motor",
                 "ounces": false,
-                "widthMm": 25.4
+                "widthMm": 25.4,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
@@ -15517,10 +15942,13 @@
                 ],
                 "grams": 5,
                 "heightMm": 127,
+                "heightUnit": 0,
                 "lengthMm": 8.889999999999999,
+                "lengthUnit": 0,
                 "name": "Prop",
                 "ounces": false,
-                "widthMm": 20.0000108
+                "widthMm": 20.0000108,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
@@ -15529,10 +15957,13 @@
                 ],
                 "grams": 8,
                 "heightMm": 20.0000108,
+                "heightUnit": 0,
                 "lengthMm": 39.9999962,
+                "lengthUnit": 0,
                 "name": "Pushrods/Clevises",
                 "ounces": false,
-                "widthMm": 20.0000108
+                "widthMm": 20.0000108,
+                "widthUnit": 0
             },
             {
                 "centerMm": [
@@ -15541,13 +15972,17 @@
                 ],
                 "grams": 22,
                 "heightMm": 57.15,
+                "heightUnit": 0,
                 "lengthMm": 57.15,
+                "lengthUnit": 0,
                 "name": "Wheels",
                 "ounces": false,
-                "widthMm": 20.0000108
+                "widthMm": 20.0000108,
+                "widthUnit": 0
             }
         ],
-        "plywoodDensityKgM3": 680
+        "plywoodDensityKgM3": 680,
+        "resinDensityKgM3": 1180
     },
     "wingOutline": {
         "active": 1,
