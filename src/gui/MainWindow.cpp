@@ -1017,7 +1017,7 @@ void MainWindow::updateFuselageModel() {
   try {
     // A separate owned worker and immutable snapshot; no Wing state is read.
     fuselageJob_=std::make_unique<processing::BackgroundJob<geometry::FuselageBuildResult>>(
-      [input=std::move(input)](std::stop_token stop,const auto& progress){return geometry::buildFuselageModel(input,progress,{stop});});
+      [input=std::move(input),checkpoint=fuselageModel_.checkpoint](std::stop_token stop,const auto& progress){return geometry::buildFuselageModel(input,progress,{stop},checkpoint);});
     fuselageJobEpoch_=projectEpoch_;fuselageJobFingerprint_=fingerprint;setModelProcessing(true);
     statusBar()->showMessage("Preparing fuselage geometry...");
   } catch(const std::exception& error){fuselageRetryPending_=true;statusBar()->showMessage("Could not start fuselage generation: "+QString::fromUtf8(error.what()));}

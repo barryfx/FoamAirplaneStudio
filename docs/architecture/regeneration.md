@@ -1,5 +1,18 @@
 # Background model regeneration
 
+Fuselage results retain an opaque in-memory checkpoint after servo supports,
+formers and retaining rails, before stiffener grooves. Direct generation and
+Assembly/Inspect preparation pass the previous checkpoint into the shared builder.
+An exact upstream-input key includes outlines, profiles, station positions/profile
+assignments/walls, length, hollowing, end openings, tray, formers/angles and mirrored
+construction. Stiffeners, holes and cuts are downstream and do not invalidate it.
+The checkpoint retains the cavity even before the first hole or cut is added.
+Each build deep-copies cached CAD geometry before downstream operations and meshing.
+Only successful complete jobs publish replacement checkpoints; failed/cancelled
+jobs leave the previous result usable. New/Open clears the model and its cache.
+The cache is not saved to project files. See ADR-0053, `fuselage_cache_tests`, and
+the validation/timing evidence in `../baseline/fuselage-checkpoint.md`.
+
 `processing::BackgroundJob<Result>` owns a component operation, immutable captured
 inputs, stop source, copied progress queue and future result. It is independent
 of Qt and wing data so fuselage and stabilizer jobs can reuse it. `MainWindow`

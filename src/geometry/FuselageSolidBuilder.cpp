@@ -10,6 +10,9 @@
 #include "geometry/ServoTray.h"
 #include "geometry/Formers.h"
 #include <BRep_Builder.hxx>
+#include <BRepBuilderAPI_Copy.hxx>
+#include <QDataStream>
+#include <QIODevice>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepBuilderAPI_MakeFace.hxx>
 #include <BRepPrimAPI_MakeHalfSpace.hxx>
@@ -30,7 +33,41 @@
 #include <cmath>
 #include <stdexcept>
 namespace designrc::geometry {
+struct FuselageCheckpoint {
+  QByteArray key;
+  TopoDS_Shape body,cavity;
+  FuselageBuildResult inserts;
+  std::vector<FuselageWallSection> walls;
+  std::vector<std::pair<double,double>> wallStations;
+  std::array<FuselageCutProjection,2> projections;
+  double length{};
+};
 namespace {
+// Encode every upstream geometry dependency. Downstream holes, cuts and
+// stiffeners deliberately do not participate. No persistent format is involved.
+QByteArray checkpointKey(const FuselageSolidInput& input) {
+  QByteArray bytes;QDataStream out{&bytes,QIODevice::WriteOnly};
+  auto layers=[&](const auto& values) {
+    out<<quint64(values.size());
+    for(const auto& layer:values) {
+      out<<quint64(layer.points.size());for(auto p:layer.points)out<<p;
+      out<<quint64(layer.curves.size());for(const auto& curve:layer.curves) {
+        out<<qint32(curve.type)<<quint64(curve.points.size());for(auto index:curve.points)out<<quint64(index);
+      }
+    }
+  };
+  layers(input.outlines);layers(input.profiles);
+  out<<quint64(input.stations.size());for(const auto& station:input.stations)
+    out<<station.first.position.x()<<bool(station.profile)<<quint64(station.profile.value_or(0))
+       <<bool(station.thicknessMm)<<station.thicknessMm.value_or(0);
+  out<<bool(input.lengthMm)<<input.lengthMm.value_or(0)<<input.thicken<<input.mirrorConstruction
+     <<bool(input.noseOpen)<<input.noseOpen.value_or(false)<<bool(input.tailOpen)<<input.tailOpen.value_or(false)
+     <<bool(input.servoTray)<<input.servoTray.value_or(QRectF{});
+  out<<quint64(input.formers.size());for(auto r:input.formers)out<<r;
+  out<<quint64(input.formerRotationDegrees.size());for(auto angle:input.formerRotationDegrees)out<<angle;
+  return bytes;
+}
+
 using Loop=std::vector<QPointF>;
 // Extend a straight slanted end to a temporary vertical plane. Hollow that
 // complete cross-section first, then trim both skin and cavity to the drawn plane.
@@ -181,7 +218,7 @@ FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& layer,std::o
   const auto nose=span(loop,box.left());
   return {box.left(),(nose.first+nose.second)/2,lengthMm.value_or(box.width())/box.width()};
 }
-FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std::function<void(const char*)>& progress,const ProcessingControl& processing) {
+static std::shared_ptr<const FuselageCheckpoint> prepareFuselage(const FuselageSolidInput& input,const std::function<void(const char*)>& progress,const ProcessingControl& processing,const QByteArray& key) {
   processing.checkpoint();
   if(!input.formers.empty()&&!input.thicken)throw std::runtime_error("Enter Thicken before generating formers; formers need inner walls.");
   if(input.servoTray&&!input.thicken)throw std::runtime_error("Enter Thicken before generating a servo tray; the tray needs inner fuselage walls.");
@@ -281,7 +318,7 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(solids!=1||std::abs(props.Mass())<1e-9)throw std::runtime_error("Fuselage did not produce one solid with positive volume.");
   if(props.Mass()<0)shape.Reverse();
   TopoDS_Shape cavity;FuselageBuildResult result;
-  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,(input.servoTray||!input.formers.empty()||!input.holes.empty()||std::any_of(input.cuts.begin(),input.cuts.end(),[](const auto& layer){return !layer.curves.empty();}))?&cavity:nullptr,input.mirrorConstruction);
+  if(input.thicken)shape=hollowFuselage(shape,walls,openNose,openTail,progress,processing,&cavity,input.mirrorConstruction);
   for(const auto& edge:{noseTrim,tailTrim})if(edge) {
     const auto a=edge->first,b=edge->second;
     const gp_Pnt origin{(a.x()-sb.left())*sideScale,0,(verticalOrigin-a.y())*sideScale};
@@ -314,6 +351,31 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
     auto inserts=result.formers;if(!result.servoTray.IsNull())inserts.push_back(result.servoTray);
     shape=addFormerRetainers(shape,cavity,formers,inserts,progress,processing,input.formerRotationDegrees,input.mirrorConstruction);
   }
+  processing.checkpoint();
+  auto saved=std::make_shared<FuselageCheckpoint>();
+  saved->key=key;saved->body=shape;saved->cavity=cavity;saved->inserts=std::move(result);
+  saved->walls=std::move(walls);saved->length=length;
+  saved->projections={{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}};
+  if(input.thicken)for(const auto& section:sections)saved->wallStations.emplace_back(section.t*length,section.wall);
+  return saved;
+}
+FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std::function<void(const char*)>& progress,
+    const ProcessingControl& processing,std::shared_ptr<const FuselageCheckpoint> checkpoint) {
+  processing.checkpoint();const auto key=checkpointKey(input);
+  if(!checkpoint||checkpoint->key!=key)checkpoint=prepareFuselage(input,progress,processing,key);
+  else if(progress)progress("Fuselage: reusing cached body and support rails...");
+  // OCCT shapes share mutable topology even through const handles. Deep-copy
+  // geometry before downstream Booleans or meshing; never expose cache shapes.
+  auto copy=[&](const TopoDS_Shape& source) {
+    processing.checkpoint();
+    auto result=source.IsNull()?TopoDS_Shape{}:BRepBuilderAPI_Copy{source,true,false}.Shape();
+    processing.checkpoint();return result;
+  };
+  auto shape=copy(checkpoint->body),cavity=copy(checkpoint->cavity);
+  FuselageBuildResult result;result.checkpoint=checkpoint;
+  result.servoTray=copy(checkpoint->inserts.servoTray);result.servoTrayTopFaces=copy(checkpoint->inserts.servoTrayTopFaces);
+  for(const auto& former:checkpoint->inserts.formers)result.formers.push_back(copy(former));
+  const auto& walls=checkpoint->walls;const auto length=checkpoint->length;
   if(input.stiffeners.count) {
     if(progress)progress("Fuselage: cutting carbon fiber stiffener grooves...");
     shape=cutFuselageStiffeners(shape,walls,length,input.stiffeners,result.stiffeners,processing,input.mirrorConstruction);
@@ -333,12 +395,12 @@ FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,const std
   if(!input.holes.empty()) {
     if(progress)progress("Fuselage: cutting holes through the selected walls...");
     shape=cutFuselageHoles(shape,cavity,input.holes,input.outlines,
-        {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},processing);
+        checkpoint->projections,processing);
   }
   FuselageAlignmentSpec alignment;alignment.seamReference=shape;
-  if(input.thicken)for(const auto& section:sections)alignment.wallStations.emplace_back(section.t*length,section.wall);
+  alignment.wallStations=checkpoint->wallStations;
   if(!input.cuts.empty())shape=cutFuselage(shape,input.cuts,
-      {{{tb.left(),topScale,lateralOrigin},{sb.left(),sideScale,verticalOrigin}}},progress,processing,input.outlines,cavity);
+      checkpoint->projections,progress,processing,input.outlines,cavity);
   shape=input.mirrorConstruction?finishFuselageHalves(shape,progress,processing,alignment):splitFuselageMainBody(shape,progress,processing,&alignment);
   result.body=shape;
   if(!result.servoTray.IsNull()||!result.formers.empty()) {

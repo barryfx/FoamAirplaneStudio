@@ -6,6 +6,7 @@
 #include <TopoDS_Shape.hxx>
 #include <QRectF>
 #include <functional>
+#include <memory>
 namespace designrc::geometry {
 struct FuselageSolidInput {
   std::vector<gui::SketchLayer> outlines;
@@ -26,9 +27,11 @@ struct FuselageSolidInput {
 struct FuselageSideTransform { double left, verticalOrigin, scale; };
 FuselageSideTransform fuselageSideTransform(const gui::SketchLayer& side,
     std::optional<double> lengthMm);
-struct FuselageBuildResult {TopoDS_Shape shape,body,servoTray,servoTrayTopFaces;std::vector<TopoDS_Shape> formers;std::vector<SparMaterial> stiffeners;};
+struct FuselageCheckpoint; // Immutable, in-memory geometry after support rails.
+struct FuselageBuildResult {std::shared_ptr<const FuselageCheckpoint> checkpoint;TopoDS_Shape shape,body,servoTray,servoTrayTopFaces;std::vector<TopoDS_Shape> formers;std::vector<SparMaterial> stiffeners;};
 FuselageBuildResult buildFuselageModel(const FuselageSolidInput& input,
-    const std::function<void(const char*)>& progress={},const ProcessingControl& processing={});
+    const std::function<void(const char*)>& progress={},const ProcessingControl& processing={},
+    std::shared_ptr<const FuselageCheckpoint> checkpoint={});
 // 64 clockwise samples; indices 0/16/32/48 match drawn top/right/bottom/left.
 std::vector<QPointF> sampleFuselageProfile(const gui::SketchLayer& profile);
 TopoDS_Shape buildFuselageSolid(const FuselageSolidInput& input,

@@ -274,7 +274,7 @@ void MainWindow::updateAssembly(bool inspect) {
   if(inspect&&!missing)return;
   inspectPreparing_=inspect;
   assemblyPrepareJob_=std::make_unique<processing::BackgroundJob<AssemblyPrepared>>(
-      [cached,requested,inspect,wing=std::move(wing),fuselage=std::move(fuselage),stabilizers=std::move(stabilizers)]
+      [checkpoint=fuselageModel_.checkpoint,cached,requested,inspect,wing=std::move(wing),fuselage=std::move(fuselage),stabilizers=std::move(stabilizers)]
       (std::stop_token stop,const auto& progress) mutable {
         geometry::ProcessingControl control{stop};control.checkpoint();
         std::vector<int> missing;
@@ -291,7 +291,7 @@ void MainWindow::updateAssembly(bool inspect) {
             // Avoid nested panel workers competing with the other components.
             // A lone missing Wing retains its normal panel concurrency.
             cached.wing=geometry::buildWingSolid(wing,progress,{componentControl,missing.size()>1?1u:0u,&cached.spars});
-          } else if(component==1)cached.fuselage=geometry::buildFuselageModel(fuselage,progress,componentControl);
+          } else if(component==1)cached.fuselage=geometry::buildFuselageModel(fuselage,progress,componentControl,checkpoint);
           else cached.stabilizers[component-2]=geometry::buildStabilizerModel(stabilizers[component-2],progress,componentControl);
         },stop);
         if(!inspect&&(cached.stabilizers[0].fixed.IsNull()||cached.stabilizers[1].fixed.IsNull()))

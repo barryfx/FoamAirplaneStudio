@@ -78,6 +78,8 @@ decisions. Do not leave documentation knowingly inconsistent with code.
 
 ## Testing/validation
 
+Use `--parallel 8` for builds.
+
 Do not run Wing or Fuselage generation tests until the user explicitly instructs
 otherwise. This includes broader suites that generate those components internally.
 Continue appropriate non-generation editor, persistence and UI checks.
