@@ -11,7 +11,8 @@ round stock, regardless of rod or tube construction.
 Persist one shared stiffener specification in additive project format 33; older
 projects default to disabled. Reuse spar shape types and carbon material records,
 with a body-frame flag to preserve fuselage centroids during wing placement.
-Route equal height fractions along the outer wall, form smooth lofted tools,
+Route equal height fractions along the outer wall, form lofted tools (ruled
+spans replace the original smooth loft under ADR-0055),
 and cut the right half before reflection and before surface holes/cuts.
 Reflect the grooved right half and stock centroids to create the left side. Round grooves embed half the diameter, as
 wing surface spars do. Weight assumes solid carbon stock because no bore is

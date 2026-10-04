@@ -86,8 +86,9 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
       const gp_Vec a{centers[i-2],centers[i-1]},b{centers[i-1],centers[i]};
       if(a.Angle(b)>15*std::numbers::pi/180)throw std::runtime_error("Stiffener "+std::to_string(number+1)+" at "+location(centers[i-1].X(),centers[i-1].X(),length)+": route bends more than 15 degrees between samples; move Start/Stop onto a smoother portion of the boom.");
     }
-    // A smooth cubic loft avoids an angular joint at each sampled section.
-    // Remove exactly collinear samples so straight booms create simple tools.
+    // Ruled spans stay between their endpoint sections. A global smooth loft
+    // can fold back or overshoot despite valid samples (see ADR-0055). Remove
+    // only collinear samples so straight booms still create simple tools.
     for(std::size_t i=1;i+1<centers.size();) {
       const auto& a=centers[i-1];const auto& b=centers[i];const auto& c=centers[i+1];const double t=(b.X()-a.X())/(c.X()-a.X());
       if(gp_Pnt{a.XYZ()+(c.XYZ()-a.XYZ())*t}.Distance(b)<1e-8)centers.erase(centers.begin()+i);else ++i;
@@ -95,14 +96,14 @@ TopoDS_Shape cutFuselageStiffeners(const TopoDS_Shape& body,const std::vector<Fu
     for(int side:{1,-1}) {
       if(rightHalf&&side<0)break;
       const auto loft=[&](bool cutting) {
-        BRepOffsetAPI_ThruSections result{true,false,1e-7};result.CheckCompatibility(false);result.SetMaxDegree(3);
+        BRepOffsetAPI_ThruSections result{true,true,1e-7};result.CheckCompatibility(false);
         for(auto center:centers) {
           center.SetY(center.Y()*side);control.checkpoint();
           if(round){gp_Circ circle{gp_Ax2{center,gp_Dir{1,0,0},gp_Dir{0,1,0}},settings.diameterMm/2};result.AddWire(BRepBuilderAPI_MakeWire{BRepBuilderAPI_MakeEdge{circle}.Edge()}.Wire());}
           else {const double inner=center.Y()-side*depth,outer=center.Y()+side*(cutting?std::max(width,depth):0.);BRepBuilderAPI_MakePolygon wire;
             for(auto p:{gp_Pnt{center.X(),inner,center.Z()-width/2},gp_Pnt{center.X(),outer,center.Z()-width/2},gp_Pnt{center.X(),outer,center.Z()+width/2},gp_Pnt{center.X(),inner,center.Z()+width/2}})wire.Add(p);wire.Close();result.AddWire(wire.Wire());}
         }
-        result.Build(control.range());control.checkpoint();if(!result.IsDone()||!BRepCheck_Analyzer{result.Shape()}.IsValid())throw std::runtime_error("Could not create a valid smooth tool for stiffener "+std::to_string(number+1)+(side==1?" / Right":" / Left")+" over "+location(start,stop,length)+". Exact failure position is unavailable; adjust its range.");return result.Shape();
+        result.Build(control.range());control.checkpoint();if(!result.IsDone()||!BRepCheck_Analyzer{result.Shape()}.IsValid())throw std::runtime_error("Could not create a valid tool for stiffener "+std::to_string(number+1)+(side==1?" / Right":" / Left")+" over "+location(start,stop,length)+". Exact failure position is unavailable; adjust its range.");return result.Shape();
       };
       const auto material=loft(false);GProp_GProps mass;BRepGProp::VolumeProperties(material,mass,1e-7);
       if(!std::isfinite(mass.Mass())||std::abs(mass.Mass())<1e-9)throw std::runtime_error("Stiffener has no measurable volume.");

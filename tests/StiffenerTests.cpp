@@ -94,7 +94,7 @@ int main(int argc,char** argv) {
     std::cout<<"Generating hollow fuselage with mirrored round grooves..."<<std::endl;
     input.stiffeners=s;const auto generatedRound=geometry::buildFuselageModel(input);
     TEST_CHECK(generatedRound.stiffeners.size()==2&&BRepCheck_Analyzer{generatedRound.body}.IsValid());
-    // A gently curved boom exercises non-collinear routes and smooth tool lofts.
+    // A gently curved boom exercises non-collinear routes and bounded tool lofts.
     input.outlines[1]={{{0,0},{100,-5},{200,0},{200,30},{100,25},{0,30}},
       {{SketchTool::Spline,{0,1,2}},{SketchTool::Line,{2,3}},{SketchTool::Spline,{3,4,5}},{SketchTool::Line,{5,0}}}};
     std::cout<<"Generating curved hollow boom with round grooves..."<<std::endl;

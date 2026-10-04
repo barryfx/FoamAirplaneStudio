@@ -13,11 +13,15 @@ At each longitudinal section, one route uses local mid-height; multiple routes
 use equal fractions of local height. Outer wall sections determine the lateral
 position. Sixty-five samples check spacing, actual solid material and nominal
 wall thickness; changes in successive tangent direction above 15 degrees reject
-the range. Collinear samples are removed, then cubic lofts form smooth tools.
+the range. Collinear samples are removed, then ruled lofts connect consecutive
+sections for both cutting tools and carbon stock. Each span stays between its
+endpoint sections: unlike a global cubic loft, it cannot overshoot or double
+back along the fuselage. Curved routes are piecewise linear with at most 64 spans;
+this does not introduce a guaranteed material bend radius. See ADR-0055.
 Clearance checking loads one OCCT solid classifier per body solid and reuses it
 for every probe in that generation call. The body is unchanged during checking;
 mutable classifiers are local to the call and never shared between workers.
-Sampling and tolerances are unchanged. See the classifier benchmark evidence in
+Classifier sampling and tolerances are unchanged. See the classifier benchmark evidence in
 `../baseline/stiffener-classifier-reuse.md`.
 This is a sampled fit check, not a carbon bend-radius guarantee. Users must move
 the range onto a smooth boom section if generation rejects a sharp transition.
