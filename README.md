@@ -4,7 +4,7 @@
 
 [Project website and downloads](https://barryfx.github.io/FoamAirplaneStudio/)
 
-**Source version 0.2.0 — October 4, 2026.** Desktop foam-airplane design with C++23,
+**Version 0.2.0 — October 4, 2026.** Desktop foam-airplane design with C++23,
 Qt and Open CASCADE Technology (OCCT). Trace reference plans, generate separate
 foam and structural parts, assemble the airplane, and export manufacturing files
 for CNC routing, 3D printing and laser cutting.
@@ -13,25 +13,8 @@ Projects use `.foam` format **33**; versions 1–32 remain readable. The applica
 version and project-format version are independent. Legacy `.designrc` projects
 are not supported.
 
-## Platforms and Release packages
-
-The latest published installers remain **0.1.0**; package instructions and platform
-validation below describe those binaries. Source version **0.2.0** adds the changes
-in the [release notes](docs/releases/0.2.0.md). No 0.2.0 installers are published yet.
-All three existing installers contain **Release builds**. Generated installers, source
-archives and checksums are in `dist/`; they are not committed to Git.
-
-| Platform | Installer | Validation environment |
-|---|---|---|
-| Windows x64 | `FoamAirplaneStudio-0.1.0-Windows-x64-Setup.exe` | Local Windows x64 installation and launch; targets Windows 10 1809 or later |
-| Ubuntu x86-64 | `foamairplanestudio_0.1.0_amd64.deb` | Ubuntu 24.04.3 LTS under WSL 2 with WSLg |
-| Fedora x86-64 | `foamairplanestudio-0.1.0-1.x86_64.rpm` | Fedora 44 container, normal user, Xvfb virtual X11 display |
-| macOS | Not available | Planned target; no validated build, installer or run procedure |
-
-Linux packages are built separately for each distribution. Other Linux versions
-and native desktop environments are not yet validated. Linux uses X11; Wayland
-sessions need XWayland, and WSL needs WSLg. See the exact completed checks in
-[Release installer validation](docs/baseline/linux-package-validation.md).
+Download installers, source archives and checksums from the
+[GitHub Releases page](https://github.com/barryfx/FoamAirplaneStudio/releases/).
 
 ## Implemented features
 
@@ -104,12 +87,13 @@ Use **File > Open** to open `BabyBuzzard36.foam`, then **Save As** to a folder y
 own before editing. Linux installation directories are read-only for normal users.
 The project opens in 2D without automatically generating geometry; select 3D or
 Assembly when ready. Installed examples may be replaced during upgrades.
-The source 0.2.0 example uses format 33, includes fiberglass and a strip stiffener
-per side, and requires a current source build; the 0.1.0 installer cannot open it.
+The included example uses format 33 and includes fiberglass and a strip stiffener
+per side. Use the current installer from the [Releases page](https://github.com/barryfx/FoamAirplaneStudio/releases/).
 
 ## Windows: install and run
 
-Run `FoamAirplaneStudio-0.1.0-Windows-x64-Setup.exe`, review and accept the licenses,
+Download the Windows Setup EXE from the [Releases page](https://github.com/barryfx/FoamAirplaneStudio/releases/),
+run it, review and accept the licenses,
 and choose whether to create a desktop shortcut. Installation is per user and
 requires no administrator rights. The default folder is
 `%LOCALAPPDATA%\Programs\FoamAirplaneStudio`. Qt, OCCT and the MSVC runtime are
@@ -152,23 +136,24 @@ license acceptance are documented in [Windows installer](docs/architecture/windo
 
 ## Ubuntu: install and run
 
-On Ubuntu 24.04, install the DEB with APT so dependencies are resolved:
+Download the Ubuntu DEB from the [Releases page](https://github.com/barryfx/FoamAirplaneStudio/releases/).
+On Ubuntu 24.04, install it with APT so dependencies are resolved:
 
 ```bash
-sudo apt install ./dist/foamairplanestudio_0.1.0_amd64.deb
+sudo apt install ./foamairplanestudio_0.2.0_amd64.deb
 foamairplanestudio
 ```
 
-For this Windows checkout under WSL, the package path is:
-`/mnt/c/Users/barry/projects/FoamAirplaneStudio/dist/foamairplanestudio_0.1.0_amd64.deb`.
+Run the command from the folder containing the downloaded package.
 The desktop application menu also includes FoamAirplaneStudio.
 
 ## Fedora: install and run
 
-On Fedora 44, install the RPM with DNF:
+Download the Fedora RPM from the [Releases page](https://github.com/barryfx/FoamAirplaneStudio/releases/).
+On Fedora 44, install it with DNF:
 
 ```bash
-sudo dnf install ./dist/foamairplanestudio-0.1.0-1.x86_64.rpm
+sudo dnf install ./foamairplanestudio-0.2.0-1.x86_64.rpm
 foamairplanestudio
 ```
 
@@ -257,7 +242,7 @@ The legacy `designrc_geometry_tests` target remains an intentionally skipped pla
 
 See [0.2.0 documentation audit](docs/baseline/documentation-audit-2026-10-04.md),
 [straight-side stiffener validation](docs/baseline/straight-side-stiffener-validation.md),
-[0.1.0 installer validation](docs/baseline/linux-package-validation.md),
+[installer validation](docs/baseline/installer-0.2.0-validation.md),
 [Release/Debug regression evidence](docs/baseline/release-debug-test-checks.md),
 and [geometry validation](docs/baseline/four-surface-cut-validation.md).
 Installation smoke tests do not establish full geometry or native-desktop coverage.
