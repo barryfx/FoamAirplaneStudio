@@ -418,30 +418,30 @@
   {
     "file": "qt-pdf-source.txt",
     "source": "Official Qt 6.11.1 archive URL and verified download checksums",
-    "sha256": "7fee93101211c8c9442140f30430225800d96d1282732c18d87072e373bc7690"
+    "sha256": "aa4ea5a970c7cebd6c5b162c250f89f0d1b1257557eb00cb67396088bcf33226"
   },
   {
     "file": "graphics/dxc/LICENSE-LLVM.txt",
     "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-LLVM.txt",
-    "sha256": "729615317e28dd03907e46f0fc3b5e88f7853cee61d1a1471d2749335516b46f",
+    "sha256": "b2551288a0381a79527d63c1590ae8bac98de4dafa1afd0702625d6e82524b85",
     "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
   },
   {
     "file": "graphics/dxc/LICENSE-MIT.txt",
     "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-MIT.txt",
-    "sha256": "903df5512f7d02609fed0c780a9b704f5a3eeb6e4d84ebe42a29845c81899a3c",
+    "sha256": "fd532481d828e13a0b13ccb598e02338a3617740675a862ee6bdc1541b68e93d",
     "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
   },
   {
     "file": "graphics/dxc/LICENSE-MS.txt",
     "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: LICENSE-MS.txt",
-    "sha256": "734f72f239fe7b07b4c7203f294c1a7ce27095687278bab7e56d630d7c672963",
+    "sha256": "e249948c6c7b0007e90638ad749d0e89c84634dcc8c28436a52b8b2dbce4a31e",
     "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
   },
   {
     "file": "graphics/dxc/LICENSE.txt",
     "source": "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2502/dxc_2025_02_20.zip :: inc/hlsl/LICENSE.txt",
-    "sha256": "f47b94fc51b04f4354a6c6f41fb84b0bd22a8ebfcde9f93c1b4d9abd7f6d14c2",
+    "sha256": "eb425408dc2905e3506310bfdc33fdf00c1dfc2f2f01de95fb01809b29765be2",
     "source_sha256": "70b1913a1bfce4a3e1a5311d16246f4ecdf3a3e613abec8aa529e57668426f85"
   },
   {

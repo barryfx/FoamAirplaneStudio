@@ -5,6 +5,9 @@ and deployed from `main` through GitHub Pages.
 
 Current state: October 4, 2026 (application 0.2.0, project format 33).
 
+All three 0.2.0 installers have been [built and tested locally](baseline/installer-0.2.0-validation.md).
+Published GitHub installer assets remain at 0.1.0.
+
 - `requirements.md` and `GUI Design.txt` define the intended product, including
   features not yet implemented.
 - `architecture/` describes current implementation. Start with `baseline.md`,
