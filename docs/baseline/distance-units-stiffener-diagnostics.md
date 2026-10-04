@@ -42,3 +42,61 @@ not by itself distinguish a physical sliver from a numerical Boolean artifact.
 No alternative groove dimensions or ranges have been validated for this project.
 The new user-visible exception reports solid counts, fragment volume and this
 percentage span. Failed generation publishes no model or carbon stock.
+
+## Follow-up: cause and proposed correction
+
+The instrumented Debug reproduction on the same unmodified project captured the
+right-half body, original smooth cutter and cut result under the ignored
+`build/debug/stiffener-diagnosis/` directory. The original cut reproduced exactly
+the 9.97166573975 mm³ extra solid. Temporary instrumentation and candidate code
+were removed after the investigation; this is a proposal, not a production fix.
+
+The smooth cubic cutter departs dramatically from the sampled route. At 20.5%
+from the nose (X = 134.079806328 mm), the intended route midpoint is approximately
+Z = -9.1861 mm, so the 3 mm strip should span roughly -10.6861 to -7.6861 mm.
+A vertical ray at Y = 24 mm instead intersects the original cutter at
+Z = 47.1312174597 and 50.131217425 mm. At Y = 26 mm that same X has three separate
+cutter intervals, demonstrating that the smooth loft doubles back. Ordinary
+`BRepCheck_Analyzer` validity passes for this cutter; the current 65 point checks
+validate the input samples, not the resulting interpolated solid. All 65 samples
+survived the collinearity filter, ruling out sample removal as the cause here.
+
+The Boolean result also retains material inside the cutter. At
+X = 135.905267701 mm, Z = -19.4545243331 mm, lateral ray intersections are:
+
+| Shape | Y interval, mm |
+| --- | --- |
+| Original body | 15.021568834 to 24.7543165414 |
+| Cutter | 23.847844202 to 27.8478442099 |
+| Main cut solid | 15.021568834 to 23.847844202 |
+| Extra solid | 23.847844202 to 24.7543165414 |
+
+Thus the extra solid at this cross-section occupies the very portion that should
+have been removed. This is not evidence that a correctly routed 1 mm groove
+penetrated the wall. The malformed route and incorrect Boolean result are the
+observed failure; the exact internal OCCT numerical mechanism was not isolated.
+A larger point-classification grid was stopped after the conclusive ray checks;
+no complete grid-validation result is claimed.
+
+The nominal wall sections at 20.0479%, 20.9744% and 21.875% are respectively
+6.762, 6.72926 and 6.64593 mm in this saved file. The fragment lies in that
+transition, rather than at an 8 mm station. This still provides ample nominal
+wall depth for a correctly routed 1 mm groove.
+
+A diagnostic-only experiment changed the stiffener loft from smooth to ruled
+(straight interpolation between consecutive sections), retaining the same
+65 samples, strip settings, pre-cut body and parallel Boolean mode. It produced
+one valid solid, volume 345148.040712 mm³, from a valid one-solid input of
+346217.745658 mm³. It passed the existing clearance, topology and solid-count
+checks. This validates the correction for the isolated failing cut, not every
+subsequent fuselage stage or every other model.
+
+Proposed production fix: replace the unconstrained smooth loft with a route
+construction that is monotone along X and cannot overshoot between its sections.
+Ruled interpolation is the demonstrated baseline; adaptive section spacing can
+limit faceting on curved booms. If a smooth surface is retained, constrain its
+route and validate the finished geometry rather than only the input samples.
+Apply the same route to groove tools and carbon stock. Add regression checks for
+this route, strip/round cases, groove location and depth between samples, and
+absence of retained material inside the cutter. Keep the disconnected-solid
+check; do not silently delete the extra solid or advise smaller stock as a fix.
